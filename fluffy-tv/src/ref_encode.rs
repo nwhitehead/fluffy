@@ -497,8 +497,8 @@ fn encode_combinator_call(
 ) -> Result<String, RefEncodeError> {
     // The registry entry is the frozen ground truth for the arg KINDS. The caller
     // (`encode_call`) only reaches here when `lookup(name).is_some()`.
-    let sig = fluffy_spec::lookup(name)
-        .ok_or_else(|| RefEncodeError::UnknownCallee(name.to_string()))?;
+    let sig =
+        fluffy_spec::lookup(name).ok_or_else(|| RefEncodeError::UnknownCallee(name.to_string()))?;
     if args.len() != sig.arg_kinds.len() {
         return Err(RefEncodeError::Unsupported(format!(
             "combinator `{name}` arity mismatch (got {} args, registry declares {})",

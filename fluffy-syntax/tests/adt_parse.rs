@@ -10,10 +10,8 @@
 //! (R-CHAR-3), NEVER copied from the parser's output. SURFACE only — the
 //! VALIDATOR (1b) and Verus LOWERING (1c) are not exercised here.
 
+use fluffy_syntax::{parse, Clause, EffectRow, Expr, Item, Pattern, PrimType, Type, VariantShape};
 use std::path::PathBuf;
-use fluffy_syntax::{
-    parse, Clause, EffectRow, Expr, Item, Pattern, PrimType, Type, VariantShape,
-};
 
 fn corpus(name: &str) -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))

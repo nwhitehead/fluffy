@@ -1831,9 +1831,7 @@ fn collect_type_adt_refs(
         // built-in (NOT a user ADT) NULLARY type — no inner type to recurse into
         // and never an in-file ADT decl, so it references no ADT (the no-op leaf
         // arm alongside `Prim`/`Unit`).
-        fluffy_syntax::Type::Prim(_)
-        | fluffy_syntax::Type::Unit
-        | fluffy_syntax::Type::String => {}
+        fluffy_syntax::Type::Prim(_) | fluffy_syntax::Type::Unit | fluffy_syntax::Type::String => {}
     }
 }
 
@@ -1915,9 +1913,7 @@ fn collect_expr_adt_refs(
             match index {
                 fluffy_syntax::IndexArg::Single(e)
                 | fluffy_syntax::IndexArg::RangeTo(e)
-                | fluffy_syntax::IndexArg::RangeFrom(e) => {
-                    collect_expr_adt_refs(e, adt_decls, out)
-                }
+                | fluffy_syntax::IndexArg::RangeFrom(e) => collect_expr_adt_refs(e, adt_decls, out),
                 fluffy_syntax::IndexArg::Range(a, b) => {
                     collect_expr_adt_refs(a, adt_decls, out);
                     collect_expr_adt_refs(b, adt_decls, out);

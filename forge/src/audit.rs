@@ -32,8 +32,8 @@
 
 use std::process::Command;
 
-use serde::{Deserialize, Serialize};
 use fluffy_syntax::{Contract, EffectRow, Item, Program};
+use serde::{Deserialize, Serialize};
 
 use crate::cli::ForgeError;
 use crate::manifest::{

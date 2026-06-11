@@ -677,9 +677,7 @@ fn generated_preamble(program: &fluffy_syntax::ast::Program) -> Result<Vec<Strin
 /// frame's `spec_defs` (the `spec fn` / `proof fn` / wrapper definition blocks of
 /// the lowered `verus! { … }`, with the `use`/`verus!`/`fn main` frame AND the exec
 /// `fn`s stripped — the obligation supplies its own frame + has no exec fns).
-fn program_spec_preamble(
-    program: &fluffy_syntax::ast::Program,
-) -> Result<Vec<String>, ForgeError> {
+fn program_spec_preamble(program: &fluffy_syntax::ast::Program) -> Result<Vec<String>, ForgeError> {
     let lowered = fluffy_lower::lower(program).map_err(ForgeError::Lower)?;
     Ok(extract_spec_defs(&lowered))
 }

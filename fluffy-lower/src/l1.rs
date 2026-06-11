@@ -2589,9 +2589,7 @@ fn emit_vec_runtime_l1(program: &Program) -> Result<String, LowerError> {
         out.push_str("    }\n");
         // `pop_last`: len>0 guard, then drop the last (REQ-8).
         out.push_str("    fn pop_last(&mut self) {\n");
-        out.push_str(
-            "        fluffy_check!(\"req\", \"self.len() > 0\", self.data.len() > 0);\n",
-        );
+        out.push_str("        fluffy_check!(\"req\", \"self.len() > 0\", self.data.len() > 0);\n");
         out.push_str("        self.data.pop();\n");
         out.push_str("    }\n");
         // `last`: len>0 guard, then read the last. Copy → value; non-Copy → borrow.
@@ -2621,9 +2619,7 @@ fn emit_vec_runtime_l1(program: &Program) -> Result<String, LowerError> {
         out.push_str("    }\n");
         // `remove`: i<len guard, then delete (REQ-8).
         out.push_str("    fn remove(&mut self, i: usize) {\n");
-        out.push_str(
-            "        fluffy_check!(\"req\", \"i < self.len()\", i < self.data.len());\n",
-        );
+        out.push_str("        fluffy_check!(\"req\", \"i < self.len()\", i < self.data.len());\n");
         out.push_str("        self.data.remove(i);\n");
         out.push_str("    }\n");
         // `contains`: a linear scan (Copy element `==` only — the L3 form omits a

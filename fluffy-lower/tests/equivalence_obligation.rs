@@ -120,8 +120,8 @@ fn equivalent_early_return_verifies() {
     }
     let f = parse_fn(CLAMP_ZERO);
     let mutant = early_return_body(f.body.as_ref().unwrap(), 0);
-    let obligation = fluffy_lower::lower_equivalence_obligation(&f, &mutant)
-        .expect("scalar obligation lowers");
+    let obligation =
+        fluffy_lower::lower_equivalence_obligation(&f, &mutant).expect("scalar obligation lowers");
     assert!(
         verus_verifies(&obligation, "clamp_equiv"),
         "the early-return-0 mutant is PROVED equivalent to `x + 0` under x == 0; \
@@ -140,8 +140,8 @@ fn distinguishing_offbyone_fails() {
     }
     let f = parse_fn(CLAMP_ZERO);
     let mutant = early_return_body(f.body.as_ref().unwrap(), 1);
-    let obligation = fluffy_lower::lower_equivalence_obligation(&f, &mutant)
-        .expect("scalar obligation lowers");
+    let obligation =
+        fluffy_lower::lower_equivalence_obligation(&f, &mutant).expect("scalar obligation lowers");
     assert!(
         !verus_verifies(&obligation, "clamp_distinguish"),
         "the early-return-1 mutant DIFFERS from `x + 0` under x == 0; the \
@@ -161,8 +161,8 @@ fn loose_early_return_stays_distinguishing() {
     }
     let f = parse_fn(LOOSE);
     let mutant = early_return_body(f.body.as_ref().unwrap(), 0);
-    let obligation = fluffy_lower::lower_equivalence_obligation(&f, &mutant)
-        .expect("scalar obligation lowers");
+    let obligation =
+        fluffy_lower::lower_equivalence_obligation(&f, &mutant).expect("scalar obligation lowers");
     assert!(
         !verus_verifies(&obligation, "loose_distinguish"),
         "under req x <= 100 the early-return-0 mutant is distinguishing (x = 5); \

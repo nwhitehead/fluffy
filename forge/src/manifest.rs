@@ -76,8 +76,8 @@
 //! | `AssuranceScope` (per-fn §9 scope) | SHIPPED | `enum AssuranceScope { EndToEnd, ToBoundary { via } }` (`.design/forge/e2e-vs-boundary.md` REQ-2/REQ-3); `Certificate.assurance_scope: Option<AssuranceScope>` (additive, `#[serde(default, skip_serializing_if = "Option::is_none")]` so the frozen golden `conformance/sum.cert.json` — which omits it — still deserializes, defaulting `None`, mirroring the `boundary_target`/`solver_profile` precedents, R-SPEC-2). Produced by `closure::classify`, set by `Certificate::with_assurance_scope`, consumed by `check::check_file_with_options`. VERDICT-RELEVANT (§9 / R-DEFER-9) so it JOINS `oracle_subset` — NORMALIZED to a bool (`scope_is_end_to_end`): `None` and `Some(EndToEnd)` are oracle-EQUAL (golden stays stable) while `Some(ToBoundary)` is oracle-visible; the `via` crossing name is diagnostic, oracle-EXCLUDED. ORTHOGONAL to `level` (REQ-5). |
 //! | `ProjectScope` (project §9 claim) | SHIPPED | `enum ProjectScope { EndToEnd, ToBoundary { crossings } }` + `AssuranceManifest.scope`; `AssuranceManifest::aggregate` computes it (`project_scope`): END-TO-END iff every cert is end-to-end, else TO-THE-BOUNDARY listing the reached crossings (sorted + deduplicated, deterministic — REQ-4/REQ-6). ORTHOGONAL to the `project` level headline. Consumed by `cli::run_check`. |
 
-use serde::{Deserialize, Serialize};
 use fluffy_syntax::{Effect, EffectRow};
+use serde::{Deserialize, Serialize};
 
 use crate::profile::SolverProfile;
 use crate::strengthen::Suggestion;

@@ -664,10 +664,10 @@ mod tests {
 mod verus_anchor {
     use super::*;
     use crate::manifest::{Level, ObligationResult};
-    use std::cell::Cell;
     use fluffy_verified::{
         ladder_action_l2_tag, ladder_action_l3_tag, L2Tag, L3Tag, LadderAction as VLadderAction,
     };
+    use std::cell::Cell;
 
     /// Map the production [`LadderAction`] to the verus-proved
     /// `fluffy_verified::LadderAction` (the two enums are byte-identical mirrors —

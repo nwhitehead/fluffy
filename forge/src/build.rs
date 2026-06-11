@@ -64,8 +64,8 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use serde::Serialize;
 use fluffy_syntax::{FnItem, Item, PrimType, Program, Type};
+use serde::Serialize;
 
 use std::collections::BTreeSet;
 

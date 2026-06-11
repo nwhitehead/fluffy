@@ -25,8 +25,8 @@
 //!
 //! Tracking: filed as a `-l blocker` via crosslink (see report).
 
-use std::fs;
 use fluffy_syntax::{parse, Block, Item, LoopKind, Stmt};
+use std::fs;
 
 fn corpus(rel: &str) -> String {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

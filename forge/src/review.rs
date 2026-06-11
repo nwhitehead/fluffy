@@ -64,8 +64,8 @@ use std::io::Write;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-use serde::{Deserialize, Serialize};
 use fluffy_syntax::{Contract, Expr, Item, Param, Program, Type};
+use serde::{Deserialize, Serialize};
 
 use crate::check;
 use crate::cli::ForgeError;

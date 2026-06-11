@@ -372,10 +372,7 @@ mod tests {
         // The params carry FLUFFY types, not Verus strings.
         assert_eq!(o.env.params.len(), 2);
         assert_eq!(o.env.params[0].name, "x");
-        assert_eq!(
-            o.env.params[0].ty,
-            Type::Prim(fluffy_syntax::PrimType::U64)
-        );
+        assert_eq!(o.env.params[0].ty, Type::Prim(fluffy_syntax::PrimType::U64));
         // The req is an AST node (not rendered text).
         assert!(o.env.req.is_some());
         // The body slice is a Block (the production side).

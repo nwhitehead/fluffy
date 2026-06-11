@@ -36,9 +36,7 @@
 
 use std::collections::BTreeMap;
 
-use fluffy_syntax::ast::{
-    Block, Effect, EffectRow, Expr, IndexArg, Item, LoopKind, Program, Stmt,
-};
+use fluffy_syntax::ast::{Block, Effect, EffectRow, Expr, IndexArg, Item, LoopKind, Program, Stmt};
 use fluffy_syntax::lexer::Span;
 
 use crate::lower::LowerError;

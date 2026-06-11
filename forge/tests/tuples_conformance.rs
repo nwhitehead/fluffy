@@ -31,8 +31,8 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use serde_json::Value;
 use fluffy_syntax::{Expr, Type};
+use serde_json::Value;
 
 fn forge_bin() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_forge"))

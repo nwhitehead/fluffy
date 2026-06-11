@@ -156,10 +156,7 @@ fn check_params(actual: &[Param], expected: &[ParamFact]) {
 
 /// Collect every loop statement in a block (recursing into if-branches), in
 /// source order — the structural order addressing relies on.
-fn collect_loops<'a>(
-    block: &'a fluffy_syntax::Block,
-    out: &mut Vec<&'a fluffy_syntax::LoopNode>,
-) {
+fn collect_loops<'a>(block: &'a fluffy_syntax::Block, out: &mut Vec<&'a fluffy_syntax::LoopNode>) {
     for stmt in &block.stmts {
         match stmt {
             Stmt::Loop(lp) => {
