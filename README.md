@@ -4,7 +4,7 @@
 
 *Every plain-language term in this README resolves to a precise mechanism in [RATIONALE.md](RATIONALE.md).*
 
-> Fluffy is what you get when you add energy to rust. Iron oxide plus aluminum: inert powder until ignited, then it burns at 2,500 °C and cuts through steel. Take Rust's substrate, add the energy budget AI agents bring (compute, patience, token spend), and produce something hot enough to weld trust into software.
+> Fluffy is what you get when you add cuteness to rust. A language so soft and approachable you'd never suspect it's made of ironclad proofs. Take Rust's substrate, wrap it in the relentless friendliness AI agents bring (patience, thoroughness, a refusal to let a bug slide), and produce something warm enough to earn trust in software — without anyone getting burned.
 
 ## The problem
 
