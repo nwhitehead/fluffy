@@ -47,18 +47,64 @@ dependencies = [
 ]
 
 [[package]]
-name = "forge"
+name = "fluffy-lower"
+version = "0.0.1"
+dependencies = [
+ "fluffy-spec",
+ "fluffy-syntax",
+ "fluffy-verified",
+]
+
+[[package]]
+name = "fluffy-skill"
+version = "0.0.1"
+dependencies = [
+ "fluffy-spec",
+ "fluffy-syntax",
+]
+
+[[package]]
+name = "fluffy-spec"
+version = "0.0.1"
+dependencies = [
+ "fluffy-syntax",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "fluffy-syntax"
 version = "0.0.1"
 dependencies = [
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "fluffy-tv"
+version = "0.0.1"
+dependencies = [
+ "fluffy-spec",
+ "fluffy-syntax",
+]
+
+[[package]]
+name = "fluffy-verified"
+version = "0.0.1"
+
+[[package]]
+name = "forge"
+version = "0.0.1"
+dependencies = [
+ "fluffy-lower",
+ "fluffy-skill",
+ "fluffy-spec",
+ "fluffy-syntax",
+ "fluffy-tv",
+ "fluffy-verified",
+ "serde",
+ "serde_json",
  "sha2",
- "thermite-lower",
- "thermite-skill",
- "thermite-spec",
- "thermite-syntax",
- "thermite-tv",
- "thermite-verified",
 ]
 
 [[package]]
@@ -171,52 +217,6 @@ dependencies = [
  "quote",
  "unicode-ident",
 ]
-
-[[package]]
-name = "thermite-lower"
-version = "0.0.1"
-dependencies = [
- "thermite-spec",
- "thermite-syntax",
- "thermite-verified",
-]
-
-[[package]]
-name = "thermite-skill"
-version = "0.0.1"
-dependencies = [
- "thermite-spec",
- "thermite-syntax",
-]
-
-[[package]]
-name = "thermite-spec"
-version = "0.0.1"
-dependencies = [
- "serde",
- "serde_json",
- "thermite-syntax",
-]
-
-[[package]]
-name = "thermite-syntax"
-version = "0.0.1"
-dependencies = [
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "thermite-tv"
-version = "0.0.1"
-dependencies = [
- "thermite-spec",
- "thermite-syntax",
-]
-
-[[package]]
-name = "thermite-verified"
-version = "0.0.1"
 
 [[package]]
 name = "typenum"
