@@ -1,6 +1,6 @@
 //! `forge/tests/cache_conformance.rs` — the #8 per-item content-addressed
 //! proof-cache verification (`.design/forge/proof-cache.md` §Verification /
-//! AC-1..AC-5; `thermite-design.md` §5.3). It drives the BUILT `forge` binary
+//! AC-1..AC-5; `fluffy-design.md` §5.3). It drives the BUILT `forge` binary
 //! (`forge check --json`) with a HERMETIC, per-test cache directory
 //! (`FORGE_CACHE_DIR`) and a PINNED verus version (`VERUS_VERSION`), so tests do
 //! not pollute each other or the shared `target/` cache, and do not depend on
@@ -11,7 +11,7 @@
 //! solver-skip test, which deliberately removes verus from PATH AFTER populating
 //! the cache to prove the HIT path never spawns the solver.
 //!
-//! Expected verdicts trace to `thermite-design.md` / `.design/forge/proof-cache.md`,
+//! Expected verdicts trace to `fluffy-design.md` / `.design/forge/proof-cache.md`,
 //! never copied from forge's own output (`goal.md` R-CHAR-3). `tests/` is not
 //! anti-pattern-gated, so `unwrap`/`expect` are fine here.
 

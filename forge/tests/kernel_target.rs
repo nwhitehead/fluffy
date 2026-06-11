@@ -14,8 +14,8 @@
 //!   - AC-2 — a `fx read(...)` fn → a structured refusal naming the rejected effect,
 //!     nonzero exit, NO artifact; a `fx write`/`net`/`term` fn refuses identically; a
 //!     `fx pure`/`alloc` fn builds.
-//!   - AC-3 — the emitted kernel source carries the always-active `thermite_check!` /
-//!     `thermite_contract_violation` (`panic!`) VERBATIM (NOT stripped, NOT
+//!   - AC-3 — the emitted kernel source carries the always-active `fluffy_check!` /
+//!     `fluffy_contract_violation` (`panic!`) VERBATIM (NOT stripped, NOT
 //!     `debug_assert!`); the no_std rlib genuinely COMPILES when a test
 //!     `#[panic_handler]`/`#[global_allocator]` (the kernel-host stand-in) is linked.
 //!   - AC-4 — `forge build sum.th` (no `--target`) is byte-unchanged (the std default).
@@ -26,7 +26,7 @@
 //! The freestanding-compile MECHANISM (AC-1/AC-3): the test reconstructs the EXACT
 //! kernel source forge emits for a pure (boundary-free) program — the design-pinned
 //! prelude `#![no_std]` / `extern crate alloc;` / `use alloc::vec::Vec;` PLUS
-//! `thermite_lower::lower_l1`'s output — INDEPENDENTLY (the prelude is taken from the
+//! `fluffy_lower::lower_l1`'s output — INDEPENDENTLY (the prelude is taken from the
 //! design doc, NOT copied from forge output — R-CHAR-3), then shells the real `rustc`
 //! with `-C panic=abort` + a test panic_handler/allocator stub. This is the
 //! N-version check: forge's own `--target kernel` ALSO compiles the source internally
@@ -71,15 +71,15 @@ fn run_forge_build(args: &[&str]) -> (bool, String, String) {
 const PINNED_KERNEL_PRELUDE: &str = "#![no_std]\nextern crate alloc;\nuse alloc::vec::Vec;\n";
 
 /// Reconstruct the EXACT kernel-target source forge emits for the pure (boundary-
-/// free) corpus program at `th_path`: the pinned prelude + `thermite_lower::lower_l1`
+/// free) corpus program at `th_path`: the pinned prelude + `fluffy_lower::lower_l1`
 /// (a boundary-free program emits no `mod os`, so this is the whole body). This is
 /// the INDEPENDENT N-version source the AC-3 freestanding compile uses.
 fn reconstruct_kernel_source(th_path: &Path) -> String {
     let src = std::fs::read_to_string(th_path)
         .unwrap_or_else(|e| panic!("read {}: {e}", th_path.display()));
-    let parsed = thermite_syntax::parse(&src);
+    let parsed = fluffy_syntax::parse(&src);
     assert!(parsed.is_clean(), "corpus program must parse cleanly");
-    let lowered = thermite_lower::lower_l1(&parsed.program)
+    let lowered = fluffy_lower::lower_l1(&parsed.program)
         .unwrap_or_else(|e| panic!("lower_l1 {}: {e:?}", th_path.display()));
     format!("{PINNED_KERNEL_PRELUDE}{lowered}")
 }
@@ -100,7 +100,7 @@ fn freestanding_compile(unique: &str, source: &str) -> (bool, String) {
     let rs = dir.join("kernel_freestanding.rs");
 
     // The kernel-host stand-in (OQ-1): a `#[panic_handler]` (the L1
-    // `thermite_contract_violation`'s `panic!` routes here under `panic=abort`) and a
+    // `fluffy_contract_violation`'s `panic!` routes here under `panic=abort`) and a
     // trivial `#[global_allocator]` so `alloc`'s `Vec`/`String` link freestanding.
     // None of this is emitted by forge — it is the test harness standing in for the
     // kernel host. The allocator never actually allocates in a type-check/link build.
@@ -223,7 +223,7 @@ fn pure_fn_builds_no_std_kernel_rlib() {
     );
 }
 
-// ---- AC-3: the L1 thermite_check!/panic! is emitted verbatim under no_std --------
+// ---- AC-3: the L1 fluffy_check!/panic! is emitted verbatim under no_std --------
 
 #[test]
 fn l1_checks_emitted_verbatim_in_kernel_source() {
@@ -233,12 +233,12 @@ fn l1_checks_emitted_verbatim_in_kernel_source() {
     // The always-active L1 check machinery is emitted UNCHANGED (NOT stripped, NOT
     // `debug_assert!`): the macro + the `panic!`-based violation handler.
     assert!(
-        source.contains("macro_rules! thermite_check"),
-        "the always-active `thermite_check!` macro must be emitted:\n{source}"
+        source.contains("macro_rules! fluffy_check"),
+        "the always-active `fluffy_check!` macro must be emitted:\n{source}"
     );
     assert!(
-        source.contains("fn thermite_contract_violation"),
-        "the `thermite_contract_violation` handler must be emitted:\n{source}"
+        source.contains("fn fluffy_contract_violation"),
+        "the `fluffy_contract_violation` handler must be emitted:\n{source}"
     );
     assert!(
         source.contains("panic!("),
@@ -250,10 +250,10 @@ fn l1_checks_emitted_verbatim_in_kernel_source() {
     );
 
     // The kernel `sum` body actually instantiates the check (`req`/`inv` → a runtime
-    // `thermite_check!(...)` call site), so the check is reachable, not dead.
+    // `fluffy_check!(...)` call site), so the check is reachable, not dead.
     assert!(
-        source.contains("thermite_check!("),
-        "the lowered body must contain at least one `thermite_check!(...)` call:\n{source}"
+        source.contains("fluffy_check!("),
+        "the lowered body must contain at least one `fluffy_check!(...)` call:\n{source}"
     );
 
     // AC-3 mechanism: with the host panic_handler the no_std rlib genuinely compiles
@@ -407,8 +407,8 @@ fn default_target_source_is_byte_identical_to_no_target_flag() {
 
     // The std (non-kernel) lowering emits NO no_std prelude (byte-unchanged default).
     let src = std::fs::read_to_string(&sum).unwrap();
-    let parsed = thermite_syntax::parse(&src);
-    let std_lowered = thermite_lower::lower_l1(&parsed.program).expect("lower_l1");
+    let parsed = fluffy_syntax::parse(&src);
+    let std_lowered = fluffy_lower::lower_l1(&parsed.program).expect("lower_l1");
     assert!(
         !std_lowered.contains("#![no_std]"),
         "the std default lowering must NOT carry the kernel `#![no_std]` prelude"

@@ -31,7 +31,7 @@
 //! - `forge/src/body_tv.rs`'s former `is_rlimit_signal` (the #189 precedent): the
 //!   THREE-phrase set the shared discriminator must carry.
 //! - The z3 binary literal `max. resource limit exceeded` (observed via `strings` on
-//!   the distributed toolchain), independent of any Thermite source.
+//!   the distributed toolchain), independent of any Fluffy source.
 //! - `goal.md` R-HONEST-3 / R-CODE-4: a timeout is never a fabricated Divergent.
 //!
 //! MECHANICS: `is_rlimit_signal` is `pub(crate)` to the `forge` binary crate,
@@ -149,7 +149,7 @@ fn divergence_contract_tv_rlimit_phrases_drifted_from_body_tv() {
 
 /// THE BEHAVIORAL CONSEQUENCE: Z3's own resourceout diagnostic (`max. resource limit
 /// exceeded` — the literal present in the distributed z3 binary, independent of any
-/// Thermite source) on an `errors >= 1` run MUST be detected as a timeout signal so the
+/// Fluffy source) on an `errors >= 1` run MUST be detected as a timeout signal so the
 /// discharge paths route it to Unverifiable, never the Divergent arm. Evaluates the
 /// SHARED discriminator's extracted phrase set with the discriminator's exact semantics
 /// (`output.to_ascii_lowercase().contains(phrase)`). HAND-DERIVED (R-CHAR-3):

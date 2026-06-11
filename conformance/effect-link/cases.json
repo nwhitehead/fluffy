@@ -11,7 +11,7 @@
   "build_and_run": [
     { "name": "elapsed_ok_runs", "source": "conformance/effect_link_demo.th", "entry": "elapsed_ok",
       "expect_rustc_exit": 0, "expect_run_exit": 0, "expect_run_output_is_u64_below": 4000000000,
-      "why": "forge build --entry elapsed_ok emits `mod os { fn now() -> u64 { SystemTime::now()... } }`, rustc-links it (exit 0), and the binary RUNS -> prints elapsed_ok()'s result: a live Unix timestamp (a u64, > 0, < 4_000_000_000). This is THE unlock: a verified Thermite program runs + does real I/O (a clock_gettime syscall)." }
+      "why": "forge build --entry elapsed_ok emits `mod os { fn now() -> u64 { SystemTime::now()... } }`, rustc-links it (exit 0), and the binary RUNS -> prints elapsed_ok()'s result: a live Unix timestamp (a u64, > 0, < 4_000_000_000). This is THE unlock: a verified Fluffy program runs + does real I/O (a clock_gettime syscall)." }
   ],
   "sandbox_confines": [
     { "name": "fx_time_allowlist", "source": "conformance/effect_link_demo.th",

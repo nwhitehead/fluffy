@@ -1,5 +1,5 @@
 {
-  "note": "Valid SpecTherm — each program PARSES (thermite-syntax) and the thermite-spec validator must ACCEPT it (no SpecError). Covers all 8 registered combinators in contract positions + a spec-fn call in a contract. Hand-derived from §4.2 + the corpus (R-CHAR-3); expected behavior is 'validates clean', never copied from validator output.",
+  "note": "Valid SpecTherm — each program PARSES (fluffy-syntax) and the fluffy-spec validator must ACCEPT it (no SpecError). Covers all 8 registered combinators in contract positions + a spec-fn call in a contract. Hand-derived from §4.2 + the corpus (R-CHAR-3); expected behavior is 'validates clean', never copied from validator output.",
   "cases": [
     { "name": "sorted_in_req",        "combinator": "sorted",         "program": "fn f(xs: &[u32]) -> u32 req sorted(xs) ens result == 0 fx pure { 0 }" },
     { "name": "forall_in_in_ens",     "combinator": "forall_in",      "program": "fn f(xs: &[u32], n: u32) -> u32 req true ens forall_in(xs, |x| x != n) fx pure { 0 }" },

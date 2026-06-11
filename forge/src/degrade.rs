@@ -1,6 +1,6 @@
 //! `forge/src/degrade.rs` — the automatic L3→L2→L1 degrade ladder + the
 //! project-level assurance manifest (issue #10, `.design/forge/degrade-ladder.md`;
-//! `thermite-design.md` §5.2 "the gate degrades, it never blocks", §6, §12).
+//! `fluffy-design.md` §5.2 "the gate degrades, it never blocks", §6, §12).
 //!
 //! On the DEFAULT `forge check` path (no `--level` flag) an item is first
 //! attempted at L3 (the verus SMT proof). When verus cannot PROVE it within its
@@ -25,7 +25,7 @@
 //! - the L2 rung is #9's `kani::run_kani` + `kani::classify_l2_outcome`
 //!   (`L2Verdict`, the OQ-2 split);
 //! - the L1 rung is OQ-3 reading (b): the ladder RECORDS `Level::L1` +
-//!   lowered-assurance; the runtime-check EMISSION stays `thermite_lower::lower_l1`'s
+//!   lowered-assurance; the runtime-check EMISSION stays `fluffy_lower::lower_l1`'s
 //!   build-time job (the `Certificate::slag_l1` precedent records L1 without
 //!   running `lower_l1`).
 //!
@@ -102,7 +102,7 @@ pub struct L2Attempt {
 
 /// The action the degrade ladder takes for a classified verdict (REQ-7, the
 /// anti-cheat decision core). This is the PROVED classification: it is the in-tree
-/// mirror of `thermite_verified::LadderAction`, the verus-verified decision whose
+/// mirror of `fluffy_verified::LadderAction`, the verus-verified decision whose
 /// anti-cheat `ensures` is `l3_is_counterexample(v) ==> (r is HardFail) &&
 /// !is_degrade(r)` (a `Counterexample` NEVER degrades — the core R-DEFER-9
 /// property). [`run_ladder`] BRANCHES on the returned action, so the proved
@@ -127,7 +127,7 @@ impl LadderAction {
     /// `true` iff this is a DEGRADE — a lower rung taken as a PASS
     /// (`CertifyL2`/`DegradeToL1`). The anti-cheat invariant (REQ-7, R-DEFER-9) is
     /// that a `Counterexample` (→ `HardFail`) is NEVER a degrade. Mirrors
-    /// `thermite_verified::is_degrade`.
+    /// `fluffy_verified::is_degrade`.
     #[must_use]
     pub fn is_degrade(self) -> bool {
         matches!(self, LadderAction::CertifyL2 | LadderAction::DegradeToL1)
@@ -136,7 +136,7 @@ impl LadderAction {
 
 /// The L3 ladder DECISION (REQ-7): an L3 verdict's DISCRIMINANT → the ladder action.
 /// This is the in-tree mirror of the verus-proved `verus_core::ladder_action_l3`
-/// (and the plain `thermite_verified::ladder_action_l3_tag`): `Proved` → certify L3,
+/// (and the plain `fluffy_verified::ladder_action_l3_tag`): `Proved` → certify L3,
 /// `Timeout` → attempt L2, `Counterexample` → HARD FAIL (NEVER a degrade — the
 /// anti-cheat `ensures` the verus core discharges). [`run_ladder`] branches on this
 /// (the production consumer); the in-module `verus_anchor` test binds it to the
@@ -154,7 +154,7 @@ pub fn ladder_action_l3(v: &L3Verdict) -> LadderAction {
 
 /// The L2 ladder DECISION (REQ-7, the 2nd rung): an L2 verdict's DISCRIMINANT → the
 /// ladder action. The in-tree mirror of `verus_core::ladder_action_l2` /
-/// `thermite_verified::ladder_action_l2_tag`: `Verified` → certify L2,
+/// `fluffy_verified::ladder_action_l2_tag`: `Verified` → certify L2,
 /// `UnderBound` → drop to L1, `Counterexample` → HARD FAIL (NEVER a drop to L1 —
 /// the 2nd-rung anti-cheat the verus core discharges).
 #[must_use]
@@ -247,7 +247,7 @@ where
     // The PROVED anti-cheat (REQ-7): the lowered-assurance stamp is applied IFF the
     // action `is_degrade()` (`CertifyL2`/`DegradeToL1`). A `HardFail` (an L2
     // counterexample) is NEVER a degrade, so its cert is returned UNCHANGED (never
-    // stamped) — the `is_degrade` predicate is the gate `thermite_verified::is_degrade`
+    // stamped) — the `is_degrade` predicate is the gate `fluffy_verified::is_degrade`
     // proves never holds for a counterexample (R-DEFER-9). The closure side-effect
     // (run L1 or not) is the action's other dimension.
     match action {
@@ -644,14 +644,14 @@ mod tests {
 // `forge/tests/ladder_action_verified.rs` for this anchor, but `forge` is a
 // binary-only crate (no lib target), so an external test cannot reach the internal
 // `ladder_action_l3`/`ladder_action_l2`/`run_ladder` symbols. This in-module
-// `#[cfg(test)]` block reaches them directly; `thermite-verified` is a forge
+// `#[cfg(test)]` block reaches them directly; `fluffy-verified` is a forge
 // DEV-dependency. (Reported for the critic.)
 //
 // Binds the PRODUCTION ladder decision to the VERUS-PROVED tag over the WHOLE finite
 // verdict domain (mechanism (c), R-CHAR-3 — expected from the proved spec, never
 // forge's own output). Two anchors:
 //   (1) AC-7c verdict→tag EQUIVALENCE: `degrade::ladder_action_l3`/`ladder_action_l2`
-//       agree with `thermite_verified::ladder_action_l3_tag`/`ladder_action_l2_tag`
+//       agree with `fluffy_verified::ladder_action_l3_tag`/`ladder_action_l2_tag`
 //       over every verdict (3 L3 tags + 3 L2 tags) — so the in-tree decision is the
 //       proved decision.
 //   (2) AC-7c / OQ-5 OBSERVABLE-OUTCOME: on a `Counterexample`, `run_ladder` returns
@@ -665,12 +665,12 @@ mod verus_anchor {
     use super::*;
     use crate::manifest::{Level, ObligationResult};
     use std::cell::Cell;
-    use thermite_verified::{
+    use fluffy_verified::{
         ladder_action_l2_tag, ladder_action_l3_tag, L2Tag, L3Tag, LadderAction as VLadderAction,
     };
 
     /// Map the production [`LadderAction`] to the verus-proved
-    /// `thermite_verified::LadderAction` (the two enums are byte-identical mirrors —
+    /// `fluffy_verified::LadderAction` (the two enums are byte-identical mirrors —
     /// this projection IS the equivalence claim).
     fn to_verified(a: LadderAction) -> VLadderAction {
         match a {
@@ -721,7 +721,7 @@ mod verus_anchor {
     }
 
     // AC-7c (REQ-7): the PRODUCTION `degrade::ladder_action_l3` agrees with the
-    // VERUS-PROVED `thermite_verified::ladder_action_l3_tag` over EVERY L3 verdict
+    // VERUS-PROVED `fluffy_verified::ladder_action_l3_tag` over EVERY L3 verdict
     // (the 3-tag finite domain). Expected = the proved tag (R-CHAR-3), not forge's.
     #[test]
     fn ladder_action_l3_equals_verified_tag_over_all_verdicts() {
@@ -751,7 +751,7 @@ mod verus_anchor {
     }
 
     // AC-7c (REQ-7, 2nd rung): the PRODUCTION `degrade::ladder_action_l2` agrees with
-    // the VERUS-PROVED `thermite_verified::ladder_action_l2_tag` over EVERY L2
+    // the VERUS-PROVED `fluffy_verified::ladder_action_l2_tag` over EVERY L2
     // verdict. Expected = the proved tag (R-CHAR-3).
     #[test]
     fn ladder_action_l2_equals_verified_tag_over_all_verdicts() {

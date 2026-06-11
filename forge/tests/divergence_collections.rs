@@ -3,7 +3,7 @@
 //!
 //! Each test pins a divergence between the LIVE per-item `forge check` certificate
 //! and the authority chain (`.design/basis/04-collections.md`, the hand-derived
-//! oracle `conformance/collections/cases.json`, `thermite-design.md` §5.3/§6/§7).
+//! oracle `conformance/collections/cases.json`, `fluffy-design.md` §5.3/§6/§7).
 //! Expected values trace to the oracle / design, NEVER to forge's own output
 //! (`goal.md` R-CHAR-3).
 //!
@@ -12,7 +12,7 @@
 //! `divergence_forge.rs` / `check_conformance.rs`.
 //!
 //! ROOT CAUSE (pinned below): the builder's `collections_conformance.rs` test
-//! exercises only the WHOLE-PROGRAM `thermite_lower::lower` + a direct `verus`
+//! exercises only the WHOLE-PROGRAM `fluffy_lower::lower` + a direct `verus`
 //! run, NOT the per-item `forge::check::check_file` path (the §5.3
 //! `item_subprogram` pipeline). On that real path `push_one` PROVES at verus
 //! (`4 verified, 0 errors`, confirmed against the golden), but #12 MUTATION

@@ -2,15 +2,15 @@
 <!--
 tier: 3-component
 status: draft
-governs: thermite-stdlib/src/effect/read.rs
-governs: thermite-stdlib/src/effect/write.rs
-governs: thermite-stdlib/src/effect/time.rs
+governs: fluffy-stdlib/src/effect/read.rs
+governs: fluffy-stdlib/src/effect/write.rs
+governs: fluffy-stdlib/src/effect/time.rs
 governs: forge/src/build.rs
 thesis-refs:
-  - thermite-design.md §1
-  - thermite-design.md §3
-  - thermite-design.md §4.1
-  - thermite-design.md §9
+  - fluffy-design.md §1
+  - fluffy-design.md §3
+  - fluffy-design.md §4.1
+  - fluffy-design.md §9
 -->
 
 ## Summary
@@ -19,7 +19,7 @@ Stage 8 of the universal-verified-basis buildout (crosslink issue **#81**) close
 the **v1.1 runnable-foreign-body LINK** that Stage 3 (`03-effect-stdlib.md`,
 Resolution 2 / OQ-4) explicitly DEFERRED: `forge build` LINKS a Rust syscall-wrapper
 `fn` for each `#[boundary("os::<name>")]` target the built program CALLS, so a
-*verified* Thermite program using an effect primitive (`now`, `read_byte`,
+*verified* Fluffy program using an effect primitive (`now`, `read_byte`,
 `write`/`print`) actually **COMPILES, RUNS, and does real I/O** under the #57
 seccomp sandbox. Today the verification layer ships (Stage 3: a boundary primitive
 certifies L1, the pure caller composes to L3 + `to-the-boundary`) but `forge build
@@ -33,7 +33,7 @@ concern only** — `forge check` (verification) is UNCHANGED and independent (GR
 the same program still certifies L1 boundary + L3 to-boundary before and after the
 link exists).
 
-This component is **GREENFIELD**. No `thermite-stdlib` crate exists; `forge build`
+This component is **GREENFIELD**. No `fluffy-stdlib` crate exists; `forge build`
 emits no `os` module. Every REQ is **NOT-STARTED**, owned by issue **#81** (no
 redundant blocker filed — #81 is the owning issue).
 
@@ -44,14 +44,14 @@ GROUNDED under [Grounding the full path](#grounding-the-full-path-real-forgerust
 
 **`forge build` EMITS a self-contained `mod os { … }` directly into the generated
 crate, keyed off exactly the `#[boundary("os::<name>")]` targets the built program's
-reachable fns NAME — option (a) from the dispatch.** NOT a `thermite-stdlib` crate
+reachable fns NAME — option (a) from the dispatch.** NOT a `fluffy-stdlib` crate
 dependency the generated crate `use`s (option (b)).
 
 The decision rationale, pinned:
 
 - **Self-contained binary, no dependency resolution.** `forge build` v1 invokes raw
   `rustc` on a single self-contained `.rs` (decision OQ-2 in `build.md`: raw rustc, no
-  `cargo`, no `Cargo.toml`, no dependency graph). Option (b) (a `thermite-stdlib`
+  `cargo`, no `Cargo.toml`, no dependency graph). Option (b) (a `fluffy-stdlib`
   crate the generated crate depends on) would force `cargo` + dependency resolution +
   an `--extern` path, breaking the hermetic single-source `invoke_rustc` shape. Option
   (a) keeps the binary self-contained — `rustc <crate>.rs` produces the artifact with
@@ -61,19 +61,19 @@ The decision rationale, pinned:
   union of `BoundaryAttr.target`s over the program's boundary fns, mirroring
   `sandbox::transitive_fx`'s reachability). A program that touches only `os::now`
   links only `now` — the emitted `os` module is exactly the live TCB, nothing more.
-- **`thermite-stdlib` is the AUTHORITY for the wrapper SOURCE, not a link target.**
-  The wrapper bodies live in `thermite-stdlib/src/effect/{read,write,time}.rs` (the
+- **`fluffy-stdlib` is the AUTHORITY for the wrapper SOURCE, not a link target.**
+  The wrapper bodies live in `fluffy-stdlib/src/effect/{read,write,time}.rs` (the
   `governs` paths inherited from `03-effect-stdlib.md`) as the canonical, reviewed Rust
   over `std` (e.g. `now` → `std::time::SystemTime`, `read_byte` → `std::io::stdin().read`,
   `print` → `std::io::stdout().write`). `forge build` EMITS these bodies (a fixed,
   audited mapping `os::<name>` → wrapper source) INTO the crate's `mod os`; the crate
-  does not depend on the `thermite-stdlib` crate at link time. The crate is the
+  does not depend on the `fluffy-stdlib` crate at link time. The crate is the
   single source-of-authority for *what the wrapper does*; `forge build`'s emit table
   is keyed by the boundary target string.
 
 So the link is: `lower_boundary_fn_l1` already emits `let result = os::now(args);`
 (GROUNDED — the wrapper forwards its params to the foreign target string verbatim,
-`thermite-lower/src/l1.rs`); Stage 8 makes `os::now` RESOLVE by emitting a matching
+`fluffy-lower/src/l1.rs`); Stage 8 makes `os::now` RESOLVE by emitting a matching
 `mod os { pub fn now(...) -> ... { <std body> } }` ahead of it.
 
 ### The v1 wrapper set (Read / Write / Time — the demo + Stage 3 primitives)
@@ -113,10 +113,10 @@ only reads the clock," and the seccomp filter kills it if it tries anything else
 
 | Layer | Deliverable | Mechanism |
 |---|---|---|
-| **8a** | the wrapper stdlib (`thermite-stdlib/src/effect/{read,write,time}.rs`: real `std`/`libc` syscall wrappers for the v1 `os::<name>` targets) + the `forge build` LINK (emit a `mod os { … }` keyed off the program's reachable `#[boundary("os::…")]` targets, ahead of `lower_boundary_fn_l1`'s `os::<name>()` call) | NEW: the wrapper bodies + the `forge/src/build.rs` emit-table + target-reachability keying |
+| **8a** | the wrapper stdlib (`fluffy-stdlib/src/effect/{read,write,time}.rs`: real `std`/`libc` syscall wrappers for the v1 `os::<name>` targets) + the `forge build` LINK (emit a `mod os { … }` keyed off the program's reachable `#[boundary("os::…")]` targets, ahead of `lower_boundary_fn_l1`'s `os::<name>()` call) | NEW: the wrapper bodies + the `forge/src/build.rs` emit-table + target-reachability keying |
 | **8b** | the RUN + sandbox-confinement DEMO (a verified program calling an effect primitive `forge build --entry`s → COMPILES + RUNS + does real I/O; the #57 filter confines the linked wrapper; an out-of-`fx` syscall → SIGSYS) | NEW corpus + a build/run test over the SHIPPED #57 `sandbox::emit_sandbox_prelude` + the 8a link |
 
-8a touches `forge/src/build.rs` (the link emit) + the new `thermite-stdlib` crate.
+8a touches `forge/src/build.rs` (the link emit) + the new `fluffy-stdlib` crate.
 8b is a corpus + a `build_conformance`-style test. No NEW mechanism is invented in
 the sandbox (#57 is verbatim), the lowering (`lower_boundary_fn_l1` is verbatim), or
 the verification (`forge check` is untouched) — Stage 8 supplies the missing wrapper
@@ -125,13 +125,13 @@ SOURCE and the emit that makes `os::<name>` resolve.
 ## Requirements
 
 - **REQ-1 (the `os::<name>` wrapper stdlib — real `std`/`libc` syscall bodies):**
-  `thermite-stdlib/src/effect/{read,write,time}.rs` provide a real Rust syscall
+  `fluffy-stdlib/src/effect/{read,write,time}.rs` provide a real Rust syscall
   wrapper `fn` for each v1 `os::<name>` target: `os::now` (`std::time::SystemTime`),
   `os::read_byte`/`os::read_line` (`std::io::stdin().read`/`read_line`, the latter over
   Stage 7 `String`), `os::write`/`os::print` (`std::io::stdout().write_all`, Stage 7
   `String` arg). Each wrapper's signature MATCHES the `#[boundary]` primitive it backs
   (params + return). Net/Rand follow the same shape (v1.1). Derived from
-  `thermite-design.md` §9 (the foreign body is the syscall) + §4.1 (the effect lattice
+  `fluffy-design.md` §9 (the foreign body is the syscall) + §4.1 (the effect lattice
   these instantiate) + §1 ("verify everything except this small, contracted set") +
   Stage 3 (`03-effect-stdlib.md` REQ-2, the v1 primitive families) + Stage 7
   (`07-strings.md`, `String`/`TString` over `vstd::vec::Vec<u8>` enabling string I/O).
@@ -144,7 +144,7 @@ SOURCE and the emit that makes `os::<name>` resolve.
   os::<name>(args);` crossing), so the generated crate is self-contained and `rustc`
   resolves `os::<name>` (closing the `E0433`). The emit is keyed by the target string,
   emits ONLY the wrappers the program names (minimal TCB), and is byte-deterministic
-  (R-CODE-5, §5.3). Derived from §3 (Thermite lowers to self-contained Rust; rustc is
+  (R-CODE-5, §5.3). Derived from §3 (Fluffy lowers to self-contained Rust; rustc is
   the codegen backend) + `build.md` REQ-1/REQ-2 (the single-source `invoke_rustc` shape)
   + the GROUNDED `E0433` gap.
 
@@ -154,7 +154,7 @@ SOURCE and the emit that makes `os::<name>` resolve.
   executes the linked `os::<name>` wrapper, performs the REAL syscall (reads the clock,
   reads stdin, writes stdout), and produces correct output (GROUNDED: `os::now` →
   a live Unix timestamp; `os::read_byte` of byte 'A' → `doubled() = 130`, EOF → `0`).
-  The L1 `thermite_check!` on the wrapper's `ens` still fires on a violation (REQ-4 of
+  The L1 `fluffy_check!` on the wrapper's `ens` still fires on a violation (REQ-4 of
   `build.md` is preserved). Derived from §1 (the unlock: a verified program that RUNS
   + does I/O) + `build.md` REQ-3/REQ-4 (the `--entry` runnable form + baked-in checks).
 
@@ -200,7 +200,7 @@ plus a `build_conformance`-style build/run test. The centerpiece programs + thei
 EXACT expected run output are PINNED below; the builder reproduces them, never copies
 toolchain output blindly. The two grounded programs:
 
-```thermite
+```fluffy
 // time_demo.th — the minimal effect primitive (no input, no failure arm)
 #[boundary("os::now")]
 fn now() -> u64
@@ -217,7 +217,7 @@ fn elapsed_ok() -> u64
 }
 ```
 
-```thermite
+```fluffy
 // read_demo.th — the closed-outcome-set (EOF) effect primitive over stdin
 #[boundary("os::read_byte")]
 fn read_byte() -> u64
@@ -280,10 +280,10 @@ fn doubled() -> u64
 
 - **AC-6 (the baked-in L1 check still fires on the linked wrapper, GROUNDED-by-shape):**
   a corrupted `os::now` wrapper or a primitive whose `ens` is violated at runtime
-  ABORTS with the always-active `thermite L1 contract violation [ens]` diagnostic and a
+  ABORTS with the always-active `fluffy L1 contract violation [ens]` diagnostic and a
   non-zero exit (`build.md` REQ-4 / AC-4, preserved through the link) — the foreign
   body is trusted-by-fiat but its assumed `ens` is L1-CHECKED on every crossing
-  (`lower_boundary_fn_l1`'s exit `ens`-check, `thermite-lower/src/l1.rs`).
+  (`lower_boundary_fn_l1`'s exit `ens`-check, `fluffy-lower/src/l1.rs`).
 
 - **AC-7 (corpus + verification corpus unaffected):** the pure corpus (`sum`,
   `binary_search`) builds + runs IDENTICALLY (no `mod os` emitted — no boundary target
@@ -294,14 +294,14 @@ fn doubled() -> u64
 ## Architecture
 
 Stage 8 adds the missing wrapper SOURCE + the emit that makes `os::<name>` resolve;
-it touches `forge/src/build.rs` (the emit) and adds the `thermite-stdlib` crate. The
+it touches `forge/src/build.rs` (the emit) and adds the `fluffy-stdlib` crate. The
 full path, GROUNDED:
 
 ```text
 forge build <program calling os::now> --entry elapsed_ok
   │
   ├─ emit_source (forge/src/build.rs):
-  │     thermite_lower::lower_l1(program)                                  [SHIPPED]
+  │     fluffy_lower::lower_l1(program)                                  [SHIPPED]
   │        → includes lower_boundary_fn_l1's `let result = os::now(args);` [SHIPPED, l1.rs]
   │     + synthesize_entry_main (the deterministic main + #57 prelude)     [SHIPPED]
   │     + NEW: emit `mod os { pub fn now() -> u64 { <std body> } }`        [STAGE 8 — REQ-2]
@@ -321,14 +321,14 @@ forge check <same program> --mutation-floor 0  →  L1 boundary + L3 to-boundary
 forge audit <same program>  →  tcb: now -> os::now (…)   [UNCHANGED by the link — REQ-5/6]
 ```
 
-- **The wrapper SOURCE** lives in `thermite-stdlib/src/effect/{read,write,time}.rs`
+- **The wrapper SOURCE** lives in `fluffy-stdlib/src/effect/{read,write,time}.rs`
   (the canonical reviewed Rust over `std`). `forge build`'s emit maps each reachable
   `os::<name>` target string to the matching wrapper body and emits a `mod os { … }`.
 - **The emit site** is `emit_source` / `synthesize_entry_main` in `forge/src/build.rs`:
   the new `mod os` is prepended to (or interleaved with) `lower_l1`'s output, ahead of
   the boundary wrapper's `os::<name>()` crossing.
 - **The crossing** is `lower_boundary_fn_l1`'s `let result = <target>(<args>);` in
-  `thermite-lower/src/l1.rs` (SHIPPED, verbatim — the wrapper forwards its params to the
+  `fluffy-lower/src/l1.rs` (SHIPPED, verbatim — the wrapper forwards its params to the
   target string). Stage 8 makes the target RESOLVE; the lowering is unchanged.
 - **The confinement** is `sandbox::emit_sandbox_prelude` over `transitive_fx` /
   `syscall_allowlist` in `forge/src/sandbox.rs` (SHIPPED, verbatim — the linked wrapper
@@ -354,7 +354,7 @@ against the `conformance/effect-link/cases.json` oracle the orchestrator authors
 reusing the `build.rs` + `sandbox.rs` patterns. Discharge commands:
 
 - `cargo test -p forge` — the `build.rs` link + run tests (AC-1..AC-7); `cargo test -p
-  thermite-stdlib` — the wrapper unit tests (each `os::<name>` does its syscall).
+  fluffy-stdlib` — the wrapper unit tests (each `os::<name>` does its syscall).
 - The build/run test: `forge build time_demo.th --entry elapsed_ok` → rustc exit 0
   (AC-1), run the binary → exit 0 + stdout matches `elapsed_ok() = \d+` (AC-1); `forge
   build read_demo.th --entry doubled`, run with stdin `A` → `doubled() = 130`, with EOF
@@ -363,7 +363,7 @@ reusing the `build.rs` + `sandbox.rs` patterns. Discharge commands:
   check … --mutation-floor 0` → the unchanged L1 + L3 cert (AC-4); `forge audit` → the
   `tcb` enumeration (AC-5); a violating-`ens` wrapper → the `[ens]` abort (AC-6); `sum`
   builds + runs unchanged (AC-7).
-- `cargo clippy -p forge -p thermite-stdlib --all-targets -- -D warnings`, `cargo fmt
+- `cargo clippy -p forge -p fluffy-stdlib --all-targets -- -D warnings`, `cargo fmt
   --check` (the gauntlet).
 - **Golden link (R-CHAR-3):** a `tests/golden/build/effect-link.rs` hand-authored from
   THIS design — the lowered program with the emitted `mod os { pub fn now() … }` ahead
@@ -409,7 +409,7 @@ rustc exit: 0
 elapsed_ok() = 1780779938        ← the LIVE clock_gettime result (a real Unix timestamp)
 run exit: 0
 ```
-A VERIFIED Thermite program RAN and did real I/O — the unlock. (The `read` family
+A VERIFIED Fluffy program RAN and did real I/O — the unlock. (The `read` family
 grounds identically: `os::read_byte` over `std::io::stdin().read`, fed stdin `A` →
 `doubled() = 130`; fed EOF → `doubled() = 0`. Both arms of the closed outcome set run.)
 
@@ -434,20 +434,20 @@ the repo tree (#53 — compiled binaries are large).
 
 ## Open questions
 
-- **OQ-1 (emit-`mod os` vs link-`thermite-stdlib`-crate — RESOLVED to emit-`mod os`):**
+- **OQ-1 (emit-`mod os` vs link-`fluffy-stdlib`-crate — RESOLVED to emit-`mod os`):**
   pinned to option (a) (emit a self-contained `mod os` into the crate) over option (b)
-  (a `thermite-stdlib` crate dependency the generated crate links). Rationale: (a)
+  (a `fluffy-stdlib` crate dependency the generated crate links). Rationale: (a)
   keeps the single-source raw-`rustc` build hermetic (no `cargo`/dependency resolution,
   `build.md` OQ-2) and emits only the wrappers the program names (minimal TCB).
-  `thermite-stdlib` remains the AUTHORITY for the wrapper bodies (reviewed, unit-tested,
+  `fluffy-stdlib` remains the AUTHORITY for the wrapper bodies (reviewed, unit-tested,
   the `governs` paths), which `forge build` emits from a fixed target→source table. If a
   future need (large stdlib, shared codegen) forces a crate link, that is a v1.2 OQ; v1
   emits.
 
 - **OQ-2 (the emit-table location — `forge/src/build.rs` vs a generated module):** the
   fixed `os::<name>` → wrapper-source mapping the emit consults — whether it is an inline
-  table in `build.rs`, a `const &str` re-exported from `thermite-stdlib`, or read from
-  the `thermite-stdlib` source at build time — is a builder/orchestrator decision under
+  table in `build.rs`, a `const &str` re-exported from `fluffy-stdlib`, or read from
+  the `fluffy-stdlib` source at build time — is a builder/orchestrator decision under
   R-SPEC-2. This doc governs the CONTRACT (the emitted `mod os` must contain exactly the
   reachable wrappers, byte-deterministically); the packaging is settled by the
   orchestrator (mirrors `03-effect-stdlib.md` OQ-2 on the declaration packaging).
@@ -471,7 +471,7 @@ the repo tree (#53 — compiled binaries are large).
 
 The four `governs` files map to this doc. `forge/src/build.rs` already carries a route
 to `build.md` (a file may carry multiple governing docs — the `lower.rs` precedent);
-ADD the Stage 8 route alongside it. The `thermite-stdlib/src/effect/{read,write,time}.rs`
+ADD the Stage 8 route alongside it. The `fluffy-stdlib/src/effect/{read,write,time}.rs`
 routes already exist pointing to `03-effect-stdlib.md`; ADD the Stage 8 link route to
 each (multiple governing docs per file).
 
@@ -485,19 +485,19 @@ reference = ["conformance/effect-link", "conformance/build"]
 conformance_ops = ["now_runs", "read_runs", "now_sandbox_confined"]
 
 [[route]]
-crate_pattern = "thermite-stdlib/src/effect/time.rs"
+crate_pattern = "fluffy-stdlib/src/effect/time.rs"
 design = ".design/basis/08-runnable-effect-link.md"
 reference = ["conformance/effect-link"]
 conformance_ops = ["now_runs", "now_sandbox_confined"]
 
 [[route]]
-crate_pattern = "thermite-stdlib/src/effect/read.rs"
+crate_pattern = "fluffy-stdlib/src/effect/read.rs"
 design = ".design/basis/08-runnable-effect-link.md"
 reference = ["conformance/effect-link"]
 conformance_ops = ["read_runs"]
 
 [[route]]
-crate_pattern = "thermite-stdlib/src/effect/write.rs"
+crate_pattern = "fluffy-stdlib/src/effect/write.rs"
 design = ".design/basis/08-runnable-effect-link.md"
 reference = ["conformance/effect-link"]
 conformance_ops = ["write_runs"]
@@ -505,16 +505,16 @@ conformance_ops = ["write_runs"]
 
 The orchestrator authors `conformance/effect-link/cases.json` (the AC-1..AC-7 programs
 + expected run output / exit codes), the `tests/golden/build/effect-link.rs` golden,
-the routes above, and the v1 `os::<name>` wrapper bodies in `thermite-stdlib`. This doc
+the routes above, and the v1 `os::<name>` wrapper bodies in `fluffy-stdlib`. This doc
 does NOT author the oracle, the golden, the routes, or the wrappers (R-DOC-1).
 
 ## REQ status
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (the `os::<name>` wrapper stdlib — real `std` syscall bodies) | SHIPPED | the `WRAPPERS` table in `forge/src/effect_wrappers.rs` holds a real `std` body for each v1 target: `os::now` (`std::time::SystemTime::now().duration_since(UNIX_EPOCH).map(\|d\| d.as_secs())`), `os::read_byte`/`os::read_line` (`std::io::stdin().read`/`read_line`, the latter → `TString`), `os::write`/`os::print` (`std::io::stdout().write_all` over `TString`). Each handles its error arm honestly (the EOF sentinel 256 / a status code, no `unwrap`-panic). Consumer: `effect_wrappers::emit_mod_os` (emitted by `build::emit_source`). Verified by `effect_link_conformance::elapsed_ok_builds_and_runs` (the linked `os::now` runs a real `clock_gettime`) + `read_byte_links_and_runs_both_arms` (`A`→130, EOF→0) + the `effect_wrappers::tests` unit battery (7 tests). The OQ-2 packaging is the INLINE `forge/src/` table (the orchestrator's settled decision), NOT a `thermite-stdlib` crate. |
+| REQ-1 (the `os::<name>` wrapper stdlib — real `std` syscall bodies) | SHIPPED | the `WRAPPERS` table in `forge/src/effect_wrappers.rs` holds a real `std` body for each v1 target: `os::now` (`std::time::SystemTime::now().duration_since(UNIX_EPOCH).map(\|d\| d.as_secs())`), `os::read_byte`/`os::read_line` (`std::io::stdin().read`/`read_line`, the latter → `TString`), `os::write`/`os::print` (`std::io::stdout().write_all` over `TString`). Each handles its error arm honestly (the EOF sentinel 256 / a status code, no `unwrap`-panic). Consumer: `effect_wrappers::emit_mod_os` (emitted by `build::emit_source`). Verified by `effect_link_conformance::elapsed_ok_builds_and_runs` (the linked `os::now` runs a real `clock_gettime`) + `read_byte_links_and_runs_both_arms` (`A`→130, EOF→0) + the `effect_wrappers::tests` unit battery (7 tests). The OQ-2 packaging is the INLINE `forge/src/` table (the orchestrator's settled decision), NOT a `fluffy-stdlib` crate. |
 | REQ-2 (`forge build` LINKS via emit-`mod os` keyed off boundary targets) | SHIPPED | `build::reachable_boundary_targets` collects the distinct `BoundaryAttr.target` over the program's `#[boundary]` `Item::Fn`s (every one is lowered with an `os::<name>(args)` crossing by `lower_l1`); `effect_wrappers::emit_mod_os` assembles a sorted, deterministic `mod os { … }` carrying EXACTLY those wrappers; `build::emit_source` PREPENDS it to `lower_l1`'s output, closing the GROUNDED `E0433`. Consumer: `build::emit_source` → `build::build_file` → `cli::run_build`. Verified by `effect_link_conformance::elapsed_ok_builds_and_runs` (rustc exit 0, no `E0433`) + `effect_wrappers::tests::{emits_only_named_wrappers,emission_is_sorted_deterministic}` (minimal-TCB keying + R-CODE-5 determinism). |
-| REQ-3 (a verified program COMPILES + RUNS + does real I/O) | SHIPPED | `forge build effect_link_demo.th --entry elapsed_ok` compiles + the binary RUNS the linked `os::now`'s real `clock_gettime` → prints `elapsed_ok() = <live Unix timestamp>` (e.g. `1780780684`), exit 0; `os::read_byte` over stdin → `doubled() = 130` (byte `A`) / `0` (EOF, the handled arm). Verified by `effect_link_conformance::elapsed_ok_builds_and_runs` (run exit 0, output a u64 in `(0, 4_000_000_000)`) + `read_byte_links_and_runs_both_arms`. THE UNLOCK: a verified Thermite program runs + does real I/O. |
+| REQ-3 (a verified program COMPILES + RUNS + does real I/O) | SHIPPED | `forge build effect_link_demo.th --entry elapsed_ok` compiles + the binary RUNS the linked `os::now`'s real `clock_gettime` → prints `elapsed_ok() = <live Unix timestamp>` (e.g. `1780780684`), exit 0; `os::read_byte` over stdin → `doubled() = 130` (byte `A`) / `0` (EOF, the handled arm). Verified by `effect_link_conformance::elapsed_ok_builds_and_runs` (run exit 0, output a u64 in `(0, 4_000_000_000)`) + `read_byte_links_and_runs_both_arms`. THE UNLOCK: a verified Fluffy program runs + does real I/O. |
 | REQ-4 (the linked wrapper is #57-seccomp-CONFINED) | SHIPPED | the linked `os::now` runs UNDER the SHIPPED #57 `sandbox::emit_sandbox_prelude` (installed FIRST in `synthesize_entry_main`'s `main`, UNCHANGED): the `time` allowlist INCLUDES `clock_gettime` (228) → the live `os::now` runs clean (exit 0), and EXCLUDES `openat` (257) → the `--sandbox-self-test` probe under the SAME `time` filter is `SIGSYS`-KILLED (exit 159). Verified by `effect_link_conformance::sandbox_confines_the_linked_wrapper` (the live-foreign-body confinement OQ-4 deferred, now real). The #57 allowlist derivation is verbatim. |
 | REQ-5 (verification UNCHANGED — link is build-only) | SHIPPED | `forge check effect_link_demo.th --mutation-floor 0` certifies `now` at `L1` + `boundary` + `boundary_target os::now` + `fx time`, and `elapsed_ok` at `L3` + `assurance_scope to_boundary { via: now }` — IDENTICAL to the pre-link cert (the link lives in `build::emit_source` codegen + rustc; `forge check` never emits `mod os` or invokes rustc). Verified by `effect_link_conformance::verify_unchanged` (the before/after invariance now PINNED by the Stage-8 oracle). `forge check`/lowering-for-check is untouched. |
 | REQ-6 (the wrappers are the TRUSTED-by-fiat TCB — enumerated + confined) | SHIPPED | the linked `os::now` IS exactly the boundary the SHIPPED #15 `AuditManifest.tcb` enumerates (`boundary: now -> os::now (req=… ens=[result < 4000000000] fx=[time])`, the `forge check` cert's `boundary`/`boundary_target`/`effects` fields, PINNED by `verify_unchanged`) made RUNNABLE under the #57 confinement (REQ-4). `emit_mod_os` emits ONLY the wrappers the program names (minimal TCB), so the link does not enlarge the TCB beyond the enumerated boundaries. Verified by `effect_link_conformance::{verify_unchanged,sandbox_confines_the_linked_wrapper}` + `effect_wrappers::tests::emits_only_named_wrappers`. |

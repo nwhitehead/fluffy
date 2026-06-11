@@ -2,16 +2,16 @@
 <!--
 tier: 3-component
 status: draft
-governs: thermite-lower/src/lower.rs
+governs: fluffy-lower/src/lower.rs
 governs: forge/src/check.rs
 governs: forge/src/audit.rs
 governs: forge/src/manifest.rs
 thesis-refs:
-  - thermite-design.md §9
-  - thermite-design.md §1
-  - thermite-design.md §6
-  - thermite-design.md §5.2
-  - thermite-design.md §5.3
+  - fluffy-design.md §9
+  - fluffy-design.md §1
+  - fluffy-design.md §6
+  - fluffy-design.md §5.2
+  - fluffy-design.md §5.3
 -->
 
 ## Summary
@@ -44,7 +44,7 @@ EXTENDS each to the Stage 1–4 vocabulary.
 1. **CONTRACT composition (sequential, `g∘f`).** If `f` ensures `P` and `g`
    requires `P`, then `g∘f` discharges `g`'s precondition from `f`'s
    postcondition — and the caller's proof uses `f`'s CONTRACT, never `f`'s body.
-   SHIPPED (#52): `lower_external_body_fn in thermite-lower/src/lower.rs` emits a
+   SHIPPED (#52): `lower_external_body_fn in fluffy-lower/src/lower.rs` emits a
    boundary/slag callee as a `#[verifier::external_body]` assumable signature
    (req→requires, ens→ensures, no checked body); `item_subprogram in
    forge/src/check.rs` weaves the transitively-reachable callees so verus
@@ -66,7 +66,7 @@ EXTENDS each to the Stage 1–4 vocabulary.
    the `ProjectScope` as END-TO-END iff every part is (else TO-THE-BOUNDARY
    listing the crossings), and `Tcb::from_certificates in forge/src/audit.rs`
    enumerates the TCB as the UNION of the parts' boundaries/slag ∪ the toolchain.
-   #60 verus-verified the bit-level min/subset core (`thermite-verified`,
+   #60 verus-verified the bit-level min/subset core (`fluffy-verified`,
    `8 verified, 0 errors`) so the no-over-claim is itself machine-checked
    (REQ-2/REQ-3).
 
@@ -101,7 +101,7 @@ enumerated TCB.
 made the default: verified components + COMPOSITIONAL reasoning (assume the
 callee's spec, discharge the caller locally, aggregate honestly) is how those
 projects scaled machine-checked proof past the size where a monolithic proof is
-tractable. Thermite makes that the floor (§2.1) rather than a heroic one-off:
+tractable. Fluffy makes that the floor (§2.1) rather than a heroic one-off:
 every function carries a contract, so every call site is a composition boundary
 with a local discharge.
 
@@ -121,7 +121,7 @@ EXACTLY the irreducible world-interaction — Stage 3's effect primitives — an
 is MINIMIZED (only genuine crossings) and ENUMERATED (grep-complete, §8). This is
 the theoretical-maximum "verify anything": the only thing you trust by fiat is
 the part that interacts with a world the prover cannot model, and that part is
-named, contracted, and L1-enforced at the crossing. A pure-Thermite closure with
+named, contracted, and L1-enforced at the crossing. A pure-Fluffy closure with
 NO Stage-3 primitive certifies END-TO-END ("verified, period"); the moment it
 touches the world, the manifest says "verified to the boundary" and lists the
 exact crossing. The honesty is mechanical (R-DEFER-9): the manifest never claims
@@ -323,7 +323,7 @@ forge check <pipeline.th>
      audit::AuditManifest::from_certificates  ── tcb = ∪ parts' boundary/slag ∪ toolchain [#15, SHIPPED]
 ```
 
-- **`thermite-lower/src/lower.rs`** (`lower_external_body_fn`, `lower`) is the
+- **`fluffy-lower/src/lower.rs`** (`lower_external_body_fn`, `lower`) is the
   contract-composition emission seam (#52, SHIPPED). The basis extensions
   (REQ-4/REQ-5/REQ-6) widen WHAT is lowered/woven, not the external_body shape.
 - **`forge/src/check.rs`** (`item_subprogram`, `reachable_fn_deps`) is the
@@ -409,7 +409,7 @@ assumed contract composes like any other, and the discharge is local + sound.
   doc (a file may carry multiple governing docs — the #52 `lower.rs` precedent):
 
   ```
-  [[route]]  crate_pattern = "thermite-lower/src/lower.rs"  design = ".design/basis/05-composition.md"  reference = ["conformance/composition"]
+  [[route]]  crate_pattern = "fluffy-lower/src/lower.rs"  design = ".design/basis/05-composition.md"  reference = ["conformance/composition"]
   [[route]]  crate_pattern = "forge/src/check.rs"           design = ".design/basis/05-composition.md"  reference = ["conformance/composition"]
   [[route]]  crate_pattern = "forge/src/manifest.rs"        design = ".design/basis/05-composition.md"  reference = ["conformance/composition"]
   [[route]]  crate_pattern = "forge/src/audit.rs"           design = ".design/basis/05-composition.md"  reference = ["conformance/composition"]
@@ -429,7 +429,7 @@ assumed contract composes like any other, and the discharge is local + sound.
   req-violating pipelines emit NON-L3 certs with counterexamples (the grounded
   runs), never a false L3 (R-DEFER-9 anti-cheat).
 - **Crate gauntlets (`goal.md` R-DEFER-6):** `cargo test -p forge`, `cargo test
-  -p thermite-lower`, `cargo clippy -p <crate> --all-targets -- -D warnings`,
+  -p fluffy-lower`, `cargo clippy -p <crate> --all-targets -- -D warnings`,
   `cargo fmt --check`, plus the conformance corpus (the pure corpus stays L3 +
   END-TO-END, AC-5).
 
@@ -483,8 +483,8 @@ assumed contract composes like any other, and the discharge is local + sound.
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (CONTRACT composition — `g∘f` through the contract) | SHIPPED | `lower_external_body_fn in thermite-lower/src/lower.rs` emits a boundary/slag callee as a `#[verifier::external_body]` assumable signature (req→requires, ens→ensures, no checked body); `item_subprogram in forge/src/check.rs` weaves the transitively-reachable callees (via `reachable_fn_deps` → `closure::reachable_in_file_fns`) so verus resolves the call and the caller proves THROUGH the contract. Non-test consumer: `check::check_file_with_options` drives `item_subprogram` per fn. Soundness: a caller must discharge `f`'s `req` + prove its own `ens` (#52). GROUNDED `verus 0.2026.05.24`: the multi-step chain `h(g(f(x)))` verifies `4 verified, 0 errors` (default, `f` external_body) / `5 verified, 0 errors` (`--no-cheating`, `f` proved); over-claim → `3 verified, 1 errors`, req-violation → `2 verified, 1 errors`. Verified by `composition_conformance::direct_boundary_caller_verifies_through_the_contract` (#52). |
-| REQ-2 (ASSURANCE aggregation — project = min over parts; scope end_to_end iff all) | SHIPPED | `AssuranceManifest::aggregate in forge/src/manifest.rs` computes `ProjectAssurance` = MIN level over functions (else `Failed`) + `ProjectScope` = END-TO-END iff every part is, else TO-THE-BOUNDARY listing crossings. The min/subset core is verus-verified (#60: `thermite-verified`, `verus --no-cheating` `8 verified, 0 errors`; a broken impl → `7 verified, 1 errors`, non-vacuous). Non-test consumer: `audit::AuditManifest::from_certificates` (`forge/src/audit.rs`) embeds it; `cli::run_audit` emits it. Verified by `audit_conformance.rs::corpus_empty_tcb` (L3/end-to-end headline) + #60 `tests/verus_verify.rs`. |
+| REQ-1 (CONTRACT composition — `g∘f` through the contract) | SHIPPED | `lower_external_body_fn in fluffy-lower/src/lower.rs` emits a boundary/slag callee as a `#[verifier::external_body]` assumable signature (req→requires, ens→ensures, no checked body); `item_subprogram in forge/src/check.rs` weaves the transitively-reachable callees (via `reachable_fn_deps` → `closure::reachable_in_file_fns`) so verus resolves the call and the caller proves THROUGH the contract. Non-test consumer: `check::check_file_with_options` drives `item_subprogram` per fn. Soundness: a caller must discharge `f`'s `req` + prove its own `ens` (#52). GROUNDED `verus 0.2026.05.24`: the multi-step chain `h(g(f(x)))` verifies `4 verified, 0 errors` (default, `f` external_body) / `5 verified, 0 errors` (`--no-cheating`, `f` proved); over-claim → `3 verified, 1 errors`, req-violation → `2 verified, 1 errors`. Verified by `composition_conformance::direct_boundary_caller_verifies_through_the_contract` (#52). |
+| REQ-2 (ASSURANCE aggregation — project = min over parts; scope end_to_end iff all) | SHIPPED | `AssuranceManifest::aggregate in forge/src/manifest.rs` computes `ProjectAssurance` = MIN level over functions (else `Failed`) + `ProjectScope` = END-TO-END iff every part is, else TO-THE-BOUNDARY listing crossings. The min/subset core is verus-verified (#60: `fluffy-verified`, `verus --no-cheating` `8 verified, 0 errors`; a broken impl → `7 verified, 1 errors`, non-vacuous). Non-test consumer: `audit::AuditManifest::from_certificates` (`forge/src/audit.rs`) embeds it; `cli::run_audit` emits it. Verified by `audit_conformance.rs::corpus_empty_tcb` (L3/end-to-end headline) + #60 `tests/verus_verify.rs`. |
 | REQ-3 (TCB aggregation — whole = ∪ parts' boundary/slag ∪ toolchain) | SHIPPED | `Tcb::from_certificates in forge/src/audit.rs` enumerates every `cert.slag` → `SlagBlock` (reason/owner/review) ∪ every `cert.boundary` → `BoundaryContract` (target + req/ens/fx) ∪ `Toolchain` (always present) — nothing fiat-trusted omitted (R-DEFER-9). Non-test consumer: `AuditManifest::from_certificates` → `cli::run_audit`. Verified by `audit_conformance.rs::slag_boundary_tcb` (both slag + boundary enumerated) + `corpus_empty_tcb` (empty-but-toolchain pure state) (#15). |
 | REQ-4 (compose ADT/collection invariants — contract composition reaches Stage 1–4) | NOT-STARTED | epic **#62** Stage 5. #52 composes SCALAR/boundary contracts; whether `reachable_fn_deps in check.rs` weaves the `struct`/`enum`/`spec fn` invariant defs an ADT-valued contract references (e.g. `result.well_formed()`) is unverified end-to-end and depends on Stage 1 (`01-adts.md`, NOT-STARTED). May partially reduce to a conformance test if #52 already weaves all `spec fn` defs (OQ-1, least confident). RESOLUTION-METHOD (#62 OQ-4): settled TEST-FIRST — a conformance probe against the existing #52 `reachable_fn_deps`/`closure.rs` machinery; pass → SHIPPED-via-existing-machinery (a conformance test, no new code), fail → build the minimal extension; not pre-judged code-vs-test. |
 | REQ-5 (compose recursion-scheme contracts — fusion / proven scheme verifies instances) | NOT-STARTED | epic **#62** Stage 5. No scheme representation exists yet — Stage 2 (`02-recursion-schemes.md`) is in parallel. Whether the §5.3 cache + `item_subprogram` reuse a scheme's `decreases`-termination proof across instantiations (`fold∘map = fold`) is unresolved (OQ-2); blocked on Stage 2 landing. RESOLUTION-METHOD (#62 OQ-4): settled TEST-FIRST — a conformance probe against the existing #52 `reachable_fn_deps`/`closure.rs` machinery; pass → SHIPPED-via-existing-machinery (a conformance test, no new code), fail → build the minimal extension; not pre-judged code-vs-test. |

@@ -1,5 +1,5 @@
 //! `forge/src/repair.rs` — the background L1/L2 → L3 proof-repair loop (issue #18,
-//! `.design/forge/proof-repair.md`; `thermite-design.md` §6, Appendix B). Once a
+//! `.design/forge/proof-repair.md`; `fluffy-design.md` §6, Appendix B). Once a
 //! `forge check` run has left an item BELOW L3 because verus could not PROVE it
 //! within its resource budget (a TIMEOUT — INCONCLUSIVENESS, the #10 ladder /
 //! #11 classification), repair tries to drive that item back UP to L3 by the one

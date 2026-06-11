@@ -24,7 +24,7 @@
 //!   * A recursive `fn` BUILDS + RUNS (the self-call executes through the L1
 //!     runtime-check path) — REQ-3.
 //!
-//! NON-VACUITY (R-DEFER-9 / `thermite-design.md` §7): the `ens result == 0` is a
+//! NON-VACUITY (R-DEFER-9 / `fluffy-design.md` §7): the `ens result == 0` is a
 //! function of the recursion's fixpoint (a non-terminating or wrong body cannot
 //! satisfy it), and the decreases is the ONLY thing standing between the fn and L0
 //! — remove it → structured error; weaken it (recurse on `n`) → termination

@@ -8,19 +8,19 @@
 //! sublanguage: for each `req`/`ens`/loop-`inv`/`dec` clause of a checked item it
 //! computes
 //!
-//!   `P_production = thermite_lower::lower_contract_expr(clause.expr, …)`   (the artifact under test)
-//!   `P_reference  = thermite_tv::ref_contract_pred(clause.expr, …)`        (the INDEPENDENT reference)
+//!   `P_production = fluffy_lower::lower_contract_expr(clause.expr, …)`   (the artifact under test)
+//!   `P_reference  = fluffy_tv::ref_contract_pred(clause.expr, …)`        (the INDEPENDENT reference)
 //!
 //! builds the per-clause Z3 equivalence obligation
 //! `assert((P_production) <==> (P_reference))` via
-//! `thermite_tv::equivalence_obligation`, and discharges it through `verus`. A
+//! `fluffy_tv::equivalence_obligation`, and discharges it through `verus`. A
 //! VERIFIED obligation ⟺ the lowering of that clause is FAITHFUL; a COUNTEREXAMPLE
 //! ⟺ a real lowering-fidelity infidelity (the #122 cast-paren / #127 byte-view
 //! classes the vacuity/mutation battery + verus-on-emitted structurally cannot
 //! see). It is exposed as `forge tv <file.th>` — a SEPARATE opt-in deeper audit,
 //! NOT folded into `forge check` (which stays fast).
 //!
-//! `thermite-tv` stays INDEPENDENT of `thermite-lower` (the N-version boundary,
+//! `fluffy-tv` stays INDEPENDENT of `fluffy-lower` (the N-version boundary,
 //! AC-6): this forge module is the ONLY place the two encoders meet. forge depends
 //! on both — that is the correct home for the comparison.
 //!
@@ -29,7 +29,7 @@
 //! - **Corpus run** ([`tv_file`]): over the REAL clauses of a `.th` program — the
 //!   no-false-positive AC (`conformance/sum.th` etc.). The faithful production
 //!   lowering must NOT trip TV.
-//! - **Off-corpus run** ([`run_generated`]): over `thermite_tv::generate_clauses`
+//! - **Off-corpus run** ([`run_generated`]): over `fluffy_tv::generate_clauses`
 //!   — the corpus-bound escape (REQ-3). The lowerer is faithful, so ALL should
 //!   verify; ANY counterexample is a REAL off-corpus infidelity finding.
 //!
@@ -37,14 +37,14 @@
 //!
 //! | REQ | Status | Evidence |
 //! |---|---|---|
-//! | REQ-5 (forge plug-in point) | SHIPPED | `pub fn tv_file` (the corpus phase) + `pub fn run_generated` (the off-corpus phase) here; both compute `P_production` via `thermite_lower::lower_contract_expr`, build the obligation via `thermite_tv::equivalence_obligation`, and discharge it through `verus` (the `discharge` helper, reusing the `crate::check::ScratchDir`/#53 cleanup). Non-test consumer: `cli::run_tv` (the `forge tv <file>` subcommand). A TV counterexample is surfaced as a per-clause DIVERGENT verdict (a meaning-mismatch finding, distinct from the contract-too-weak mutation signal). Verified by `forge/tests/contract_tv_conformance.rs` (corpus 0-divergent + the 200-clause off-corpus run) under real verus. **#228 (ref #225/#227) — production-column = real signature artifact + true-width frame:** `tv_file`/`run_generated` now derive the program-wide `thermite_lower::spec_fn_param_type_map` and THREAD it into `lower_contract_expr`, so a spec-call arithmetic arg narrows to the callee's DECLARED param type (`s_dec((n - 1) as u32)`) verbatim as the signature path (contract-tv.md REQ-2), not the `as u64` fallback. `SpecType::BoundedInt(width)` types each bounded-int param at its declared width so Z3 reasons over the true domain. Corpus byte-stable (no corpus spec fn takes a bare scalar param, so the cast never fires there; compose_demo/sum/binary_search stay all-Faithful). Honest split (binary constraint, `ref_encode.rs` UNCHANGED): a bare-path spec-call arg → Faithful; an arithmetic arg to a `u32`/`usize`-param callee → honest Unverifiable (the reference's bare `int` arg does not typecheck against the `u32` param — a genuinely unprovable equivalence, NEVER a forced Faithful). **#150 whole-corpus totality:** `signature_frame` now binds the three previously-Skipped construct classes — `String`→`&TString` (`SpecType::Strng`, threaded as production's `strings`), `Map<K,V>`→`TMap…` (`SpecType::Map`, with the `well_formed()` `requires` weave), `Option`/`Result` params + result natively (`SpecType::Opt`/`Res`) — so the C7 `match`-in-ens, the String byte-view, and the Map/Option signature clauses all reach verus + discharge. binary_search 6/6, map_kv 8/8, string_demo 8/8, sum 7/7 — all Checked + Faithful, 0 skipped/unverifiable; the 200-clause off-corpus run is TOTAL (0 skipped, the byte-view now over a `&TString` receiver `t`). **#192 (ref #166, #189):** the rlimit gate's discriminator is now the SHARED `crate::tv_signal::is_rlimit_signal` (the prior private copy had DROPPED z3's `resource limit exceeded` phrase — a Z3-phrased resourceout on an errors>=1 run was fabricated into `Divergent`); `discharge`'s `errors >= 1 && rlimit_hit -> Unverifiable` arm now consumes the shared full-phrase-set discriminator. |
+//! | REQ-5 (forge plug-in point) | SHIPPED | `pub fn tv_file` (the corpus phase) + `pub fn run_generated` (the off-corpus phase) here; both compute `P_production` via `fluffy_lower::lower_contract_expr`, build the obligation via `fluffy_tv::equivalence_obligation`, and discharge it through `verus` (the `discharge` helper, reusing the `crate::check::ScratchDir`/#53 cleanup). Non-test consumer: `cli::run_tv` (the `forge tv <file>` subcommand). A TV counterexample is surfaced as a per-clause DIVERGENT verdict (a meaning-mismatch finding, distinct from the contract-too-weak mutation signal). Verified by `forge/tests/contract_tv_conformance.rs` (corpus 0-divergent + the 200-clause off-corpus run) under real verus. **#228 (ref #225/#227) — production-column = real signature artifact + true-width frame:** `tv_file`/`run_generated` now derive the program-wide `fluffy_lower::spec_fn_param_type_map` and THREAD it into `lower_contract_expr`, so a spec-call arithmetic arg narrows to the callee's DECLARED param type (`s_dec((n - 1) as u32)`) verbatim as the signature path (contract-tv.md REQ-2), not the `as u64` fallback. `SpecType::BoundedInt(width)` types each bounded-int param at its declared width so Z3 reasons over the true domain. Corpus byte-stable (no corpus spec fn takes a bare scalar param, so the cast never fires there; compose_demo/sum/binary_search stay all-Faithful). Honest split (binary constraint, `ref_encode.rs` UNCHANGED): a bare-path spec-call arg → Faithful; an arithmetic arg to a `u32`/`usize`-param callee → honest Unverifiable (the reference's bare `int` arg does not typecheck against the `u32` param — a genuinely unprovable equivalence, NEVER a forced Faithful). **#150 whole-corpus totality:** `signature_frame` now binds the three previously-Skipped construct classes — `String`→`&TString` (`SpecType::Strng`, threaded as production's `strings`), `Map<K,V>`→`TMap…` (`SpecType::Map`, with the `well_formed()` `requires` weave), `Option`/`Result` params + result natively (`SpecType::Opt`/`Res`) — so the C7 `match`-in-ens, the String byte-view, and the Map/Option signature clauses all reach verus + discharge. binary_search 6/6, map_kv 8/8, string_demo 8/8, sum 7/7 — all Checked + Faithful, 0 skipped/unverifiable; the 200-clause off-corpus run is TOTAL (0 skipped, the byte-view now over a `&TString` receiver `t`). **#192 (ref #166, #189):** the rlimit gate's discriminator is now the SHARED `crate::tv_signal::is_rlimit_signal` (the prior private copy had DROPPED z3's `resource limit exceeded` phrase — a Z3-phrased resourceout on an errors>=1 run was fabricated into `Divergent`); `discharge`'s `errors >= 1 && rlimit_hit -> Unverifiable` arm now consumes the shared full-phrase-set discriminator. |
 
 use std::path::Path;
 use std::process::Command;
 
-use thermite_syntax::ast::{Clause, Expr, FnItem, Item, PrimType, Stmt, Type};
+use fluffy_syntax::ast::{Clause, Expr, FnItem, Item, PrimType, Stmt, Type};
 
-use thermite_tv::obligation::{equivalence_obligation, ObligationFrame, ParamDecl};
+use fluffy_tv::obligation::{equivalence_obligation, ObligationFrame, ParamDecl};
 
 use crate::check::{unique_scratch_dir, ScratchDir, DEFAULT_RLIMIT, DEFAULT_SOLVER_SEED};
 use crate::cli::ForgeError;
@@ -126,7 +126,7 @@ pub fn tv_file(path: &Path, seed: u64, rlimit: f64) -> Result<TvReport, ForgeErr
         path: path.display().to_string(),
         source: e,
     })?;
-    let parsed = thermite_syntax::parse(&src);
+    let parsed = fluffy_syntax::parse(&src);
     if !parsed.is_clean() {
         return Err(ForgeError::Parse(parsed.errors));
     }
@@ -140,14 +140,14 @@ pub fn tv_file(path: &Path, seed: u64, rlimit: f64) -> Result<TvReport, ForgeErr
     let preamble = program_spec_preamble(&parsed.program)?;
 
     // The program-wide user-`spec fn` param-type map (#228, ref #225/#227): the
-    // SAME map `thermite_lower::lower` threads into the signature path, derived
+    // SAME map `fluffy_lower::lower` threads into the signature path, derived
     // here from the SAME `spec_fn_param_type_map` source of truth (R-CHAR-3, never
     // a forge-local re-derivation). Threaded into `lower_contract_expr` so the TV
     // production column narrows a spec-call arithmetic arg to the callee's DECLARED
     // param type (`as u32`/`as usize`) EXACTLY as `lower_fn_signature` does
     // (contract-tv.md REQ-2 "verbatim"). Without it the column fell back to the
     // hardcoded `as u64` and TV checked a NON-production predicate.
-    let pt_owned = thermite_lower::spec_fn_param_type_map(&parsed.program);
+    let pt_owned = fluffy_lower::spec_fn_param_type_map(&parsed.program);
     let spec_fn_param_types: Vec<(&str, &[PrimType])> =
         pt_owned.iter().map(|(n, ps)| (*n, ps.as_slice())).collect();
 
@@ -290,13 +290,13 @@ fn tv_fn(
 /// (if/loop bodies). An un-typed or unframed-type `let` is dropped (the clause that
 /// needs it is reported `Skipped`). Deduped by name (a shadowing re-`let` keeps the
 /// first framed type — v0.1 corpus locals are not re-typed).
-fn collect_locals(block: &thermite_syntax::ast::Block) -> Vec<(String, SpecType)> {
+fn collect_locals(block: &fluffy_syntax::ast::Block) -> Vec<(String, SpecType)> {
     let mut out: Vec<(String, SpecType)> = Vec::new();
     collect_locals_into(block, &mut out);
     out
 }
 
-fn collect_locals_into(block: &thermite_syntax::ast::Block, out: &mut Vec<(String, SpecType)>) {
+fn collect_locals_into(block: &fluffy_syntax::ast::Block, out: &mut Vec<(String, SpecType)>) {
     for stmt in &block.stmts {
         match stmt {
             Stmt::Let {
@@ -329,7 +329,7 @@ fn collect_locals_into(block: &thermite_syntax::ast::Block, out: &mut Vec<(Strin
         recursive block walk; a struct would not reduce the genuine fan-in"
 )]
 fn tv_block_loops(
-    block: &thermite_syntax::ast::Block,
+    block: &fluffy_syntax::ast::Block,
     f: &FnItem,
     nat_fns: &[&str],
     base_frame: &ObligationFrame,
@@ -450,7 +450,7 @@ fn tv_clause(
         .iter()
         .map(String::as_str)
         .collect();
-    let p_production = match thermite_lower::lower_contract_expr(
+    let p_production = match fluffy_lower::lower_contract_expr(
         &clause.expr,
         &slices,
         nat_fns,
@@ -500,8 +500,8 @@ fn tv_clause(
 }
 
 /// Run the OFF-CORPUS generated TV run (REQ-3 / REQ-5; the corpus-bound escape).
-/// Generates `n` clauses deterministically from `seed` (`thermite_tv::generate_clauses`),
-/// lowers each via `thermite_lower::lower_contract_expr`, builds + discharges the
+/// Generates `n` clauses deterministically from `seed` (`fluffy_tv::generate_clauses`),
+/// lowers each via `fluffy_lower::lower_contract_expr`, builds + discharges the
 /// per-clause obligation against the FIXED generator-vocabulary frame, and reports.
 /// The lowerer is faithful, so ALL should verify; ANY `Divergent` is a real
 /// off-corpus infidelity finding (surfaced loudly).
@@ -514,7 +514,7 @@ pub fn run_generated(seed: u64, n: usize, rlimit: f64) -> Result<TvReport, Forge
     // corpus column rather than two divergent call shapes.
     let program = generated_program()?;
     let preamble = generated_preamble(&program)?;
-    let pt_owned = thermite_lower::spec_fn_param_type_map(&program);
+    let pt_owned = fluffy_lower::spec_fn_param_type_map(&program);
     let spec_fn_param_types: Vec<(&str, &[PrimType])> =
         pt_owned.iter().map(|(n, ps)| (*n, ps.as_slice())).collect();
     let frame = generated_frame(&preamble);
@@ -530,11 +530,11 @@ pub fn run_generated(seed: u64, n: usize, rlimit: f64) -> Result<TvReport, Forge
     // wrapper is in the preamble (`generated_preamble`'s `touch_string` fn).
     let strings = ["t"];
 
-    let clauses = thermite_tv::generate_clauses(seed, n);
+    let clauses = fluffy_tv::generate_clauses(seed, n);
     let mut report = TvReport::default();
     for (i, clause) in clauses.iter().enumerate() {
         let label = format!("gen#{i}");
-        let p_production = match thermite_lower::lower_contract_expr(
+        let p_production = match fluffy_lower::lower_contract_expr(
             clause,
             &[],
             &nat_fns,
@@ -575,7 +575,7 @@ pub fn run_generated(seed: u64, n: usize, rlimit: f64) -> Result<TvReport, Forge
 // ---- frame construction -----------------------------------------------------
 
 /// The FIXED obligation frame for the off-corpus generator vocabulary (matches
-/// `thermite_tv::gen`'s documented world): `xs`/`ys: Seq<u32>` (seq-bound),
+/// `fluffy_tv::gen`'s documented world): `xs`/`ys: Seq<u32>` (seq-bound),
 /// `s: Seq<u8>` (seq-bound byte-view), `n`/`m`/`k: int`, `result`/`old_acc: u64`
 /// (nat-coerced), with the spec_sum + combinator defs in scope.
 fn generated_frame(preamble: &[String]) -> ObligationFrame {
@@ -656,8 +656,8 @@ fn touch_string(t: String) -> u64
 /// Parse the off-corpus synthetic program ([`GENERATED_PREAMBLE_SRC`]) — the shared
 /// source for both the preamble and the param-type map. Errors if it does not parse
 /// clean (an internal invariant, never user input).
-fn generated_program() -> Result<thermite_syntax::ast::Program, ForgeError> {
-    let parsed = thermite_syntax::parse(GENERATED_PREAMBLE_SRC);
+fn generated_program() -> Result<fluffy_syntax::ast::Program, ForgeError> {
+    let parsed = fluffy_syntax::parse(GENERATED_PREAMBLE_SRC);
     if !parsed.is_clean() {
         return Err(ForgeError::VerusOutput {
             detail: "internal: the contract-TV off-corpus preamble program did not parse"
@@ -669,7 +669,7 @@ fn generated_program() -> Result<thermite_syntax::ast::Program, ForgeError> {
 
 /// The off-corpus preamble: the `spec_sum` def + the 8 frozen combinator `verus_l3`
 /// defs, materialized by lowering the synthetic program that references each.
-fn generated_preamble(program: &thermite_syntax::ast::Program) -> Result<Vec<String>, ForgeError> {
+fn generated_preamble(program: &fluffy_syntax::ast::Program) -> Result<Vec<String>, ForgeError> {
     program_spec_preamble(program)
 }
 
@@ -678,9 +678,9 @@ fn generated_preamble(program: &thermite_syntax::ast::Program) -> Result<Vec<Str
 /// the lowered `verus! { … }`, with the `use`/`verus!`/`fn main` frame AND the exec
 /// `fn`s stripped — the obligation supplies its own frame + has no exec fns).
 fn program_spec_preamble(
-    program: &thermite_syntax::ast::Program,
+    program: &fluffy_syntax::ast::Program,
 ) -> Result<Vec<String>, ForgeError> {
-    let lowered = thermite_lower::lower(program).map_err(ForgeError::Lower)?;
+    let lowered = fluffy_lower::lower(program).map_err(ForgeError::Lower)?;
     Ok(extract_spec_defs(&lowered))
 }
 
@@ -957,7 +957,7 @@ impl SpecType {
     }
 }
 
-/// Map a Thermite `Type` to its [`SpecType`] for framing, or `None` if it is
+/// Map a Fluffy `Type` to its [`SpecType`] for framing, or `None` if it is
 /// outside contract-TV's framed sublanguage.
 fn spec_type_of(ty: &Type) -> Option<SpecType> {
     match ty {
@@ -1125,7 +1125,7 @@ fn discharge(program: &str, label: &str, seed: u64, rlimit: f64) -> ClauseVerdic
 
     // NB: NO `--output-json` here — verus then emits the plain-text
     // `verification results:: N verified, M errors` summary line that
-    // [`parse_results`] reads (the same form the `thermite-tv` teeth-test parses).
+    // [`parse_results`] reads (the same form the `fluffy-tv` teeth-test parses).
     // The pinned `--rlimit` + `smt.random_seed` keep the discharge DETERMINISTIC
     // (R-CODE-5), matching `forge check`'s verus invocation config.
     let output = Command::new("verus")
@@ -1263,7 +1263,7 @@ pub const TV_DEFAULT_RLIMIT: f64 = DEFAULT_RLIMIT;
 
 // ---- the forge-level contract Divergent teeth (REQ-5; blocker #166) ---------
 //
-// The obligation-layer teeth (`thermite-tv/tests/teeth.rs` F1–F4) prove a WRONG
+// The obligation-layer teeth (`fluffy-tv/tests/teeth.rs` F1–F4) prove a WRONG
 // `P_production` -> a real verus error. They do NOT exercise the FORGE-level step
 // that MAPS that verus signal to a `ClauseVerdict`: `discharge`'s four-way
 // classification. Over the corpus/off-corpus space the faithful lowerer never
@@ -1296,7 +1296,7 @@ pub const TV_DEFAULT_RLIMIT: f64 = DEFAULT_RLIMIT;
 #[cfg(test)]
 mod divergent_teeth {
     use super::*;
-    use thermite_syntax::ast::BinOp;
+    use fluffy_syntax::ast::BinOp;
 
     /// `true` iff a bare `verus` is spawnable (the SAME resolution `discharge` uses —
     /// `Command::new("verus")`, i.e. PATH). SKIP LOUDLY otherwise so the teeth never

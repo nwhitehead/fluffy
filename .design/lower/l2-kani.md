@@ -1,24 +1,24 @@
-# Thermite Contracts → Kani Bounded Model Check (the L2 rung)
+# Fluffy Contracts → Kani Bounded Model Check (the L2 rung)
 <!--
 tier: 3-component
 status: draft
-governs: thermite-lower/src/l2.rs, forge/src/kani.rs
+governs: fluffy-lower/src/l2.rs, forge/src/kani.rs
 thesis-refs:
-  - thermite-design.md §6
-  - thermite-design.md §5.1
-  - thermite-design.md §5.3
-  - thermite-design.md §4.2
-  - thermite-design.md §13
+  - fluffy-design.md §6
+  - fluffy-design.md §5.1
+  - fluffy-design.md §5.3
+  - fluffy-design.md §4.2
+  - fluffy-design.md §13
 -->
 
 ## Summary
 
-The **L2 rung** of the verification ladder (`thermite-design.md §6`: "Bounded
+The **L2 rung** of the verification ladder (`fluffy-design.md §6`: "Bounded
 model check (Kani-derived) — Contract holds for all inputs **up to bound** —
 termination of the check **Guaranteed**"). It has two halves, parallel to the
 shipped L3 (`lower.rs` + `forge::check::run_verus`) and L1 (`l1.rs`) rungs:
 
-1. **`thermite-lower::lower_l2(program) -> Result<String, LowerError>`** —
+1. **`fluffy-lower::lower_l2(program) -> Result<String, LowerError>`** —
    produces a **Kani proof harness**: a `#[kani::proof]` fn (with
    `#[kani::unwind(N)]` where loops/recursion need it) that creates symbolic
    inputs (`kani::any()` + `kani::assume` bounds), `assume`s the `req`, calls the
@@ -33,11 +33,11 @@ shipped L3 (`lower.rs` + `forge::check::run_verus`) and L1 (`l1.rs`) rungs:
    not adjectives"). Emits a `Level::L2` certificate (`manifest.rs` `Level::L2`
    already exists).
 
-This is the **#9 / v0.2** ladder component (`thermite-design.md §13` v0.2: "Kani-
+This is the **#9 / v0.2** ladder component (`fluffy-design.md §13` v0.2: "Kani-
 backed L2 with type-driven bound inference"). The headline of #9 is **type-driven
 bound inference**: the symbolic bound is inferred from the parameter *types*.
 
-This component **SHIPPED** in #9 (v0.2): `thermite-lower/src/l2.rs`
+This component **SHIPPED** in #9 (v0.2): `fluffy-lower/src/l2.rs`
 (`pub fn lower_l2`) and `forge/src/kani.rs` (`pub fn run_kani`) exist and every
 REQ below is **SHIPPED** (see the REQ-status table), verified against real
 `cargo kani 0.67.0`. L3 (`lower.rs`), L1 (`l1.rs`), and `forge::check`
@@ -49,7 +49,7 @@ REQ below is **SHIPPED** (see the REQ-status table), verified against real
 certificate, invokable + tested directly (e.g. a `forge check --level l2` flag /
 distinct entry). #9 does **NOT** build:
 
-- the **automatic L3→L2→L1 degrade ladder** (`thermite-design.md §5.2`; that is
+- the **automatic L3→L2→L1 degrade ladder** (`fluffy-design.md §5.2`; that is
   issue **#10**) — `forge::check::level_from_summary` stays binary in v0.1, and
   `run_kani` is invoked explicitly, never as an automatic fallback on a verus
   timeout;
@@ -131,7 +131,7 @@ distinct entry). #9 does **NOT** build:
 - **REQ-7 (forge L2 exposure — invokable, NOT auto-degrade):** `forge` exposes L2
   as an explicit entry — a `forge check --level l2` flag or a distinct
   `forge check-l2` path (the exact surface is OQ-1) — that runs
-  `thermite_lower::lower_l2` → `forge::kani::run_kani` → an L2 `Certificate`, in the
+  `fluffy_lower::lower_l2` → `forge::kani::run_kani` → an L2 `Certificate`, in the
   per-item shape `check.rs` already uses (`item_subprogram`, the spec-fn
   dependencies, the temp-file pattern). #9 does **NOT** wire L2 as the automatic
   fallback on a verus timeout (that is #10's `level_from_summary` change) and does
@@ -221,13 +221,13 @@ distinct entry). #9 does **NOT** build:
   returns `Err(LowerError)`, never panics; over the corpus returns `Ok`. The
   emitted harness's `assert!`/`kani::assume` are the intended *Kani* checks, not a
   toolchain panic (the R-CODE-2 boundary, exactly as `l1.rs`'s
-  `thermite_contract_violation` documents). (REQ-1, R-CODE-2)
+  `fluffy_contract_violation` documents). (REQ-1, R-CODE-2)
 
 ## Architecture
 
 Two files, sibling to the shipped rungs:
 
-- `thermite-lower/src/l2.rs` — a recursive emitter over the `thermite-syntax` AST,
+- `fluffy-lower/src/l2.rs` — a recursive emitter over the `fluffy-syntax` AST,
   sibling to `lower.rs` (L3) and `l1.rs` (L1), sharing the `LowerError` enum
   (`enum LowerError in lower.rs`). It REUSES the L1 executable lowering for the
   body and spec fns (Kani checks executable Rust): `pub fn lower_l1 in l1.rs`,
@@ -240,11 +240,11 @@ Two files, sibling to the shipped rungs:
   `fn unique_temp_path in check.rs`. `run_kani` mirrors these for the kani binary.
 
 Symbol anchors used: `struct FnItem` / `struct SpecFnItem` / `struct Param` /
-`struct Type` / `struct LoopNode` in `thermite-syntax/src/ast.rs`;
+`struct Type` / `struct LoopNode` in `fluffy-syntax/src/ast.rs`;
 `enum Level` (`Level::L2`) / `struct Certificate` / `struct ObligationResult` /
 `fn oracle_subset` in `forge/src/manifest.rs`; `enum ForgeError` (`VerusAbsent`,
 the `KaniAbsent` parallel) in `forge/src/cli.rs`; `static REGISTRY` / `fn lookup`
-/ `CombinatorSig.l1` in `thermite-spec/src/combinators.rs`.
+/ `CombinatorSig.l1` in `fluffy-spec/src/combinators.rs`.
 
 ### Why reuse L1, not L3 (REQ-1)
 
@@ -417,7 +417,7 @@ pure-parsing unit tests that run unconditionally on canned output.
 
 ## Verification
 
-`cargo test -p thermite-lower` (the `lower_l2` emitter) + `cargo test -p forge`
+`cargo test -p fluffy-lower` (the `lower_l2` emitter) + `cargo test -p forge`
 (the `run_kani` driver), gauntlet per `goal.md`:
 
 - **AC-1 / AC-2:** lower `conformance/sum.th` + `conformance/binary_search.th`,
@@ -456,7 +456,7 @@ The orchestrator adds to `tooling/spec-routes.toml`:
 
 ```toml
 [[route]]
-crate_pattern = "thermite-lower/src/l2.rs"
+crate_pattern = "fluffy-lower/src/l2.rs"
 design = ".design/lower/l2-kani.md"
 reference = ["conformance/sum.th", "conformance/binary_search.th"]
 conformance_ops = ["sum", "binary_search"]

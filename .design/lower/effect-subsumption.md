@@ -2,17 +2,17 @@
 <!--
 tier: 3-component
 status: draft
-governs: thermite-lower/src/effects.rs
+governs: fluffy-lower/src/effects.rs
 thesis-refs:
-  - thermite-design.md §4.1
-  - thermite-design.md §9
-  - thermite-design.md §11
+  - fluffy-design.md §4.1
+  - fluffy-design.md §9
+  - fluffy-design.md §11
 -->
 
 ## Summary
 
-`thermite-lower::effects` enforces the **effect-row subsumption rule** at compile
-time: *a caller's `fx` row must subsume every callee's row* (`thermite-design.md
+`fluffy-lower::effects` enforces the **effect-row subsumption rule** at compile
+time: *a caller's `fx` row must subsume every callee's row* (`fluffy-design.md
 §4.1`: "Effect rows compose: a caller's row must subsume every callee's row,
 checked at compile time"). `fx pure` permits nothing; a `pure` function that
 calls an effectful one is a compile-time rejection. In v0.1 this is the
@@ -23,7 +23,7 @@ This component is the static half, fully implemented (R-SPEC-5: implement the
 v0.1 form fully, do not stub the deferred form).
 
 This doc is GREENFIELD / FORWARD-LOOKING. Only the empty
-`thermite-lower/src/lib.rs` scaffold root exists (no `effects.rs`). Every REQ is
+`fluffy-lower/src/lib.rs` scaffold root exists (no `effects.rs`). Every REQ is
 **NOT-STARTED**, blocked on issue **#4**. The corpus programs (`sum`,
 `binary_search`) are both `fx pure` with no internal calls to effectful
 functions, so they are the ACCEPT baseline; reject cases are crafted fixtures.
@@ -31,7 +31,7 @@ functions, so they are the ACCEPT baseline; reject cases are crafted fixtures.
 ## Requirements
 
 - **REQ-1 (the effect lattice):** The effects form a lattice over the powerset of
-  the atomic effect set the AST models (`thermite-syntax/src/ast.rs` `enum
+  the atomic effect set the AST models (`fluffy-syntax/src/ast.rs` `enum
   Effect`): `{ Read(path), Write(path), Net(domain), Alloc, Time, Rand, Panic,
   Diverge }`. The ordering is subset inclusion: `{}` (≡ `pure`) is the bottom;
   any set subsumes its subsets. `EffectRow::Pure` (`ast.rs` `enum EffectRow`) is
@@ -123,12 +123,12 @@ functions, so they are the ACCEPT baseline; reject cases are crafted fixtures.
 
 ## Architecture
 
-`thermite-lower/src/effects.rs`: a compile-time analysis over the
-`thermite-syntax` AST, sibling to `lower.rs` / `l1.rs`, sharing the `LowerError`
+`fluffy-lower/src/effects.rs`: a compile-time analysis over the
+`fluffy-syntax` AST, sibling to `lower.rs` / `l1.rs`, sharing the `LowerError`
 enum. Symbol anchors: `enum EffectRow { Pure, Set(Vec<Effect>) }` and `enum
 Effect { Read, Write, Net, Alloc, Time, Rand, Panic, Diverge }` in
-`thermite-syntax/src/ast.rs`; `struct FnItem` (`.contract.fx`), `struct
-SpecFnItem` (no `fx`); `fn lookup` in `thermite-spec/src/combinators.rs` (to
+`fluffy-syntax/src/ast.rs`; `struct FnItem` (`.contract.fx`), `struct
+SpecFnItem` (no `fx`); `fn lookup` in `fluffy-spec/src/combinators.rs` (to
 classify a callee as a pure combinator).
 
 ### The effect lattice (REQ-1)
@@ -165,12 +165,12 @@ body's `Expr` tree; for every `Call`/`MethodCall` whose callee path resolves to 
 declared `FnItem`, it asserts `subsumes(caller.fx, callee.fx)`, emitting
 `EffectNotSubsumed { missing = effects(callee) \ effects(caller) }` on failure.
 Callees that resolve to a `SpecFnItem` or a registry combinator
-(`thermite-spec::lookup`) are pure ⇒ always subsumed. Unresolved callees are a
+(`fluffy-spec::lookup`) are pure ⇒ always subsumed. Unresolved callees are a
 no-op (the #2 validator owns unknown-name rejection — REQ-3 / AC-5).
 
 The walk reuses the bounded-recursion discipline the parser and validator
 established (`guard_recursion` / `MAX_RECURSION_DEPTH` in
-`thermite-syntax/src/parser.rs`; mirrored in `thermite-spec` per
+`fluffy-syntax/src/parser.rs`; mirrored in `fluffy-spec` per
 `.design/spec/spectherm-combinators.md` REQ-5) so a pathological body returns a
 structured error, never a stack overflow.
 
@@ -195,7 +195,7 @@ v0.1 corpus has no effectful program.
 
 ## Verification
 
-`cargo test -p thermite-lower` (this route has no golden `reference` in
+`cargo test -p fluffy-lower` (this route has no golden `reference` in
 `tooling/spec-routes.toml` — the checks are unit-level over crafted rows):
 
 - **AC-1:** table-driven `subsumes` law test (reflexive; `Pure` subsumes only
@@ -208,8 +208,8 @@ v0.1 corpus has no effectful program.
 - **AC-5:** malformed / deep / unresolved-callee inputs return `Result`, no panic.
 - **AC-6:** confirm `effects.rs` has only a checking path, no codegen / sandbox.
 
-Gauntlet (R-DEFER-6): `cargo test -p thermite-lower`,
-`cargo clippy -p thermite-lower --all-targets -- -D warnings`,
+Gauntlet (R-DEFER-6): `cargo test -p fluffy-lower`,
+`cargo clippy -p fluffy-lower --all-targets -- -D warnings`,
 `cargo fmt --check`.
 
 There is no golden Verus / corpus-cert reference for effect subsumption (it is a
@@ -222,7 +222,7 @@ are crafted unit fixtures, hand-derived from §4.1 (R-CHAR-3).
 |---|---|---|
 | REQ-1 (effect lattice) | SHIPPED | `enum EffectKind` (the 8 atoms) + `fn effects` (powerset projection of `EffectRow`) in `effects.rs`; consumer `subsumes`/`missing_atoms`; asserted by `tests/effects.rs::lattice_law_*` (AC-1). |
 | REQ-2 (subsumption accept relation) | SHIPPED | `pub fn subsumes` in `effects.rs` (`effects(callee) ⊆ effects(caller)`; `Pure` subsumes only `Pure`); consumer `check_effects::check_call`; asserted by `lattice_law_table` + `crafted_accepts` (AC-1/AC-3). |
-| REQ-3 (check entry point + call graph) | SHIPPED | `pub fn check_effects` in `effects.rs` builds a name→`fx` map over `FnItem`s (`SpecFnItem`/`thermite_spec::lookup` combinators noted pure) and walks each body's `Expr` tree (`check_block`/`check_expr`) per `Call`/`MethodCall`; consumer `tests/effects.rs` + the `pub use` lowering-pipeline surface; asserted by `corpus_accepts` (AC-2) + `crafted_rejects` (AC-4). |
+| REQ-3 (check entry point + call graph) | SHIPPED | `pub fn check_effects` in `effects.rs` builds a name→`fx` map over `FnItem`s (`SpecFnItem`/`fluffy_spec::lookup` combinators noted pure) and walks each body's `Expr` tree (`check_block`/`check_expr`) per `Call`/`MethodCall`; consumer `tests/effects.rs` + the `pub use` lowering-pipeline surface; asserted by `corpus_accepts` (AC-2) + `crafted_rejects` (AC-4). |
 | REQ-4 (structured rejection, `LowerError`) | SHIPPED | `LowerError::EffectNotSubsumed { caller, callee, missing, span }` in `lower.rs` (`Display` arm + `effect_atom_name`); produced by `check_call`; `missing` = `effects(callee) \ effects(caller)`; asserted by `reject_*` (AC-4). |
 | REQ-5 (maximal-row / slag boundary) | SHIPPED | boundary recorded — `effects.rs` enforces subsumption only; no maximal-row judgement in the file (that is forge's vacuity stage #6). |
 | REQ-6 (runtime sandbox deferred to #21) | SHIPPED | boundary recorded — `effects.rs` returns `Result<(), Vec<LowerError>>` with NO codegen / NO syscall-sandbox path (AC-6); the sandbox stays deferred to #21 (R-SPEC-5). |

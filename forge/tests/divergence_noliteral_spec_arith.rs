@@ -1,6 +1,6 @@
 //! Pinning regression for crosslink #238 (critic re-audit of the #237 fix,
 //! commit 39cae0bc): the #237 result-narrowing gate
-//! (`thermite-lower/src/lower.rs` `block_result_is_int_literal_arith`) requires
+//! (`fluffy-lower/src/lower.rs` `block_result_is_int_literal_arith`) requires
 //! the result-position arithmetic to MENTION AN INTEGER LITERAL
 //! (`expr_mentions_int_literal`). That premise is wrong: Verus types ALL spec
 //! arithmetic as the unbounded `int` — `n + n` over `u64` params is `int`-typed
@@ -14,7 +14,7 @@
 //! expected `u64`, found `int``.
 //!
 //! THE AUTHORITY (R-CHAR-3): the expected level L3 is the design contract —
-//! `thermite-design.md` §6 ladder semantics (L3 == a fully-discharged real-verus
+//! `fluffy-design.md` §6 ladder semantics (L3 == a fully-discharged real-verus
 //! proof, reachable for legitimate frozen-subset source) and
 //! `.design/lower/verus-lowering.md` REQ-5 (spec-context lowering must emit
 //! Verus that typechecks) — NOT copied from the toolchain's own output.

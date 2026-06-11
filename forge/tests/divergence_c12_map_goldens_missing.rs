@@ -23,7 +23,7 @@
 //! enumerates: there is no R-CHAR-3 oracle pinning the EXACT cert field shape
 //! (`conformance/map_kv.cert.json`) or the EXACT emitted lowering bytes
 //! (`tests/golden/lower/map_kv.verus.rs`). Per goal.md verification model (A)/(B), the
-//! deliverable for `thermite-lower`/`forge` is the lowering/certificate MATCHING a
+//! deliverable for `fluffy-lower`/`forge` is the lowering/certificate MATCHING a
 //! hand-authored golden; a "verus says 0 errors" harness is a weaker oracle (it cannot
 //! catch a lowering that verifies but drifts from the design's GROUNDED `TMapU64U64`
 //! shape, e.g. a different abstraction that happens to also verify).

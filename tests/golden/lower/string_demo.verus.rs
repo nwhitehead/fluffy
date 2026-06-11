@@ -1,11 +1,11 @@
 // L3 Verus lowering of `conformance/string_demo.th` — the bounded-String rung
 // (.design/basis/07-strings.md REQ-1/REQ-4, Basis Stage 7 / issue #79). Reference
-// oracle for `thermite-lower::lower`'s `String` wrapping: hand-authored from the
+// oracle for `fluffy-lower::lower`'s `String` wrapping: hand-authored from the
 // design's GROUNDED `TString`-over-`vstd::vec::Vec<u8>` form (R-CHAR-3 — never
 // regenerated from the lowerer), and CONFIRMED to pass the real `verus` binary
 // (verus 0.2026.05.24): `verus --no-cheating <this> => 11 verified, 0 errors`.
 //
-// A Thermite `String` lowers to the Thermite-runtime newtype `TString` over
+// A Fluffy `String` lowers to the Fluffy-runtime newtype `TString` over
 // `vstd::vec::Vec<u8>` (the char model is bytes / u8 for v1) carrying the capacity
 // invariant `well_formed` (len() <= CAP), the spec `spec_len` (the exec `len`
 // returns u64 and cannot be named in a contract, so a contract names `spec_len`),

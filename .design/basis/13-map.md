@@ -2,15 +2,15 @@
 <!--
 tier: 3-component
 status: draft
-governs: thermite-syntax/src/ast.rs
-governs: thermite-syntax/src/parser.rs
-governs: thermite-spec/src/validator.rs
-governs: thermite-lower/src/lower.rs
+governs: fluffy-syntax/src/ast.rs
+governs: fluffy-syntax/src/parser.rs
+governs: fluffy-spec/src/validator.rs
+governs: fluffy-lower/src/lower.rs
 thesis-refs:
-  - thermite-design.md §4.1
-  - thermite-design.md §4.2
-  - thermite-design.md §4.4
-  - thermite-design.md §6
+  - fluffy-design.md §4.1
+  - fluffy-design.md §4.2
+  - fluffy-design.md §4.4
+  - fluffy-design.md §6
 -->
 
 ## Summary
@@ -35,11 +35,11 @@ SHIPPED) and `String` (`.design/basis/07-strings.md`, SHIPPED); it reuses C7's
 tuples (`.design/basis/10-recursion-tuples.md` REQ-5, the `(K, V)` pair).
 
 This doc ADAPTS to the existing code: `Map` is **probe-confirmed missing** — there
-is no `Map` arm in `enum Type` (`thermite-syntax/src/ast.rs` carries
+is no `Map` arm in `enum Type` (`fluffy-syntax/src/ast.rs` carries
 `Prim`/`Unit`/`Ref`/`Slice`/`Generic`/`Named`/`Box`/`Vec`/`String`/`Option`/
 `Result`/`Tuple`, no `Map`), no `parse_type` `"Map"` arm, no `emit_map_wrappers`,
 and `insert`/`contains_key` are not in `BUILTIN_METHODS`
-(`thermite-spec/src/validator.rs` — `len`/`get`/`last`/`contains`/… only). **UPDATE
+(`fluffy-spec/src/validator.rs` — `len`/`get`/`last`/`contains`/… only). **UPDATE
 (#123): all REQs SHIPPED** — `Type::Map` two-arg node + `emit_map_wrappers` (the
 Vec-of-pairs `TMap` backing + spec view + the ops) + the Type-match/skill ripple
 landed, real verus `9 verified, 0 errors` (the insert-then-get round-trip +
@@ -62,7 +62,7 @@ spec `vstd::map::Map`. Three backings were considered:
   across versions (the `final(self)` migration class, §6.x of 04-collections).
 - **(b) a `Vec<(K, V)>` of key-value pairs with a linear scan** — the EXACT
   generalization of the SHIPPED bounded `Vec` (`.design/basis/04-collections.md`
-  REQ-5/REQ-9): a Thermite `Map<K, V>` lowers to a `TMap<K,V>` newtype over
+  REQ-5/REQ-9): a Fluffy `Map<K, V>` lowers to a `TMap<K,V>` newtype over
   `vstd::vec::Vec<(K, V)>`, with a key-uniqueness invariant + a capacity bound
   carried as a `well_formed` predicate, `insert` an append (under
   `!contains_key(k)`), `get`/`contains_key` an exec linear scan, and a spec
@@ -86,7 +86,7 @@ Option (a) is the richer future backing the BACKING-AGNOSTIC surface contract
 (below) makes safe to migrate to; option (c) is strictly worse than (b).
 
 **BACKING-AGNOSTIC SURFACE CONTRACT (the #62 `Vec` resolution, REQUIRED).** The
-Thermite-surface `Map` contract — `insert`/`get`/`contains_key`/`len` + the
+Fluffy-surface `Map` contract — `insert`/`get`/`contains_key`/`len` + the
 capacity and key-uniqueness invariants — is specified INDEPENDENTLY of the
 backing. The contract names what each operation guarantees over a spec map
 abstraction (`get(k) -> Some(v)` iff `k` maps `v`; `get(absent) -> None`;
@@ -126,10 +126,10 @@ exactly as the `Vec`/`String` accessors were.
 
 ## Requirements
 
-### Surface + AST (governs `thermite-syntax/src/ast.rs`, `parser.rs`)
+### Surface + AST (governs `fluffy-syntax/src/ast.rs`, `parser.rs`)
 
 - **REQ-1 (`Map<K, V>` type — the two-type-argument AST node + grammar):** `enum
-  Type` (`thermite-syntax/src/ast.rs`) gains a dedicated `Type::Map(Box<Type>,
+  Type` (`fluffy-syntax/src/ast.rs`) gains a dedicated `Type::Map(Box<Type>,
   Box<Type>)` node — a SECOND two-type-argument type, mirroring the SHIPPED
   `Type::Result(Box<Type>, Box<Type>)` (C7, `.design/basis/09-option-result.md`
   REQ-2) verbatim (the single-arg `Generic { name, arg }` cannot carry a key AND a
@@ -152,11 +152,11 @@ exactly as the `Vec`/`String` accessors were.
   (REUSED `Type::Option`); the others return `Option`/`bool`/`u64`. Derived from
   §4.4 and the SHIPPED `Vec`/`Expr::MethodCall` precedent.
 
-### Validator / the SpecTherm cage (governs `thermite-spec/src/validator.rs`)
+### Validator / the SpecTherm cage (governs `fluffy-spec/src/validator.rs`)
 
 - **REQ-3 (`contains_key`/`insert` in `BUILTIN_METHODS`; the capacity / op
   contracts fit the §4.2 cage):** `contains_key` is ADDED to `BUILTIN_METHODS`
-  (`thermite-spec/src/validator.rs`) so an `ens result == m.contains_key(k)`
+  (`fluffy-spec/src/validator.rs`) so an `ens result == m.contains_key(k)`
   validates inside the §4.2 cage as a flat built-in (exactly as `Vec`'s
   `contains` and the no-OOB `get` were, `.design/basis/04-collections.md` REQ-12);
   `get` and `len` are ALREADY present. `insert` is EXEC-only (it mutates — never
@@ -170,14 +170,14 @@ exactly as the `Vec`/`String` accessors were.
   `.design/spec/spectherm-combinators.md` REQ-6, and the SHIPPED `BUILTIN_METHODS`
   precedent.
 
-### Verus lowering (governs `thermite-lower/src/lower.rs`)
+### Verus lowering (governs `fluffy-lower/src/lower.rs`)
 
 - **REQ-4 (`Map<K,V>` → the Vec-of-pairs wrapper + the spec abstraction view;
-  `insert`/`get`/`contains_key`/`len` → verified ops; `fx alloc`):** A Thermite
+  `insert`/`get`/`contains_key`/`len` → verified ops; `fx alloc`):** A Fluffy
   `Map<K, V>` lowers to a `TMap<K,V>` newtype over `vstd::vec::Vec<(K, V)>` (the
   Vec-of-pairs backing — C9 tuple `(K, V)` + C6 `Vec<tuple>`), materialized ONCE
   per `(K, V)` pair by a new `emit_map_wrappers` (MIRRORING `emit_vec_wrappers` /
-  `emit_one_vec_wrapper`, `thermite-lower/src/lower.rs`). `lower_type`'s
+  `emit_one_vec_wrapper`, `fluffy-lower/src/lower.rs`). `lower_type`'s
   `Type::Map(k, v)` arm emits the monomorphized wrapper name (a `tmap_name(k, v)`
   helper mirroring `tvec_name`); a `map_name` reachability collector
   (mirroring `collect_vec_elem_types` / `note_vec_elems`) drives emission from
@@ -215,23 +215,23 @@ exactly as the `Vec`/`String` accessors were.
   workspace MUST gain a `Type::Map` arm with NO `_`/panic fallthrough
   (`goal.md` R-APG-1). The sites the builder MUST extend (the EXACT set that
   already carries `Type::Result`/`Type::Tuple` arms — grep-confirmed):
-  `thermite-syntax/src/parser.rs` (the `parse_type` `"Map"` arm),
-  `thermite-syntax/src/ast.rs` (the variant + doc-comment),
-  `thermite-lower/src/lower.rs` (`lower_type`, the `tmap_name`/`map`-reachability
+  `fluffy-syntax/src/parser.rs` (the `parse_type` `"Map"` arm),
+  `fluffy-syntax/src/ast.rs` (the variant + doc-comment),
+  `fluffy-lower/src/lower.rs` (`lower_type`, the `tmap_name`/`map`-reachability
   collectors, `ty_reaches_string` recursing both args, `note_vec_elems` recursing
-  both args), `thermite-lower/src/l1.rs` and `l2.rs` (the exec mirror + the
+  both args), `fluffy-lower/src/l1.rs` and `l2.rs` (the exec mirror + the
   bounded `type_label`), `forge/src/check.rs` (`collect_type_adt_refs` recursing
   both args — so a `Map<u64, Account>` weaves the `Account` decl, the #68 ADT
   weave), `forge/src/mutation.rs` and `forge/src/review.rs` (the `Type` walks),
-  and `thermite-skill/src/generate.rs` (a `SkillFragment` teaching the `Map<K,V>`
+  and `fluffy-skill/src/generate.rs` (a `SkillFragment` teaching the `Map<K,V>`
   type + `insert`/`get`/`contains_key`/`len` — the skill-layer ripple, the
   6,000-token budget gate must still pass). Derived from the AST-boundary-stability
   contract (`.design/syntax/ast.md` REQ-9), §4.1, and the SHIPPED `Type::Result`/
   `Type::Tuple` ripple precedent.
 
 - **REQ-6 (`LowerError`/`SpecError` extension, no panics):** The `Map` constructs
-  reuse the EXISTING `thermite-lower::LowerError` (`Unsupported`/`TooDeep`) and
-  `thermite-spec::SpecError` — a still-unlowerable `(K, V)` (a non-primitive,
+  reuse the EXISTING `fluffy-lower::LowerError` (`Unsupported`/`TooDeep`) and
+  `fluffy-spec::SpecError` — a still-unlowerable `(K, V)` (a non-primitive,
   non-Named, non-String key/value the wrapper cannot monomorphize) is the existing
   `LowerError::Unsupported` (no new variant), exactly as `tvec_name` on an
   unsupported element. No `unwrap`/`expect`/`panic!` in production (R-CODE-2 /
@@ -280,35 +280,35 @@ and confirmed to pass `verus`. The cert golden lives at
 
 - **AC-4 (the `Type::Map` ripple is closed; the existing corpus is byte-stable —
   no regression):** Every exhaustive `match Type` gains a `Type::Map` arm (no
-  `_`/panic fallthrough, REQ-5); the `thermite-skill` 6,000-token budget gate
+  `_`/panic fallthrough, REQ-5); the `fluffy-skill` 6,000-token budget gate
   still passes with the new `Map` fragment. The existing corpus
   (`conformance/{sum,binary_search,vec_demo,option_result,parse_u64,…}.th` and
   their `.cert.json` / `tests/golden/lower/*.verus.rs` goldens) is UNCHANGED —
   `Map` is purely additive (a new `Type` variant + the `Map` lowering path + the
   `contains_key` `BUILTIN_METHODS` entry touch no existing node shape). Mechanically:
-  `cargo test -p thermite-syntax -p thermite-spec -p thermite-lower`, the
-  conformance corpus, and `cargo run -p thermite-skill -- --check-budget` pass with
+  `cargo test -p fluffy-syntax -p fluffy-spec -p fluffy-lower`, the
+  conformance corpus, and `cargo run -p fluffy-skill -- --check-budget` pass with
   0 mismatches. (All REQs; C12 must not break the kernel.)
 
 ## Architecture
 
 C12 spans three crates, additively, mirroring the C7 / collections layer split:
 
-- **`thermite-syntax`** — `enum Type` (`thermite-syntax/src/ast.rs`) gains
+- **`fluffy-syntax`** — `enum Type` (`fluffy-syntax/src/ast.rs`) gains
   `Map(Box<Type>, Box<Type>)`, the SECOND two-type-argument node (the first being
   `Type::Result`, C7). `parse_type`'s `Ident` arm gains the `"Map"`
   contextual-ident arm parsing `<K, V>` (the comma + second type + `>`, the SAME
   two-arg parse as `"Result"`). `insert`/`get`/`contains_key`/`len` reuse
   `Expr::MethodCall` (no reshape).
 
-- **`thermite-spec`** — `validator.rs`'s `BUILTIN_METHODS` gains `contains_key`
+- **`fluffy-spec`** — `validator.rs`'s `BUILTIN_METHODS` gains `contains_key`
   (`get`/`len` already present); `insert` stays EXEC-only (no entry). The
   caged-flat walk (`walk_expr_inner`'s `MethodCall` arm, the §4.2 cage) is
   UNCHANGED — a `Map` `get`/`contains_key`/`len` is the same flat built-in as a
   `Vec` accessor; the round-trip contract is the C7 spec-`match` over `get`'s
   `Option` result (an admitted flat built-in).
 
-- **`thermite-lower`** — `lower.rs` (`pub fn lower` / `lower_type` / `lower_expr`)
+- **`fluffy-lower`** — `lower.rs` (`pub fn lower` / `lower_type` / `lower_expr`)
   gains the `Map` lowering path: a new `emit_map_wrappers` (mirroring
   `emit_vec_wrappers`, called from `lower` alongside it) materializing the
   Vec-of-pairs `TMap` newtype + the spec abstraction view + the four ops; a
@@ -459,14 +459,14 @@ then — none surfaced in the grounding.)
   bounded-`Map` + capacity + key-uniqueness + no-OOB-get(Option) + insert-then-get
   round-trip stack is Verus-feasible end to end. (Scratch cleaned per §53.)
 
-- **AC-1/AC-2/AC-3:** `cargo test -p thermite-syntax -p thermite-spec -p
-  thermite-lower`, plus a harness that shells the real `verus` binary on the
+- **AC-1/AC-2/AC-3:** `cargo test -p fluffy-syntax -p fluffy-spec -p
+  fluffy-lower`, plus a harness that shells the real `verus` binary on the
   emitted lowering of `map_kv.th` and asserts exit 0 + `N verified, 0 errors`
   (R-CODE-4: subprocess status checked, never swallowed), plus `forge check`
   matching `conformance/map_kv.cert.json`. The non-vacuity negative (a `get`
   returning a wrong value for an absent key) must FAIL to verify (R-DEFER-9).
 - **AC-4:** the existing `tests/golden/lower/*.verus.rs` + `*.cert.json` assertions
-  stay green (no regression); `cargo run -p thermite-skill -- --check-budget`
+  stay green (no regression); `cargo run -p fluffy-skill -- --check-budget`
   passes with the new `Map` fragment.
 
 Gauntlet (R-DEFER-6, per crate): `cargo test -p <crate>`, `cargo clippy -p
@@ -479,10 +479,10 @@ C12 adds NEW concerns to files that already carry routes; add these routes to
 governing docs — the `lower.rs` precedent):
 
 ```
-[[route]]  crate_pattern = "thermite-syntax/src/ast.rs"      design = ".design/basis/13-map.md"  reference = ["conformance/map_kv.th"]
-[[route]]  crate_pattern = "thermite-syntax/src/parser.rs"   design = ".design/basis/13-map.md"  reference = ["conformance/map_kv.th"]
-[[route]]  crate_pattern = "thermite-spec/src/validator.rs"  design = ".design/basis/13-map.md"  reference = ["conformance/map_kv.th"]
-[[route]]  crate_pattern = "thermite-lower/src/lower.rs"     design = ".design/basis/13-map.md"  reference = ["tests/golden/lower/map_kv.verus.rs"]
+[[route]]  crate_pattern = "fluffy-syntax/src/ast.rs"      design = ".design/basis/13-map.md"  reference = ["conformance/map_kv.th"]
+[[route]]  crate_pattern = "fluffy-syntax/src/parser.rs"   design = ".design/basis/13-map.md"  reference = ["conformance/map_kv.th"]
+[[route]]  crate_pattern = "fluffy-spec/src/validator.rs"  design = ".design/basis/13-map.md"  reference = ["conformance/map_kv.th"]
+[[route]]  crate_pattern = "fluffy-lower/src/lower.rs"     design = ".design/basis/13-map.md"  reference = ["tests/golden/lower/map_kv.verus.rs"]
 ```
 
 The corpus program `conformance/map_kv.th`, its `.cert.json` golden, and the
@@ -494,11 +494,11 @@ from this doc (and the GROUNDED `TMapU64U64` seed) before the builder runs
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (`Map<K,V>` two-arg `Type` node + grammar) | SHIPPED | #123. `enum Type` (`thermite-syntax/src/ast.rs`) gains `Map(Box<Type>, Box<Type>)` — the SECOND two-type-argument node, mirroring the SHIPPED `Type::Result(Box, Box)`. `parser::parse_type`'s `"Map"` contextual-ident arm parses `<K, V>` (a comma + a second type + `>`, the SAME two-arg parse as `"Result"`). `Map<u64, u64>` parses to `Type::Map(Box::new(u64), Box::new(u64))`. Consumer: `thermite_lower::lower::lower_type`. Verified: `forge/tests/map_conformance.rs` (the `map_kv.th` `Map<u64,u64>` parses + lowers + verus L3). |
+| REQ-1 (`Map<K,V>` two-arg `Type` node + grammar) | SHIPPED | #123. `enum Type` (`fluffy-syntax/src/ast.rs`) gains `Map(Box<Type>, Box<Type>)` — the SECOND two-type-argument node, mirroring the SHIPPED `Type::Result(Box, Box)`. `parser::parse_type`'s `"Map"` contextual-ident arm parses `<K, V>` (a comma + a second type + `>`, the SAME two-arg parse as `"Result"`). `Map<u64, u64>` parses to `Type::Map(Box::new(u64), Box::new(u64))`. Consumer: `fluffy_lower::lower::lower_type`. Verified: `forge/tests/map_conformance.rs` (the `map_kv.th` `Map<u64,u64>` parses + lowers + verus L3). |
 | REQ-2 (`Map` ops are `Expr::MethodCall` — no new node) | SHIPPED | #123. `insert`/`get`/`contains_key`/`len` over a `Map` reuse the EXISTING `Expr::MethodCall` (no new expression node — the one call syntax), parsed by `parse_postfix`. `get` returns the C7 `Option<V>`. Verified: `forge/tests/map_conformance.rs` (the corpus fns exercise all four ops). |
-| REQ-3 (`contains_key`/`insert` cage admission; capacity/op contracts in §4.2) | SHIPPED | #123. `contains_key` ADDED to `BUILTIN_METHODS` (`thermite-spec/src/validator.rs`) so `ens result == m.contains_key(k)` validates inside the §4.2 cage as a flat built-in (the lowerer maps spec-position `m.contains_key(k)` → `m.spec_contains_key(k)`); `get`/`len` already present; `insert` stays EXEC-only (`&mut`, like `push`). The round-trip / absent→None contracts are the C7 spec-`match`-in-`ens` over `get`'s `Option` result. The caged-flat walk is UNCHANGED. Consumer: `validate`. Verified: `forge/tests/map_conformance.rs::ac3_..._certifies_l3` (`has_key` L3). |
+| REQ-3 (`contains_key`/`insert` cage admission; capacity/op contracts in §4.2) | SHIPPED | #123. `contains_key` ADDED to `BUILTIN_METHODS` (`fluffy-spec/src/validator.rs`) so `ens result == m.contains_key(k)` validates inside the §4.2 cage as a flat built-in (the lowerer maps spec-position `m.contains_key(k)` → `m.spec_contains_key(k)`); `get`/`len` already present; `insert` stays EXEC-only (`&mut`, like `push`). The round-trip / absent→None contracts are the C7 spec-`match`-in-`ens` over `get`'s `Option` result. The caged-flat walk is UNCHANGED. Consumer: `validate`. Verified: `forge/tests/map_conformance.rs::ac3_..._certifies_l3` (`has_key` L3). |
 | REQ-4 (`Map` → Vec-of-pairs wrapper + spec view; ops; `fx alloc`) | SHIPPED | #123. `lower.rs`: `Type::Map(k, v)` → `tmap_name` (`Map<u64,u64>` → `TMapU64U64`); `emit_map_wrappers` materializes ONCE per `(K,V)` pair the GROUNDED `TMapU64U64` newtype over `vstd::vec::Vec<(u64,u64)>` with `spec_dom`/`well_formed` (capacity + key-uniqueness)/`spec_contains_key`/`len` spec view, the exec linear-scan `contains_key`, the no-OOB / handled-or-loud `get -> Option<V>` (absent → None), and the append-under-`!contains_key` `insert` (`ens final(self)...`). A `Map`-param weaves `well_formed()` (`is_map_param_ty`); `Map::new()` `let`-init rewrites to `<TMap> { data: Vec::new() }` (`is_map_new`). `fx alloc` accepted by effect-subsumption. Consumer: `lower`. Verified: real `verus --no-cheating` — the GROUNDED `TMapU64U64` + the insert-then-get round-trip → `Some(v)` + absent → `None` + contains_key both branches = **`9 verified, 0 errors`** (`forge/tests/map_conformance.rs::ac1_2_3`); the broken `Some(0)`-for-absent FAILS **`verified, 1 errors`** (`ac2_broken_..`, non-vacuity R-DEFER-9); the emitted `map_kv.th` lowering verifies `0 errors` (`ac1_..._lowering`) + builds+runs (`ac1_..._builds_and_runs`, `demo() = 42`). |
-| REQ-5 (`Type::Map` exhaustive-match + skill ripple) | SHIPPED | #123. The new two-arg `Type::Map` rippled to every exhaustive `match Type`: `parser.rs` (the `"Map"` arm), `ast.rs` (the variant + doc), `lower.rs` (`lower_type`/`tmap_name`/`tmap_type_suffix`/`collect_map_kv_types`/`note_map_kv`/`note_vec_elems`/`ty_reaches_string`), `l1.rs` (`lower_type` + `emit_map_runtime_l1` + the `Map::new()` rewrite + `ty_is_string`), `l2.rs` (`type_label`), `forge/src/check.rs` (`collect_type_adt_refs` both args — the #68 ADT weave), `forge/src/review.rs` (`render_type`), `thermite-skill/src/generate.rs` (the `Map<K,V>` SkillFragment + inventory). `mutation.rs`'s `zero_value_for`/`zero_desc` route a `Map`-returning fn to the no-scalar-zero `_` catch-all (like `Result`) — honest. No `_`/panic fallthrough. The 6,000-token skill budget gate passes. Verified: `cargo build --workspace` (exhaustiveness) + `cargo run -p thermite-skill -- --check-budget` + `forge/tests/map_conformance.rs`. |
+| REQ-5 (`Type::Map` exhaustive-match + skill ripple) | SHIPPED | #123. The new two-arg `Type::Map` rippled to every exhaustive `match Type`: `parser.rs` (the `"Map"` arm), `ast.rs` (the variant + doc), `lower.rs` (`lower_type`/`tmap_name`/`tmap_type_suffix`/`collect_map_kv_types`/`note_map_kv`/`note_vec_elems`/`ty_reaches_string`), `l1.rs` (`lower_type` + `emit_map_runtime_l1` + the `Map::new()` rewrite + `ty_is_string`), `l2.rs` (`type_label`), `forge/src/check.rs` (`collect_type_adt_refs` both args — the #68 ADT weave), `forge/src/review.rs` (`render_type`), `fluffy-skill/src/generate.rs` (the `Map<K,V>` SkillFragment + inventory). `mutation.rs`'s `zero_value_for`/`zero_desc` route a `Map`-returning fn to the no-scalar-zero `_` catch-all (like `Result`) — honest. No `_`/panic fallthrough. The 6,000-token skill budget gate passes. Verified: `cargo build --workspace` (exhaustiveness) + `cargo run -p fluffy-skill -- --check-budget` + `forge/tests/map_conformance.rs`. |
 | REQ-6 (`LowerError`/`SpecError` extension, no panics) | SHIPPED | #123. Reuses the EXISTING `LowerError::Unsupported` (`tmap_name`/`tmap_type_suffix` on a non-Copy key / unsupported key-value type — v1 grounds `Map<u64,u64>` Copy keys, OQ-4) — no new variant. No `unwrap`/`expect`/`panic!` added (R-CODE-2 / R-APG-1); verified by `cargo clippy --workspace -D warnings` + the anti-pattern-gate. |
 
 ## Open questions (for the orchestrator before the builder runs)

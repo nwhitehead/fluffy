@@ -4,10 +4,10 @@ tier: 3-component
 status: draft
 governs: forge/src/review.rs
 thesis-refs:
-  - thermite-design.md §7
-  - thermite-design.md §1
-  - thermite-design.md §12 (Risks: "Spec-intent gap")
-  - thermite-design.md Appendix B (command surface — `forge review` is an ADDITION)
+  - fluffy-design.md §7
+  - fluffy-design.md §1
+  - fluffy-design.md §12 (Risks: "Spec-intent gap")
+  - fluffy-design.md Appendix B (command surface — `forge review` is an ADDITION)
 crosslink: #19 (v0.5 — critic-model spec-review integration)
 prereq-blocker: #19
 -->
@@ -23,13 +23,13 @@ machine artifact (`--json`, for a critic model) and a human form, and it defines
 `note` form that an **external** reviewer (a human, or a critic model whose only
 question is spec-intent alignment) fills and attaches back additively. This is the
 §7 "residue surfaced for review" — the one irreducible judgment the deterministic
-battery cannot make (thermite-design.md §1 line 26, §12 "Spec-intent gap").
+battery cannot make (fluffy-design.md §1 line 26, §12 "Spec-intent gap").
 
 `forge review` does **not** call an LLM. Forge is a deterministic Rust toolchain
 (R-CODE-5); a built-in model call would be non-deterministic and require an external
 API. #19 provides the **artifact** the critic model consumes and the **verdict
 interface** it fills; the model call itself is the integrator's (external) job —
-exactly the "pluggable" framing of thermite-design.md §7 line 227 and §summary
+exactly the "pluggable" framing of fluffy-design.md §7 line 227 and §summary
 line 298.
 
 ## Requirements
@@ -39,7 +39,7 @@ line 298.
   effect row, and the **declaration** (name, params, return type, `dec` measure) of
   every `spec fn` the contract references — with **no fn bodies and no spec-fn
   bodies**. This is the §7 "few percent of total line count" surface the reviewer
-  reads. Derived from thermite-design.md §7 line 227 ("the certificate includes the
+  reads. Derived from fluffy-design.md §7 line 227 ("the certificate includes the
   full spec layer ... pre-screened") and §4.1/§4.2 (the contract surface: `req`/`ens`/
   `fx`, named `spec fn`s).
 
@@ -49,7 +49,7 @@ line 298.
   A battery-FAILING contract (a `reject` cert, or a non-certified `Level::L0`) is
   **flagged as battery-failing and NOT surfaced for intent review** — its failure is
   mechanical and answered first (goal.md R-DEFER-9: a vacuous contract is caught
-  mechanically, never "passed" by an intent review). Derived from thermite-design.md
+  mechanically, never "passed" by an intent review). Derived from fluffy-design.md
   §7 line 227 ("pre-screened to be non-vacuous, non-trivially-weak, and
   mutation-scored ... the reviewer's job is reduced to ... 'is this what I meant?'").
 
@@ -57,14 +57,14 @@ line 298.
   structured "is this what you meant?" prompt — the §7 question, naming the item and
   presenting its spec layer, framed so the only open question is spec-intent
   alignment (the mechanical questions already discharged). Derived from
-  thermite-design.md §7 line 227.
+  fluffy-design.md §7 line 227.
 
 - **REQ-4 (the pluggable verdict slot — schema + attach point):** `forge review`
   defines the review-verdict INTERFACE: a structured per-contract form
   (`item`, `aligned: bool`, optional `note: String`) that an EXTERNAL reviewer fills.
   The verdict attaches back **additively** (goal.md R-SPEC-2): documented here as an
   additive review record / optional additive manifest field — never a change to the
-  frozen oracle subset of `Certificate`. Derived from thermite-design.md §summary
+  frozen oracle subset of `Certificate`. Derived from fluffy-design.md §summary
   line 298 ("pluggable critic-model/human review slot") and §1 line 26 (the
   spec-intent question is the irreducible residue a skeptical third party audits).
 
@@ -72,13 +72,13 @@ line 298.
   stable schema for a critic model to consume programmatically) and as a human form
   (the same spec layer + prompt, rendered for a person), mirroring the existing
   `forge audit` / `forge check` `--json` + `render_human` precedent in `cli.rs`.
-  Derived from thermite-design.md §7 line 227 ("a human, or a critic model").
+  Derived from fluffy-design.md §7 line 227 ("a human, or a critic model").
 
 - **REQ-6 (determinism — R-CODE-5):** the extraction is a PURE PROJECTION of the
   parsed program + the battery verdict (the `Certificate` collection `forge check`
   already produced). Same file → byte-identical spec-layer artifact. No wall clock,
   no un-seeded ordering, no model call. Derived from goal.md R-CODE-5 and
-  thermite-design.md §7 (the certificate / spec layer is the deterministic
+  fluffy-design.md §7 (the certificate / spec layer is the deterministic
   deliverable; the verdict is the external reviewer's).
 
 - **REQ-7 (`forge review [item]` command + dispatch):** a `forge review <file>
@@ -86,7 +86,7 @@ line 298.
   reusing `check::check_file` to obtain the battery verdict (the SAME pipeline
   `forge check` / `forge audit` run at `CheckOptions::default` — no extra
   verification, the §7 "the certificate includes the spec layer" framing). An
-  optional `[item]` filters to one function. Derived from thermite-design.md
+  optional `[item]` filters to one function. Derived from fluffy-design.md
   Appendix B (command-surface shape; `forge review` is an explicit ADDITION — see
   Architecture).
 
@@ -143,7 +143,7 @@ exactly mirroring how `forge audit` projects the per-fn `Certificate` collection
 `check::check_file` (the default-config entry — `pub fn check_file` in `check.rs`),
 parses the file once for the contract surface, and projects.
 
-**`forge review` is an ADDITION to Appendix B.** thermite-design.md Appendix B
+**`forge review` is an ADDITION to Appendix B.** fluffy-design.md Appendix B
 (v0.1 command surface) lists `new/goal/fill/edit/check/battery/audit/skill/repair`
 but NOT `review`. #19 is a v0.5 item (the roadmap §13 "critic-model spec-review
 integration"); `forge review` is its surface verb. This is a sanctioned addition
@@ -163,7 +163,7 @@ choice).
    `Certificate::rejected_vacuity` / `Certificate::rejected_weak_contract` produce).
    Everything else is `battery_failing` and is flagged, not surfaced (REQ-2).
 
-2. **The contract surface** — the parsed `Program` (`thermite_syntax::parse`). Each
+2. **The contract surface** — the parsed `Program` (`fluffy_syntax::parse`). Each
    `Item::Fn(FnItem)` (ast.rs `enum Item`, `struct FnItem`) exposes
    `FnItem.contract: Contract` — `Contract.req: Clause`, `Contract.ens: Vec<Clause>`,
    `Contract.fx: EffectRow` (ast.rs `struct Contract`). The spec layer is built from

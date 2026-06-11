@@ -18,7 +18,7 @@
 //!   - the pinned PRECEDENCE is realized end-to-end: `a % b + 1` groups `(a % b) + 1`
 //!     (`surface-grammar.md` REQ-10) — the proof certifies the expected value.
 //!
-//! NON-VACUITY (R-DEFER-9 / `thermite-design.md` §7): every `ens` observes the
+//! NON-VACUITY (R-DEFER-9 / `fluffy-design.md` §7): every `ens` observes the
 //! operator/literal through `result == <expr>` (a function of the inputs), so a
 //! deliberately-wrong body or a wrong-code claim is KILLED by the §7 battery — the
 //! §7 vacuity gate (which rejects `ens true`) is respected.

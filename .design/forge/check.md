@@ -5,10 +5,10 @@ tier: 3-component
 status: draft
 governs: forge/src/check.rs
 thesis-refs:
-  - thermite-design.md §5.1
-  - thermite-design.md §5.3
-  - thermite-design.md §6
-  - thermite-design.md Appendix A
+  - fluffy-design.md §5.1
+  - fluffy-design.md §5.3
+  - fluffy-design.md §6
+  - fluffy-design.md Appendix A
 -->
 
 ## Summary
@@ -34,9 +34,9 @@ parse  →  validate  →  effect-check  →  lower  →  run verus  →  parse 
 ## Requirements
 
 - REQ-1 (pipeline orchestration): `pub fn check_file` runs the full v0.1
-  pipeline for one source file in this fixed order — `thermite_syntax::parse`
-  → `thermite_spec::validate` → `thermite_lower::check_effects` →
-  `thermite_lower::lower` → run verus → parse verus output → assemble
+  pipeline for one source file in this fixed order — `fluffy_syntax::parse`
+  → `fluffy_spec::validate` → `fluffy_lower::check_effects` →
+  `fluffy_lower::lower` → run verus → parse verus output → assemble
   `Certificate`. Each stage's failure short-circuits into a `ForgeError`
   variant (`.design/forge/cli.md` REQ-3) so the cert/diagnostic reflects the
   EARLIEST failing stage. The order is the kernel's data dependency: you cannot
@@ -78,21 +78,21 @@ parse  →  validate  →  effect-check  →  lower  →  run verus  →  parse 
   result carrying the obligation description and the concrete failure witness —
   "counterexamples, not adjectives" (§5.1): the result records the failed
   obligation and its source position, NOT a bare "verification failed" string.
-  Source: `thermite-design.md` §5.1. GROUNDED: a broken postcondition yields
+  Source: `fluffy-design.md` §5.1. GROUNDED: a broken postcondition yields
   `error: invariant not satisfied at end of loop body` with a
   `--> sum_broken.rs:37:13` span pointing at the exact `invariant` line, plus
   the JSON `{success:false, verified:4, errors:1}`.
 - REQ-5 (level determination — v0.1): the assurance level is L3 if and only if
   verus reports 0 errors (`verification-results.success == true`, `errors == 0`)
   — "certified L3" means an SMT proof discharged every obligation
-  (`thermite-design.md` §6: L3 = SMT proof, contract holds for all inputs). If
+  (`fluffy-design.md` §6: L3 = SMT proof, contract holds for all inputs). If
   verus reports obligation failures, #5 REPORTS the per-obligation failures
   (the certificate level is NOT L3 and the run is a reported failure). The full
   automatic degrade ladder L3→L2→L1 with budgets and a solver portfolio is
   EXPLICITLY OUT of #5 (issue #10; L2/Kani is #9); v0.1's level logic is binary:
   L3 on a clean proof, reported failure otherwise. A verus timeout in v0.1 is a
   reported non-L3 outcome (true budget-driven degrade is #10).
-  Source: `thermite-design.md` §6; `goal.md` R-CODE-4 ("a verus timeout
+  Source: `fluffy-design.md` §6; `goal.md` R-CODE-4 ("a verus timeout
   DEGRADES ... but full degrade is #10, so for #5 document the v0.1 behavior:
   L3 on 0 errors, report obligation failures otherwise").
 - REQ-6 (verus-absent = environment error): if the `verus` binary is not found
@@ -108,15 +108,15 @@ parse  →  validate  →  effect-check  →  lower  →  run verus  →  parse 
   part of the oracle-compared subset and is excluded from any determinism
   assertion. Stages run in fixed source order (`pub fn lower` already emits
   items "in source order" per `lower.rs`).
-  Source: `thermite-design.md` §5.3; `goal.md` R-CODE-5;
+  Source: `fluffy-design.md` §5.3; `goal.md` R-CODE-5;
   `conformance/README.md` (deterministic subset; `solver_time_ms` excluded).
 
 - REQ-8 (`fx diverge` caps at L1 — partial correctness, mutation/strengthen
   exempt; the #16 boundary precedent): a `fn` whose effect row contains
-  `diverge` (`thermite_syntax::ast::Effect::Diverge`, §4.1 "divergence requires
+  `diverge` (`fluffy_syntax::ast::Effect::Diverge`, §4.1 "divergence requires
   `fx diverge` in the row") is NOT total — it may not terminate (an event loop,
   `examples/editor/editor.th`'s `run`). L3 means "the contract holds for ALL
-  inputs" = TOTAL correctness (`thermite-design.md` §6), which a non-terminating
+  inputs" = TOTAL correctness (`fluffy-design.md` §6), which a non-terminating
   fn cannot honestly claim. So `gate_fn` routes a diverge fn to an L1 cap
   (partial correctness) and the §7 mutation-kill + strengthening gate is SKIPPED
   for it — EXACTLY mirroring the #16 `#[boundary]` short-circuit
@@ -137,7 +137,7 @@ parse  →  validate  →  effect-check  →  lower  →  run verus  →  parse 
   `lower.rs`) and NOT a mutation escape hatch for a normal weak contract. The
   level semantics of this cap are owned by `.design/forge/degrade-ladder.md`
   (the L1/partial-correctness rung); `check.rs`'s job is the `gate_fn` routing.
-  Source: `thermite-design.md` §4.1 (termination by default; `fx diverge` is the
+  Source: `fluffy-design.md` §4.1 (termination by default; `fx diverge` is the
   exemption), §6 (L3 = total; L1 = runtime contract checks), §7 (the mutation
   gate validates a strong `ens`); `goal.md` R-DEFER-9 (no laundering a weak
   contract to a high level — the cap is honest, NOT a bypass); the #16 boundary
@@ -212,16 +212,16 @@ parse  →  validate  →  effect-check  →  lower  →  run verus  →  parse 
 boundary entry (called by `cli.rs`, `.design/forge/cli.md`). It threads the
 shipped crates in dependency order:
 
-1. **parse** — `thermite_syntax::parse(&src)` returns a `ParseResult`; if
+1. **parse** — `fluffy_syntax::parse(&src)` returns a `ParseResult`; if
    `!result.is_clean()` (per `pub fn is_clean in parser.rs`), the parse
    `Vec<SyntaxError>` becomes `ForgeError::Parse`.
-2. **validate** — `thermite_spec::validate(&program)` (`pub fn validate in
+2. **validate** — `fluffy_spec::validate(&program)` (`pub fn validate in
    validator.rs`, `Result<(), Vec<SpecError>>`) enforces the SpecTherm cage;
    errors → `ForgeError::Spec`.
-3. **effect-check** — `thermite_lower::check_effects(&program)` (`pub fn
+3. **effect-check** — `fluffy_lower::check_effects(&program)` (`pub fn
    check_effects in effects.rs`, `Result<(), Vec<LowerError>>`) enforces `fx`
    subsumption (§4.1); errors → `ForgeError::Effects`.
-4. **lower** — `thermite_lower::lower(&program)` (`pub fn lower in lower.rs`,
+4. **lower** — `fluffy_lower::lower(&program)` (`pub fn lower in lower.rs`,
    `Result<String, LowerError>`) emits the Verus-annotated Rust source; error →
    `ForgeError::Lower`.
 5. **run verus** — write the lowered source to a temp file with a
@@ -335,7 +335,7 @@ must write loudly, §4.1), so it cannot be silently applied to a normal fn.
   deterministic present fields == `conformance/sum.cert.json` (AC-1);
   `forge check conformance/binary_search.th` → `level == "L3"` (AC-2); a
   committed broken-contract fixture → reported failure + counterexample (AC-3).
-  Expected values trace to `conformance/sum.cert.json` / `thermite-design.md`,
+  Expected values trace to `conformance/sum.cert.json` / `fluffy-design.md`,
   NEVER copied from `forge`'s own output (R-CHAR-3).
 - `cargo clippy -p forge --all-targets -- -D warnings`, `cargo fmt --check`,
   anti-pattern gate.

@@ -1,7 +1,7 @@
 //! Divergence tests for forge's §7.1 structural vacuity triage (issue #6,
 //! commit 838374d). Authored by acto-critic: each test pins a place where the
 //! implementation diverges from the governing authority
-//! (`.design/forge/vacuity-triage.md` + `thermite-design.md` §7.1) and FAILS
+//! (`.design/forge/vacuity-triage.md` + `fluffy-design.md` §7.1) and FAILS
 //! against the current toolchain.
 //!
 //! forge is a pure `bin` crate (no `lib.rs`), so these drive the BUILT `forge`
@@ -87,7 +87,7 @@ fn verus_present() -> bool {
 /// Authority: `.design/forge/vacuity-triage.md` REQ-3 — the (c) reject is defined
 /// as "**every** `ens` clause's `Clause.expr` is structurally identical
 /// (`PartialEq`) to ... the whole `req` ... or one of the conjuncts of `req`".
-/// `thermite-design.md` §7.1: "`ens` is syntactically implied by `req` alone →
+/// `fluffy-design.md` §7.1: "`ens` is syntactically implied by `req` alone →
 /// reject" — the WHOLE postcondition conjunction must be implied; a single
 /// implied conjunct alongside a genuinely-stronger clause is NOT a vacuous `ens`.
 ///

@@ -3,20 +3,20 @@
 <!--
 tier: verified
 status: investigation + proof-of-concept (increment 4a, crosslink #184; epic #169 Layer 4)
-governing: .design/verified/thermite-semantics.md REQ-5 (the COMMITTED Lean-SMT tooling
+governing: .design/verified/fluffy-semantics.md REQ-5 (the COMMITTED Lean-SMT tooling
            decision + its TCB-shrink rationale) and the SOTA finding #8
            (.design/research/formal-methods-sota.md): proof-PRODUCING SMT + reconstruction.
-boundary:  the `h_tv` premise of `Thermite.lowering_faithful` (lean/Thermite/Faithfulness.lean)
+boundary:  the `h_tv` premise of `Fluffy.lowering_faithful` (lean/Fluffy/Faithfulness.lean)
            — Z3-TRUSTED today; this increment is the route to demote it to KERNEL-CHECKED.
 -->
 
 ## What this increment is
 
-`Thermite.lowering_faithful` (the T2 capstone, `lean/Thermite/Faithfulness.lean`) is a
+`Fluffy.lowering_faithful` (the T2 capstone, `lean/Fluffy/Faithfulness.lean`) is a
 KERNEL-CHECKED theorem RELATIVE to a named trust base. The single per-run input it
 consumes is `h_tv` — the denotational equality the per-run translation-validation (TV)
 check attests. Today `h_tv` is discharged by **Z3** (via Verus): the obligation
-`assert((P_production) <==> (P_reference))` that `thermite-tv/src/obligation.rs::equivalence_obligation`
+`assert((P_production) <==> (P_reference))` that `fluffy-tv/src/obligation.rs::equivalence_obligation`
 emits is verified by Z3, and by Verus's logic soundness that VERIFIED result MEANS the
 `h_tv` equality. So `h_tv` is a **Z3-TRUSTED** premise — Lean does not check Z3's work.
 
@@ -34,7 +34,7 @@ The result below is the FURTHEST tier that genuinely works under our toolchain.
 **Tier 3 is reached:** TWO REAL per-run TV equivalence obligations — the
 `(P_production) ⟺ (P_reference)` shape `equivalence_obligation` asserts — were
 hand-translated into Lean and discharged by the `smt` tactic, **kernel-checked**, with the
-standard axiom set only. See `lean/Thermite/SmtDemo.lean`:
+standard axiom set only. See `lean/Fluffy/SmtDemo.lean`:
 
 - `tv_obligation_arith_cmp (a b c : Int) : (a - b ≤ c) ↔ (a ≤ c + b)` — the contract
   clause `(a - b) <= c` lowered two faithful-but-syntactically-different ways (the
@@ -49,10 +49,10 @@ Plus two Tier-2 toy witnesses (`toy_lt_iff_not_ge`, `toy_tv_equiv_shape`).
 ### THE HONESTY CRUX — `#print axioms` (kernel-checked, not oracle-trusted)
 
 ```
-'Thermite.SmtDemo.toy_lt_iff_not_ge'     depends on axioms: [propext, Classical.choice, Quot.sound]
-'Thermite.SmtDemo.toy_tv_equiv_shape'    depends on axioms: [propext, Classical.choice, Quot.sound]
-'Thermite.SmtDemo.tv_obligation_arith_cmp' depends on axioms: [propext, Classical.choice, Quot.sound]
-'Thermite.SmtDemo.tv_obligation_or_le'   depends on axioms: [propext, Classical.choice, Quot.sound]
+'Fluffy.SmtDemo.toy_lt_iff_not_ge'     depends on axioms: [propext, Classical.choice, Quot.sound]
+'Fluffy.SmtDemo.toy_tv_equiv_shape'    depends on axioms: [propext, Classical.choice, Quot.sound]
+'Fluffy.SmtDemo.tv_obligation_arith_cmp' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Fluffy.SmtDemo.tv_obligation_or_le'   depends on axioms: [propext, Classical.choice, Quot.sound]
 ```
 
 Every `smt`-discharged theorem — including the two REAL TV obligations — depends on the
@@ -75,7 +75,7 @@ not in the trust base for these obligations; only the Lean kernel + the standard
 - **Our spine was on `v4.30.0`.** Lean-SMT's nearest supported toolchain is `v4.29.0`.
   Per the manifest's conditional authorization, the `lean/lean-toolchain` was pinned DOWN
   to `v4.29.0` — and verified that **the ENTIRE existing proof spine still builds green on
-  v4.29.0** (a clean `lake build` of `Thermite.{Ast,Denote,RefEncode,Soundness,Exec,
+  v4.29.0** (a clean `lake build` of `Fluffy.{Ast,Denote,RefEncode,Soundness,Exec,
   Exec.Stmt,Faithfulness}` — 10 jobs green) BOTH before adding the dependency and after.
   The spine is Lean-core-only (no external imports), so the one-minor-version downgrade is
   inert for it. (Had the spine broken, the toolchain change would have been REVERTED and
@@ -84,8 +84,8 @@ not in the trust base for these obligations; only the Lean kernel + the standard
   batteries + aesop + proofwidgets + importGraph + LeanSearchClient + Qq into
   `lake-manifest.json`; the Mathlib build-cache (8232 files) downloaded; `lake build Smt`
   built the cvc5 FFI (`libcvc5_cvc5.so`) + the reconstruction library (358 jobs green).
-- **The full project builds green** (`lake build`, default target `Thermite`, now incl.
-  `Thermite.SmtDemo`).
+- **The full project builds green** (`lake build`, default target `Fluffy`, now incl.
+  `Fluffy.SmtDemo`).
 
 ## The architecture of the demotion (what fragment, is it reconstructable?)
 
@@ -128,8 +128,8 @@ reconstructable subset TODAY** (demonstrated, kernel-clean). The richer fragment
    audit of the same `↔`.
 4. **The hand-translation gap (Tier-3 residual).** The PoC obligations were HAND-translated
    from the `(P_prod) ⟺ (P_ref)` shape into Lean `Prop`s over `Int`. Production emits both
-   predicates as Verus SOURCE STRINGS (`thermite_lower` for `P_prod`,
-   `thermite-tv/src/ref_encode.rs` for `P_ref`). An AUTOMATED demotion needs a **Rust→Lean
+   predicates as Verus SOURCE STRINGS (`fluffy_lower` for `P_prod`,
+   `fluffy-tv/src/ref_encode.rs` for `P_ref`). An AUTOMATED demotion needs a **Rust→Lean
    exporter** that parses both emitted predicate strings into Lean `Prop`s over the typed
    env the obligation frame declares. That exporter is NOT built in this increment (it is
    the #185-adjacent correspondence-bridge work). The LOGICAL CONTENT discharged is exactly
@@ -144,7 +144,7 @@ reconstructable subset TODAY** (demonstrated, kernel-clean). The richer fragment
 - **Verus / Z3:** emit a **reconstructable proof certificate** for a discharged VC (proof
   logging Lean-SMT/SMTCoq can replay). Until then the demotion must RE-SOLVE the obligation
   through cvc5 rather than reuse the Verus/Z3 attestation.
-- **Thermite (us):** a Rust→Lean predicate exporter (parse the two emitted Verus predicate
+- **Fluffy (us):** a Rust→Lean predicate exporter (parse the two emitted Verus predicate
   strings → Lean `Prop`s under the obligation frame's typed env) to remove the
   hand-translation step — future work, NOT this increment.
 
@@ -166,7 +166,7 @@ reconstructable subset TODAY** (demonstrated, kernel-clean). The richer fragment
 
 ## Trust-base impact (relative to `Faithfulness.lean`'s enumeration)
 
-Until full demotion lands, `Thermite.lowering_faithful`'s `h_tv` REMAINS Z3-trusted and the
+Until full demotion lands, `Fluffy.lowering_faithful`'s `h_tv` REMAINS Z3-trusted and the
 trust base still enumerates Z3 + Verus (no overclaim — R-DEFER-9). This increment PROVES the
 demotion path is real for the scalar core (kernel-clean `#print axioms`) and pins the exact
 walls for the rest. It does NOT change `lowering_faithful`'s status: `h_tv` is not yet
@@ -176,7 +176,7 @@ wired-in replacement.
 ## Verification
 
 ```
-cd lean && lake build         # FULL project green (spine + Smt + Thermite.SmtDemo) on v4.29.0
+cd lean && lake build         # FULL project green (spine + Smt + Fluffy.SmtDemo) on v4.29.0
 #print axioms (the four smt-discharged theorems) → [propext, Classical.choice, Quot.sound]
 cargo build --workspace       # Rust unaffected (the lean/ dir is not a Cargo crate, not routed)
 ```

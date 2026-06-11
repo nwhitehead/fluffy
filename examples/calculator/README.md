@@ -8,7 +8,7 @@ proof obligation). No new toolchain feature is needed to CERTIFY.
 
 ## What is proven (forge check → L3)
 
-```thermite
+```fluffy
 fn add(a: String, b: String) -> Option<u64>
   req all_digits(a) && a.len() >= 1 && parse_be(a) <= 9223372036854775807
    && all_digits(b) && b.len() >= 1 && parse_be(b) <= 9223372036854775807
@@ -54,8 +54,8 @@ error[E0425]: cannot find function `parse_u64` in this scope
 
 This is a real gap, NOT a defect in the program (it certifies L3 correctly). The
 cause: `forge build` lowers EVERY function to its always-active runtime
-`thermite_check!`, and `add`'s contract names the **C7 spec fns** `all_digits` /
-`parse_be` and its body calls the free `parse_u64` — but `thermite-lower`'s
+`fluffy_check!`, and `add`'s contract names the **C7 spec fns** `all_digits` /
+`parse_be` and its body calls the free `parse_u64` — but `fluffy-lower`'s
 `emit_string_runtime_l1` emits an **L1 (runtime / build) runnable form ONLY for
 cluster C4**'s `parse_be` / `parse_le` / `pow10` / `u64_to_string` (the formatter).
 The C7 parse spec fns have **no L1 emission**, so the runtime check cannot resolve

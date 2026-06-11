@@ -3,7 +3,7 @@
 spec-discipline hook (greenfield, spec-driven variant of the vibe-fork
 translate-discipline gate).
 
-Thermite has no upstream codebase to translate. The authority is the
+Fluffy has no upstream codebase to translate. The authority is the
 design layer, not a foreign source tree. This hook enforces:
 
   "read goal.md, read the component's design doc, read any golden/
@@ -60,13 +60,13 @@ except ImportError:
 
 # Workspace crate name prefixes gated by this hook. Files outside these
 # crates are not gated.
-TARGET_CRATE_PREFIXES = ("thermite-",)
+TARGET_CRATE_PREFIXES = ("fluffy-",)
 
 # Standalone crates (no shared prefix) to gate — the forge CLI crate.
 TARGET_CRATE_EXACT = ("forge",)
 
 # Crates explicitly excluded — never gated even if they match the prefix.
-EXCLUDED_CRATES = ("thermite-test-utils",)
+EXCLUDED_CRATES = ("fluffy-test-utils",)
 
 # File extensions to gate.
 TARGET_EXTENSION = ".rs"
@@ -182,7 +182,7 @@ def is_tracked_read(file_path, repo_root):
     """Is this Read a source we care about tracking?"""
     if file_path == str(repo_root / "goal.md"):
         return True
-    if file_path == str(repo_root / "thermite-design.md"):
+    if file_path == str(repo_root / "fluffy-design.md"):
         return True
     if file_path.startswith(str(repo_root / ".design") + "/"):
         return True
@@ -340,7 +340,7 @@ def main():
                     f"    Agent tool with subagent_type='acto-doc-author',\n"
                     f"    prompt = \"Author {design_path} for {rel}. Ground\n"
                     f"             the doc in the existing code + the relevant\n"
-                    f"             thermite-design.md sections. Mark every REQ\n"
+                    f"             fluffy-design.md sections. Mark every REQ\n"
                     f"             SHIPPED or NOT-STARTED with quoted-code\n"
                     f"             evidence (impl + non-test consumer). No\n"
                     f"             third status.\"\n"

@@ -38,7 +38,7 @@
 //!   * AC-5: a 3-cycle `step_a -> step_b -> step_c -> step_a`, each `dec n` cross
 //!     `n - 1` → **L3** for all three (v1 is n-cycles, not pairs-only).
 //!
-//! NON-VACUITY (R-DEFER-9 / `thermite-design.md` §7): the AC-1 `ens` is tied to
+//! NON-VACUITY (R-DEFER-9 / `fluffy-design.md` §7): the AC-1 `ens` is tied to
 //! `n % 2` (a wrong body cannot satisfy it), and the `dec` is the ONLY thing
 //! between the cycle and L0 — remove it from a member → the missing-dec reject
 //! (AC-3); weaken it (cross-call on `n`) → Verus termination failure (AC-2). A

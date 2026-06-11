@@ -1,5 +1,5 @@
-# The Lean 4 side of the Thermite toolchain — the verified-validator metatheory
-# (.design/verified/thermite-semantics.md REQ-5/REQ-6/REQ-7; epic #169).
+# The Lean 4 side of the Fluffy toolchain — the verified-validator metatheory
+# (.design/verified/fluffy-semantics.md REQ-5/REQ-6/REQ-7; epic #169).
 #
 # Z3-DEMOTION ATTEMPT (increment 4a, #184): this lakefile is the Tier-2 probe —
 # add Lean-SMT (github.com/ufmg-smite/lean-smt) so a TV equivalence obligation can be
@@ -9,8 +9,8 @@
 # match; the entire existing proof spine still builds green on v4.29.0 (verified before
 # adding the dep — see the builder report / .design/verified/z3-demotion.md).
 
-name = "thermite"
-defaultTargets = ["Thermite"]
+name = "fluffy"
+defaultTargets = ["Fluffy"]
 
 [[require]]
 name = "smt"
@@ -18,4 +18,4 @@ git = "https://github.com/ufmg-smite/lean-smt.git"
 rev = "main"
 
 [[lean_lib]]
-name = "Thermite"
+name = "Fluffy"

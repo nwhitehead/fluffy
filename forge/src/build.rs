@@ -1,12 +1,12 @@
 //! `forge/src/build.rs` — `forge build [<file>] [--entry <fn>]`: lower a verified
-//! Thermite program to executable Rust and compile it with the REAL `rustc` into a
+//! Fluffy program to executable Rust and compile it with the REAL `rustc` into a
 //! contract-checked artifact. It is structurally `forge check` with the verus
 //! backend swapped for rustc: it reuses `check_file`'s pipeline FRONT
-//! (`thermite_syntax::parse` → `thermite_spec::validate` →
-//! `thermite_lower::check_effects`), then calls `thermite_lower::lower_l1` (the
-//! always-active `thermite_check!` exec lowering) and invokes `rustc` instead of
-//! `verus`. There is NO new compiler: Thermite transpiles to Rust and rustc/LLVM
-//! is the codegen backend (`thermite-design.md` §3).
+//! (`fluffy_syntax::parse` → `fluffy_spec::validate` →
+//! `fluffy_lower::check_effects`), then calls `fluffy_lower::lower_l1` (the
+//! always-active `fluffy_check!` exec lowering) and invokes `rustc` instead of
+//! `verus`. There is NO new compiler: Fluffy transpiles to Rust and rustc/LLVM
+//! is the codegen backend (`fluffy-design.md` §3).
 //!
 //! Governing design: `.design/forge/build.md`. Oracle: `conformance/build/cases.json`.
 //!
@@ -43,10 +43,10 @@
 //!
 //! | REQ | Status | Evidence |
 //! |---|---|---|
-//! | REQ-1 (build pipeline: lower_l1 → emit → rustc → artifact) | SHIPPED | `pub fn build_file` runs `parse`/`validate`/`check_effects` (the `check_file` front), `thermite_lower::lower_l1`, writes a crate, invokes `rustc` (`invoke_rustc`); short-circuits into `ForgeError`. Consumer: `cli::run_build`. Verified by `build_conformance::sum_runs`. |
+//! | REQ-1 (build pipeline: lower_l1 → emit → rustc → artifact) | SHIPPED | `pub fn build_file` runs `parse`/`validate`/`check_effects` (the `check_file` front), `fluffy_lower::lower_l1`, writes a crate, invokes `rustc` (`invoke_rustc`); short-circuits into `ForgeError`. Consumer: `cli::run_build`. Verified by `build_conformance::sum_runs`. |
 //! | REQ-2 (rustc invocation: exit-checked, crate-name gotcha, scratch cleanup) | SHIPPED | `invoke_rustc` passes `--crate-name` (no `.` — `crate_name_for`), `--edition 2021`, checks `status.success()` → `ForgeError::RustcOutput`; spawn ENOENT → `ForgeError::RustcAbsent`; the `check::ScratchDir` Drop guard removes the crate dir wholesale. |
 //! | REQ-3 (artifact form: library + optional `--entry` runner) | SHIPPED | `build_file(path, None)` → `CrateType::Rlib`; `build_file(path, Some(fn))` → `CrateType::Bin` with `synthesize_entry_main`'s deterministic runner. Verified by `sum_runs` (exe prints `6`). |
-//! | REQ-4 (L1 checks baked in, all profiles) | SHIPPED | the artifact is `lower_l1`'s output verbatim (the always-active `thermite_check!`, NOT `debug_assert!`); `build_file` never strips it. Verified by `ens_violation_fires_at_runtime` (the runtime check fires). |
+//! | REQ-4 (L1 checks baked in, all profiles) | SHIPPED | the artifact is `lower_l1`'s output verbatim (the always-active `fluffy_check!`, NOT `debug_assert!`); `build_file` never strips it. Verified by `ens_violation_fires_at_runtime` (the runtime check fires). |
 //! | REQ-5 (build manifest: path, level, fx rows, reproducibility) | SHIPPED | `BuildManifest` composes the artifact path + `CrateType`, the achieved assurance string, the per-fn `fx` rows (`effects_of`), and the `Reproducibility` block (pinned rustc identity + `SOURCE_DATE_EPOCH`). Consumer: `cli::run_build` (human + `--json`). |
 //! | REQ-6 (#57 hook: runnable exe + fx rows + the seccomp sandbox) | SHIPPED | the `--entry` runnable binary (REQ-3) + `BuildManifest::functions` `fx` rows (e.g. `sum` → `["pure"]`); `synthesize_entry_main` now injects the #57 `sandbox::emit_sandbox_prelude` (the fx-derived seccomp filter) as the FIRST statements of the generated `main` (`SandboxConfig`, on by default for `--entry`), recording the installed allowlist in `BuildManifest::sandbox`. Verified by `sum_runs` (`fx == ["pure"]`) + `sandbox_conformance` (pure runs clean, the openat probe killed/allowed). |
 //! | REQ-7 (`--out <PATH>`: place the artifact at a user-named runnable path) | SHIPPED | `build_file(.., out: Option<&Path>)` copies the stable /tmp artifact to `<PATH>` via `place_artifact` (overwrite + `chmod +x` so `./<PATH>` runs directly; #128), reports `<PATH>` as `BuildManifest::artifact`; `None` keeps the existing /tmp path unchanged; a bad `<PATH>` → `ForgeError::Io`. Consumer: `cli::run_build` (threads the `--out`/`-o` flag). Verified by `build_conformance::out_places_runnable_binary`. |
@@ -58,14 +58,14 @@
 //! | REQ-1 (`--target kernel` verb fork) | SHIPPED | `enum BuildTarget` (`Std`/`Kernel`) threaded `cli::run_build` → `build::build_file` → `emit_source` → `invoke_rustc`; `cli.rs` parses `--target std\|kernel` (default `Std`). Consumer: `cli::run_build`. Verified by `cli::tests::parses_build_target_flag` + `kernel_target::pure_fn_builds_no_std_kernel_rlib`; the std default is byte-unchanged (`default_target_source_is_byte_identical_to_no_target_flag` + the unaffected `build_conformance` suite, AC-4). |
 //! | REQ-2 (`no_std + alloc` emission profile) | SHIPPED | `emit_source` prepends `KERNEL_PRELUDE` (`#![no_std]` + `extern crate alloc;` + `use alloc::vec::Vec;`) under `BuildTarget::Kernel`, REUSING `lower_l1`'s output verbatim, emits NO `synthesize_entry_main`; `invoke_rustc` forces `--crate-type=rlib` + `-C panic=abort` (kernel is never a bin). OQ-3 resolved: the L1 emission carries NO `std::`-qualified path (bare `Vec`/`Vec::new()`; surface `String` is the `use TString as String;` alias), so the prelude imports only `Vec`. Consumer: `cli::run_build`. Verified by `kernel_target::pure_fn_builds_no_std_kernel_rlib` (rustc exit 0, freestanding compile) + `pure_and_alloc_fx_fns_build_for_kernel` (an `alloc`-fx string program). |
 //! | REQ-3 (ambient-syscall `fx` reject) | SHIPPED | `reject_ambient_fx_for_kernel` scans EVERY `Item::Fn`'s `sandbox::transitive_fx` for `KERNEL_REJECTED_FX` (`read`/`write`/`net`/`term`/`time`/`rand` — `time`/`rand` joined the reject set in #198, their std-bodied effect wrappers leak into `#![no_std]`) → a NAMED-effect `ForgeError::Usage` (nonzero exit, NO artifact) BEFORE codegen; `--target kernel` + `--entry` is likewise a `ForgeError::Usage`. Consumer: `build_file`. Verified by `kernel_target::ambient_read_fx_fn_is_refused` + `ambient_write_net_term_fx_refuse_identically` + `kernel_target_with_entry_is_usage_error` + `divergence_kernel_time_boundary` (the `fx time` boundary refused naming `time`); `pure`/`alloc` admit (`pure_and_alloc_fx_fns_build_for_kernel`). |
-//! | REQ-4 (L1 runtime checks in the kernel profile) | SHIPPED | `lower_l1`'s `thermite_check!` / `thermite_contract_violation` (`panic!`) is emitted UNCHANGED (NOT stripped, NOT `debug_assert!`); under `#![no_std]` / `panic=abort` it routes to the host `#[panic_handler]` (OQ-1: forge emits neither handler nor allocator — the test harness supplies the stand-in). Consumer: `emit_source` (no strip). Verified by `kernel_target::l1_checks_emitted_verbatim_in_kernel_source` (the macro + handler + `panic!` present, no `debug_assert!`, compiles with a test `#[panic_handler]`). |
+//! | REQ-4 (L1 runtime checks in the kernel profile) | SHIPPED | `lower_l1`'s `fluffy_check!` / `fluffy_contract_violation` (`panic!`) is emitted UNCHANGED (NOT stripped, NOT `debug_assert!`); under `#![no_std]` / `panic=abort` it routes to the host `#[panic_handler]` (OQ-1: forge emits neither handler nor allocator — the test harness supplies the stand-in). Consumer: `emit_source` (no strip). Verified by `kernel_target::l1_checks_emitted_verbatim_in_kernel_source` (the macro + handler + `panic!` present, no `debug_assert!`, compiles with a test `#[panic_handler]`). |
 //! | REQ-5 (L3 verification path identical) | SHIPPED | `--target kernel` touches ONLY `build.rs`/`cli.rs` (the rustc codegen side); NO edit to `check.rs` or the L3 lowering. The existing `forge check` suites (`check_conformance`, `string_l3_completeness`, …) are unchanged and stay green. Verified: no `check.rs` diff in the increment + the full `cargo test -p forge` green. |
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use serde::Serialize;
-use thermite_syntax::{FnItem, Item, PrimType, Program, Type};
+use fluffy_syntax::{FnItem, Item, PrimType, Program, Type};
 
 use std::collections::BTreeSet;
 
@@ -94,7 +94,7 @@ const ASSURANCE_L1: &str = "L1 (built, runtime-checked)";
 /// is the unchanged hosted profile; [`BuildTarget::Kernel`] emits a freestanding
 /// `no_std + alloc` library crate (no `main`, no seccomp, `panic=abort`) and
 /// refuses ambient-syscall `fx` rows. A "target" is purely a rustc-invocation +
-/// crate-prelude choice (rustc is the codegen backend — `thermite-design.md` §3);
+/// crate-prelude choice (rustc is the codegen backend — `fluffy-design.md` §3);
 /// the pipeline FRONT and the L1 lowering are SHARED across targets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -239,7 +239,7 @@ pub struct BuildManifest {
     /// The artifact kind (rlib library or runnable bin).
     pub crate_type: CrateType,
     /// The achieved assurance level. `forge build` at L1 builds any well-formed
-    /// program; the always-active runtime `thermite_check!` IS the assurance
+    /// program; the always-active runtime `fluffy_check!` IS the assurance
     /// (`.design/forge/build.md` REQ-4), so this records the honest L1 statement
     /// `"L1 (built, runtime-checked)"` — NOT a forged L3 proof claim.
     pub assurance: String,
@@ -258,7 +258,7 @@ pub struct BuildManifest {
 
 /// Lower the program at `path` to executable Rust and compile it with `rustc`
 /// into a contract-checked artifact (REQ-1). Reuses the `forge check` pipeline
-/// front (parse → validate → check_effects), then `thermite_lower::lower_l1`s the
+/// front (parse → validate → check_effects), then `fluffy_lower::lower_l1`s the
 /// program, writes a self-contained crate into a per-run scratch dir, invokes
 /// rustc, copies the artifact out, and returns the [`BuildManifest`].
 ///
@@ -269,7 +269,7 @@ pub struct BuildManifest {
 /// A front-of-pipeline failure short-circuits into a `ForgeError` exactly as
 /// `check_file` does; a non-zero rustc exit is `ForgeError::RustcOutput`
 /// (R-CODE-4). `forge build` at L1 builds any well-formed program — a
-/// contract-violating body BUILDS and its `thermite_check!` fires at RUNTIME (that
+/// contract-violating body BUILDS and its `fluffy_check!` fires at RUNTIME (that
 /// is the point; the oracle's `runtime_violation` case).
 pub fn build_file(
     path: impl AsRef<Path>,
@@ -310,7 +310,7 @@ pub fn build_file(
     }
 
     // #193/#195 OPEN-HOLE refusal (`.design/forge/goal-repl.md` REQ-4/REQ-5;
-    // `thermite-design.md` §6): a fn carrying ANY open body hole (`?N`) is
+    // `fluffy-design.md` §6): a fn carrying ANY open body hole (`?N`) is
     // L0-equivalent (incomplete) and NEVER lowers — because a hole is recorded on
     // `FnItem.holes` (NOT a `Stmt` variant), lowering a holed body would silently
     // DELETE the open goal and emit a trust-stamped artifact for an incomplete
@@ -410,12 +410,12 @@ fn parse_program(path: &Path) -> Result<Program, ForgeError> {
         path: path.display().to_string(),
         source: e,
     })?;
-    let parsed = thermite_syntax::parse(&src);
+    let parsed = fluffy_syntax::parse(&src);
     if !parsed.is_clean() {
         return Err(ForgeError::Parse(parsed.errors));
     }
-    thermite_spec::validate(&parsed.program).map_err(ForgeError::Spec)?;
-    thermite_lower::check_effects(&parsed.program).map_err(ForgeError::Effects)?;
+    fluffy_spec::validate(&parsed.program).map_err(ForgeError::Spec)?;
+    fluffy_lower::check_effects(&parsed.program).map_err(ForgeError::Effects)?;
     Ok(parsed.program)
 }
 
@@ -433,13 +433,13 @@ pub fn emit_source(
 ) -> Result<String, ForgeError> {
     let path = path.as_ref();
     let program = parse_program(path)?;
-    let lowered = thermite_lower::lower_l1(&program).map_err(ForgeError::Lower)?;
+    let lowered = fluffy_lower::lower_l1(&program).map_err(ForgeError::Lower)?;
 
     // `.design/build/kernel-target.md` REQ-2: under the kernel target, PREPEND the
     // `#![no_std]` + `extern crate alloc;` + `use alloc::vec::Vec;` prelude (a crate
     // inner attribute MUST be the first token) before the lowered body. The std
     // default prepends NOTHING (the existing emission is byte-unchanged, AC-4). The
-    // L1 body itself is emitted VERBATIM (REQ-4: the always-active `thermite_check!`/
+    // L1 body itself is emitted VERBATIM (REQ-4: the always-active `fluffy_check!`/
     // `panic!` is `alloc`-clean — OQ-3 — and resolves against the prelude).
     let mut source = match target {
         BuildTarget::Std => String::new(),
@@ -506,9 +506,9 @@ fn reject_ambient_fx_for_kernel(program: &Program) -> Result<(), ForgeError> {
 }
 
 /// Collect the DISTINCT `#[boundary("os::<name>")]` foreign targets the built
-/// program names (Stage 8 REQ-2). `thermite_lower::lower_l1` emits a boundary L1
+/// program names (Stage 8 REQ-2). `fluffy_lower::lower_l1` emits a boundary L1
 /// wrapper — containing the `os::<name>(args)` crossing — for EVERY `#[boundary]`
-/// `Item::Fn` in the program (`thermite-lower/src/l1.rs` `lower_l1`'s match guard),
+/// `Item::Fn` in the program (`fluffy-lower/src/l1.rs` `lower_l1`'s match guard),
 /// so the self-contained crate must resolve EACH such target regardless of the
 /// `--entry`. The set is keyed by the `BoundaryAttr.target` string (the foreign
 /// target the lowered crossing calls), so the emitted `mod os` is exactly the
@@ -593,7 +593,7 @@ fn find_entry_fn<'a>(program: &'a Program, name: &str) -> Result<&'a FnItem, For
 /// fn main() {
 ///     <seccomp prelude>          // SandboxMode::On (default for --entry); REQ-1/REQ-4
 ///     <openat self-test probe>   // --sandbox-self-test ONLY; REQ-6
-///     let r = entry(<args>);     // runs UNDER the filter; the L1 thermite_check! still PANICS
+///     let r = entry(<args>);     // runs UNDER the filter; the L1 fluffy_check! still PANICS
 ///     println!("entry(args) = {r:?}");
 /// }
 /// ```
@@ -642,7 +642,7 @@ fn synthesize_entry_main(
         String::new()
     };
 
-    // The runner binds the result and prints it; the `thermite_check!`s inside the
+    // The runner binds the result and prints it; the `fluffy_check!`s inside the
     // fn fire BEFORE the tail returns on a violation (REQ-4) — and the baseline
     // allowlist permits that PANIC/abort path, so a contract violation PANICS rather
     // than being seccomp-killed. `{r:?}` covers every primitive return type.

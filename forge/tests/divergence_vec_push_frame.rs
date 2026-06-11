@@ -15,7 +15,7 @@
 //!     self.data@[i as int]` — only meaningful if `data@[i]` is FRAMED across a
 //!     later `push`.
 //!
-//! TOOLCHAIN DIVERGENCE: `emit_one_vec_wrapper` (`thermite-lower/src/lower.rs`)
+//! TOOLCHAIN DIVERGENCE: `emit_one_vec_wrapper` (`fluffy-lower/src/lower.rs`)
 //! emits `push` with ens `{ well_formed; len' == len+1; data@[old_len] == x }` and
 //! NO `forall|j| ... data@[j] == old data@[j]` frame (the `pop_last` it emits DOES
 //! carry a kept-prefix frame — `push` is the inconsistent one).
@@ -88,9 +88,9 @@ fn two(x: u64, y: u64) -> u64
 
 #[test]
 fn divergence_push_frames_prior_elements() {
-    let parsed = thermite_syntax::parse(VEC_TWO_PUSH);
+    let parsed = fluffy_syntax::parse(VEC_TWO_PUSH);
     assert!(parsed.errors.is_empty(), "must parse: {:?}", parsed.errors);
-    let emitted = thermite_lower::lower(&parsed.program).expect("lowers");
+    let emitted = fluffy_lower::lower(&parsed.program).expect("lowers");
 
     // The emitted output uses the real `vstd::prelude::*` wrapper header; append a
     // value-pinning CLIENT inside the SAME verus! block that exercises the wrapper

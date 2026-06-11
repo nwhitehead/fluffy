@@ -1,18 +1,18 @@
-# Thermite
+# Fluffy
 
 **A programming language where the code has to prove it works.**
 
 *Every plain-language term in this README resolves to a precise mechanism in [RATIONALE.md](RATIONALE.md).*
 
-> Thermite is what you get when you add energy to rust. Iron oxide plus aluminum: inert powder until ignited, then it burns at 2,500 °C and cuts through steel. Take Rust's substrate, add the energy budget AI agents bring (compute, patience, token spend), and produce something hot enough to weld trust into software.
+> Fluffy is what you get when you add energy to rust. Iron oxide plus aluminum: inert powder until ignited, then it burns at 2,500 °C and cuts through steel. Take Rust's substrate, add the energy budget AI agents bring (compute, patience, token spend), and produce something hot enough to weld trust into software.
 
 ## The problem
 
 When an AI writes code for you, how do you know it's right? Today the answer is "read it yourself" or "trust the vibes." Neither scales. Code review by humans is exactly the bottleneck AI was supposed to remove — and "the tests pass" only tells you about the cases somebody thought to test.
 
-Formal verification — *mathematically proving* code correct — has existed for decades. It never caught on, because writing the proofs is miserable for humans. But AI agents don't get bored, don't get tired, and pay for effort in cheap compute instead of expensive attention. **Thermite's bet: agents flip the economics of proof.** Burn the cheap resource (tokens) to buy the expensive one (trust).
+Formal verification — *mathematically proving* code correct — has existed for decades. It never caught on, because writing the proofs is miserable for humans. But AI agents don't get bored, don't get tired, and pay for effort in cheap compute instead of expensive attention. **Fluffy's bet: agents flip the economics of proof.** Burn the cheap resource (tokens) to buy the expensive one (trust).
 
-So Thermite is deliberately strict in a way no human would tolerate. Humans aren't the user. Humans get the part they're good at: deciding what the software *should* do, and reading the receipts.
+So Fluffy is deliberately strict in a way no human would tolerate. Humans aren't the user. Humans get the part they're good at: deciding what the software *should* do, and reading the receipts.
 
 ## How it works, in plain terms
 
@@ -35,19 +35,19 @@ It always aims for L3 and only slides down honestly. One thing never slides: if 
 
 **You can't cheat the grade.** A promise that promises nothing (`ens true`) would technically always pass. So every contract is run through an anti-Goodhart battery ([vacuity detection + mutation testing](RATIONALE.md#the-vacuity-battery-the-anti-goodhart-layer)): it is audited for emptiness, and then dozens of deliberately-broken mutant copies of your code are generated — the contract must *catch* them. A contract too weak to notice sabotage is rejected.
 
-**The `fx` promise has teeth at runtime too.** When you build a real binary, Thermite derives an operating-system-level cage from the declared effects — a syscall-level filter (**seccomp-BPF**, the same kernel mechanism Docker and Chrome use; see [RATIONALE.md](RATIONALE.md#the-cage--seccomp-sandbox)). A function that said "I'm pure" and then tries to open a network connection gets killed by the OS mid-syscall. Belt, suspenders, and a tripwire.
+**The `fx` promise has teeth at runtime too.** When you build a real binary, Fluffy derives an operating-system-level cage from the declared effects — a syscall-level filter (**seccomp-BPF**, the same kernel mechanism Docker and Chrome use; see [RATIONALE.md](RATIONALE.md#the-cage--seccomp-sandbox)). A function that said "I'm pure" and then tries to open a network connection gets killed by the OS mid-syscall. Belt, suspenders, and a tripwire.
 
 **How an agent actually writes it.** Like a conversation. Declare the contract first with a hole where the body goes (literally `?0` — a [typed hole](RATIONALE.md#typed-holes-n--the-goal-repl), the Agda/Idris/Lean-`sorry` idea). `forge goal` shows what's given and what must be achieved. `forge fill` drops code into the hole and immediately re-checks — failures come back as concrete counterexamples, not vibes. Repeat until: `ALL GOALS DISCHARGED ✓ certified L3`. A program with an unfilled hole physically cannot be built or certified.
 
-Under the hood, Thermite translates to Rust (annotated for the [Verus](https://github.com/verus-lang/verus) prover, which uses the Z3 logic engine), so it inherits Rust's compiler, optimizer, and ecosystem. The specification language is a deliberately small [caged quantifier fragment](RATIONALE.md#the-combinator-cage) — a fixed set of bounded combinators with frozen SMT triggers, no raw `forall` — and that small, [frozen subset](RATIONALE.md#the-frozen-subset-the-central-design-why) is precisely what makes the machine-checked soundness proof below feasible. The full design rationale lives in [`thermite-design.md`](./thermite-design.md).
+Under the hood, Fluffy translates to Rust (annotated for the [Verus](https://github.com/verus-lang/verus) prover, which uses the Z3 logic engine), so it inherits Rust's compiler, optimizer, and ecosystem. The specification language is a deliberately small [caged quantifier fragment](RATIONALE.md#the-combinator-cage) — a fixed set of bounded combinators with frozen SMT triggers, no raw `forall` — and that small, [frozen subset](RATIONALE.md#the-frozen-subset-the-central-design-why) is precisely what makes the machine-checked soundness proof below feasible. The full design rationale lives in [`fluffy-design.md`](./fluffy-design.md).
 
 ## The proof it isn't a toy
 
-We built a **working text editor** in Thermite — a real one, like a tiny nano: you run it in a terminal and type. Its editing logic, line navigation, and cursor math are all *proven correct for every input* (L3), and it runs inside the syscall cage, holding only the handful of permissions its `fx` declares. ([`examples/editor/`](examples/) — plus a formatter, a calculator, and a CSV parser, all proven, all runnable.)
+We built a **working text editor** in Fluffy — a real one, like a tiny nano: you run it in a terminal and type. Its editing logic, line navigation, and cursor math are all *proven correct for every input* (L3), and it runs inside the syscall cage, holding only the handful of permissions its `fx` declares. ([`examples/editor/`](examples/) — plus a formatter, a calculator, and a CSV parser, all proven, all runnable.)
 
 Here's what the language looks like — a function that sums a list, with its three promises:
 
-```thermite
+```fluffy
 fn sum(xs: &[u32]) -> u64
   req xs.len() <= 1_000_000        // what I need
   ens result == spec_sum(xs)       // what I guarantee
@@ -96,14 +96,14 @@ A run with a skipped guarantee prints **INCONCLUSIVE** and exits nonzero — it 
 
 ## "But how do you know the *translation* is honest?"
 
-The sharpest possible objection: Thermite translates your code into the prover's language — so a buggy translator could prove the wrong statement. Promise `=`, prove `≤`, certificate says L3, everyone goes home happy and wrong.
+The sharpest possible objection: Fluffy translates your code into the prover's language — so a buggy translator could prove the wrong statement. Promise `=`, prove `≤`, certificate says L3, everyone goes home happy and wrong.
 
 Two answers, both machine-checked:
 
 1. **Every program, every run:** a second, independent translator (forbidden by the build system from sharing code with the first) re-translates your contracts and bodies, and Z3 must prove both translations equivalent — on *your* program, *every* check. A mistranslation can't slip through quietly on any run.
-2. **All programs, once and forever:** that independent translator is small enough that we **proved it correct in Lean** — a machine-checked theorem ([`lean/`](lean/), `Thermite.lowering_faithful`) saying that *every* program passing the cross-check was translated meaning-for-meaning. Quantified over all programs, checked by Lean's kernel, re-checkable by yours (audit check [1]). Every translation bug we ever caught by testing is now individually *refuted by a theorem* — that class of mistake can't silently come back.
+2. **All programs, once and forever:** that independent translator is small enough that we **proved it correct in Lean** — a machine-checked theorem ([`lean/`](lean/), `Fluffy.lowering_faithful`) saying that *every* program passing the cross-check was translated meaning-for-meaning. Quantified over all programs, checked by Lean's kernel, re-checkable by yours (audit check [1]). Every translation bug we ever caught by testing is now individually *refuted by a theorem* — that class of mistake can't silently come back.
 
-This is the [verified-validator architecture](RATIONALE.md#translation-validation--the-lean-proof-spine) from the compiler-verification literature (the CompCert lineage; translation validation + the kernel-checked Lean proof spine), and it has a useful consequence: Thermite's *meaning* is defined by the Lean semantics, not by Verus. Verus is the first proof engine, proven faithful — not the foundation.
+This is the [verified-validator architecture](RATIONALE.md#translation-validation--the-lean-proof-spine) from the compiler-verification literature (the CompCert lineage; translation validation + the kernel-checked Lean proof spine), and it has a useful consequence: Fluffy's *meaning* is defined by the Lean semantics, not by Verus. Verus is the first proof engine, proven faithful — not the foundation.
 
 ## What works today
 
@@ -119,16 +119,16 @@ The short version: **the language is complete enough to write real programs, and
 <details>
 <summary><b>The full component inventory</b> (click to expand — dense, for the technically inclined)</summary>
 
-- ✅ **Frontend** (`thermite-syntax`) — lexer, recovering per-item parser, AST (literals keep verbatim text), stable semantic addressing
-- ✅ **SpecTherm** (`thermite-spec`) — the frozen bounded-combinator registry + the cage validator (no anonymous nested quantifiers; closure bodies are flat predicates)
-- ✅ **Lowering** (`thermite-lower`) — Thermite → Verus (L3), Kani harnesses (L2), executable Rust + always-active runtime checks (L1); compile-time effect-row subsumption; a `req`-bounded `var*var` overflow proof aid discharges multiplication overflow from declared bounds
+- ✅ **Frontend** (`fluffy-syntax`) — lexer, recovering per-item parser, AST (literals keep verbatim text), stable semantic addressing
+- ✅ **SpecTherm** (`fluffy-spec`) — the frozen bounded-combinator registry + the cage validator (no anonymous nested quantifiers; closure bodies are flat predicates)
+- ✅ **Lowering** (`fluffy-lower`) — Fluffy → Verus (L3), Kani harnesses (L2), executable Rust + always-active runtime checks (L1); compile-time effect-row subsumption; a `req`-bounded `var*var` overflow proof aid discharges multiplication overflow from declared bounds
 - ✅ **Forge** (`forge`) — `check` (per-item certificate with content-addressed proof caching), the goal-state REPL (`goal`/`fill`/`edit`/`battery` over `?N` holes — a holed item never certifies), `build` (native binary with runtime checks + the fx-derived seccomp sandbox; `--target kernel` emits a freestanding `no_std`+`alloc` rlib and refuses ambient-syscall `fx`), `audit`, `review`, `repair`, and the translation-validation phases `tv`/`exec-tv`/`body-tv` (four-way `Faithful`/`Divergent`/`Unverifiable`/`Skipped`, skips honest, divergences loud). Automatic L3 → L2 → L1 degrade; a counterexample never degrades.
 - ✅ **Anti-Goodhart battery** — structural vacuity triage, solver tautology/unsat-precondition checks, mutation scoring with a kill-ratio floor (excluding only prover-proved-equivalent mutants), strengthening probes
 - ✅ **Boundaries** — crates.io FFI + `#[slag]` modules, L1-enforced and runtime-confined to their declared `fx`; the manifest distinguishes *verified-to-the-boundary* from *verified, period*
-- ✅ **Self-verification** (`thermite-verified`) — the soundness-critical pure core is itself Verus-verified (`--no-cheating`, no `assume`/`external_body`): effect subsumption, the degrade anti-cheat, the seccomp allowlist, the boundary honesty gate, project aggregation, the mutation floor
-- ✅ **Universal lowering soundness** (`thermite-tv` + [`lean/`](lean/)) — per-run translation validation by an independent reference encoder + the kernel-checked Lean proof spine (`ref_sound` over all 8 contract construct classes, `exec_ref_sound`, `body_ref_sound`, the loop `while_rule`, composed into `lowering_faithful`); 13+ negative lemmas machine-refute the historical infidelity classes; arm-by-arm Rust↔Lean [correspondence audit](.design/verified/rust-lean-correspondence.md); a [Lean-SMT/cvc5 PoC](.design/verified/z3-demotion.md) kernel-replays the Z3 step for the QF-linear fragment
+- ✅ **Self-verification** (`fluffy-verified`) — the soundness-critical pure core is itself Verus-verified (`--no-cheating`, no `assume`/`external_body`): effect subsumption, the degrade anti-cheat, the seccomp allowlist, the boundary honesty gate, project aggregation, the mutation floor
+- ✅ **Universal lowering soundness** (`fluffy-tv` + [`lean/`](lean/)) — per-run translation validation by an independent reference encoder + the kernel-checked Lean proof spine (`ref_sound` over all 8 contract construct classes, `exec_ref_sound`, `body_ref_sound`, the loop `while_rule`, composed into `lowering_faithful`); 13+ negative lemmas machine-refute the historical infidelity classes; arm-by-arm Rust↔Lean [correspondence audit](.design/verified/rust-lean-correspondence.md); a [Lean-SMT/cvc5 PoC](.design/verified/z3-demotion.md) kernel-replays the Z3 step for the QF-linear fragment
 - ✅ **The verified primitive basis** (Stages 1–8) + the **primitive-completeness campaign** (C1–C12) — recursive ADTs with invariants, recursion schemes with prove-once induction laws, the contracted effect stdlib, bounded collections, compositional reasoning (callers verify *through* callee contracts; assurance aggregates as the honest min), security-by-construction marked types (SQL injection is *untypeable*), strings, and the full ergonomics layer (destructuring, `for`, guards, or-patterns, `if let`, `Map<K,V>`)
-- ✅ **`THERMITE.skill.md`** — the entire language in ≤ 6,000 tokens, regenerated from the compiler's own definitions (a new construct without a skill entry is a compile error), CI-gated
+- ✅ **`FLUFFY.skill.md`** — the entire language in ≤ 6,000 tokens, regenerated from the compiler's own definitions (a new construct without a skill entry is a compile error), CI-gated
 - 🔭 Deferred (tracked): direct MIR-level lowering (transpile-to-Verus stands in, #21); the contract-TV parallel seam (#166); the basis v1.1 layer; and the named proof-spine residuals — full Z3 demotion (upstream-gated), the Lean→Rust extraction bridge, user-ADT `match`/`is` in the proven fragment
 
 Roadmap v0.1 → v0.5: all shipped (milestones #1–#5 closed).
@@ -138,25 +138,25 @@ Roadmap v0.1 → v0.5: all shipped (milestones #1–#5 closed).
 
 | Path | What |
 |---|---|
-| [`thermite-design.md`](./thermite-design.md) | The design document — why Thermite exists and how it's meant to work |
-| [`goal.md`](./goal.md) | The binding contract for the AI agents that build Thermite (the ACToR loop + anti-drift rules) |
+| [`fluffy-design.md`](./fluffy-design.md) | The design document — why Fluffy exists and how it's meant to work |
+| [`goal.md`](./goal.md) | The binding contract for the AI agents that build Fluffy (the ACToR loop + anti-drift rules) |
 | `conformance/` | Golden test programs with hand-certified expected results — the oracle the toolchain is checked against |
 | [`examples/`](examples/) | The proven, runnable programs (editor, formatter, calculator, parser) + how to build and run each |
 | `.design/` | Per-component design docs — each part of the toolchain answers to one |
 | `tooling/` | The enforcement gates (no editing a component without reading its design; no stubs/TODOs) |
 | [`lean/`](lean/) | The kernel-checked Lean proof spine (`ref_sound` → … → `lowering_faithful`) + the Lean-SMT demotion PoC |
 | `.claude/agents/` | The four ACToR sub-agents that build this repo — auto-discovered by Claude Code (see below) |
-| `thermite-*/`, `forge/` | The toolchain itself: `thermite-syntax`, `thermite-spec`, `thermite-lower`, `thermite-tv` (translation validation), `thermite-verified`, `forge` (the CLI), `thermite-skill` |
+| `fluffy-*/`, `forge/` | The toolchain itself: `fluffy-syntax`, `fluffy-spec`, `fluffy-lower`, `fluffy-tv` (translation validation), `fluffy-verified`, `forge` (the CLI), `fluffy-skill` |
 
-## Working on Thermite as an agent — the ACToR loop
+## Working on Fluffy as an agent — the ACToR loop
 
-Thermite is built by AI agents using a four-role adversarial loop, and everything an
+Fluffy is built by AI agents using a four-role adversarial loop, and everything an
 agent needs to work the repo **ships in the repo**:
 
 - **`goal.md`** — the binding contract: the full ACToR loop, the verification model
   (corpus + golden oracles), **R-CHAR-3** (the toolchain never authors its own
   oracle), and the anti-drift rules. Read it first, every session.
-- **`THERMITE.skill.md`** — the entire surface language + toolchain in ≤ 6,000 tokens,
+- **`FLUFFY.skill.md`** — the entire surface language + toolchain in ≤ 6,000 tokens,
   generated from the registry (CI-gated). Load it as context before writing any `.th`.
 - **`.claude/agents/acto-*.md`** — the four sub-agents below, auto-discovered by Claude
   Code as the `acto-doc-author` / `acto-builder` / `acto-critic` / `acto-fixer`
@@ -204,10 +204,10 @@ toolchain may not author for itself — the **conformance corpus**
 
 1. Read `goal.md`.
 2. Load the language reference. Install it once as a user-level skill so every future
-   session auto-discovers it (or just read `THERMITE.skill.md` directly):
+   session auto-discovers it (or just read `FLUFFY.skill.md` directly):
    ```sh
-   mkdir -p ~/.claude/skills/thermite
-   { printf -- '---\nname: thermite\ndescription: Thermite language + Forge toolchain reference.\n---\n\n'; cat THERMITE.skill.md; } > ~/.claude/skills/thermite/SKILL.md
+   mkdir -p ~/.claude/skills/fluffy
+   { printf -- '---\nname: fluffy\ndescription: Fluffy language + Forge toolchain reference.\n---\n\n'; cat FLUFFY.skill.md; } > ~/.claude/skills/fluffy/SKILL.md
    ```
 3. Work the loop. The orchestrator stays hands-on-the-wheel: load context, hand off
    implementation with a clear manifest, and **verify every result** — read the diff,
@@ -221,5 +221,5 @@ cargo build --workspace
 cargo test --workspace          # with `verus` on PATH for the L3 tier
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --all --check
-cargo run -p thermite-skill -- --check-budget
+cargo run -p fluffy-skill -- --check-budget
 ```

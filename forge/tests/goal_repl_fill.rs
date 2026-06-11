@@ -3,7 +3,7 @@
 //! §5.1 dialogue golden (#193; `.design/forge/goal-repl.md` REQ-4/REQ-5/REQ-6 +
 //! AC-5/AC-6). Drives the real toolchain:
 //!
-//! - `thermite_syntax` parses a `body = ?0` fn to a CLEAN holed AST carrying its
+//! - `fluffy_syntax` parses a `body = ?0` fn to a CLEAN holed AST carrying its
 //!   open holes; a `?N` in a `spec fn` body / expression / clause position is a
 //!   structured parse error, never a panic (REQ-4 / AC-5 parser half);
 //! - the `<fn>.?N` hole address resolves; a bad hole address is a structured error;
@@ -24,7 +24,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use thermite_syntax::{parse, AddrKind, AddressError};
+use fluffy_syntax::{parse, AddrKind, AddressError};
 
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..")
@@ -103,7 +103,7 @@ fn fn_body_hole_parses_clean_and_records_the_hole() {
         .items
         .iter()
         .find_map(|i| match i {
-            thermite_syntax::Item::Fn(f) if f.name == "pick" => Some(f),
+            fluffy_syntax::Item::Fn(f) if f.name == "pick" => Some(f),
             _ => None,
         })
         .expect("pick fn");
@@ -136,7 +136,7 @@ fn holes_in_nested_blocks_are_accepted_in_document_order() {
         .items
         .iter()
         .find_map(|i| match i {
-            thermite_syntax::Item::Fn(f) => Some(f),
+            fluffy_syntax::Item::Fn(f) => Some(f),
             _ => None,
         })
         .expect("fn");
@@ -158,7 +158,7 @@ fn hole_outside_fn_body_statement_position_is_a_structured_parse_error_not_a_pan
     assert!(
         spec.errors
             .iter()
-            .any(|e| matches!(e, thermite_syntax::SyntaxError::HoleOutsideFnBody { .. })),
+            .any(|e| matches!(e, fluffy_syntax::SyntaxError::HoleOutsideFnBody { .. })),
         "the spec-fn hole is the structural HoleOutsideFnBody error: {:?}",
         spec.errors
     );
@@ -185,7 +185,7 @@ fn hole_address_resolves_and_bad_hole_address_is_structured_error() {
     let src = "fn pick(n: u32) -> u32 req n < 10 ens result == n fx pure { ?0 }";
     let program = parse(src).program;
     // The `<fn>.?N` address enumerates + resolves to a Hole.
-    let addrs: Vec<String> = thermite_syntax::addresses_of(&program)
+    let addrs: Vec<String> = fluffy_syntax::addresses_of(&program)
         .into_iter()
         .map(|e| e.addr)
         .collect();
@@ -193,16 +193,16 @@ fn hole_address_resolves_and_bad_hole_address_is_structured_error() {
         addrs.contains(&"pick.?0".to_string()),
         "the hole address `pick.?0` is enumerated: {addrs:?}"
     );
-    let entry = thermite_syntax::resolve(&program, "pick.?0").expect("pick.?0 resolves");
+    let entry = fluffy_syntax::resolve(&program, "pick.?0").expect("pick.?0 resolves");
     assert_eq!(entry.kind, AddrKind::Hole);
     // A well-formed but absent hole address → NotFound (never a panic).
     assert!(matches!(
-        thermite_syntax::resolve(&program, "pick.?9"),
+        fluffy_syntax::resolve(&program, "pick.?9"),
         Err(AddressError::NotFound(_))
     ));
     // A malformed hole segment (`?` with no digit) → Malformed.
     assert!(matches!(
-        thermite_syntax::resolve(&program, "pick.?"),
+        fluffy_syntax::resolve(&program, "pick.?"),
         Err(AddressError::Malformed(_))
     ));
 }

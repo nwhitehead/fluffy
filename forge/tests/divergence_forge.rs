@@ -1,7 +1,7 @@
 //! acto-critic divergence tests for `forge check` (commit `1004b7a`, issue #5).
 //!
 //! Each test pins a divergence between the `forge` driver's emitted certificate
-//! and the authority chain (`thermite-design.md` §5.1/§5.3/§6, the
+//! and the authority chain (`fluffy-design.md` §5.1/§5.3/§6, the
 //! `.design/forge/*.md` REQs, `conformance/*`). Expected values trace to the
 //! design/golden, NEVER to forge's own output (`goal.md` R-CHAR-3).
 //!
@@ -76,7 +76,7 @@ fn cert_for<'a>(certs: &'a [Value], item: &str) -> &'a Value {
 /// smears the single crate-level `VerusResult` (`assemble_certificate(item,
 /// &verus)`) across every item, `good`'s certificate inherits `bad`'s failure.
 ///
-/// Authority: `thermite-design.md` §5.3 — "an edit to `f` cannot invalidate
+/// Authority: `fluffy-design.md` §5.3 — "an edit to `f` cannot invalidate
 /// `g`'s certificate unless `g`'s contract references `f`'s contract." Here
 /// `good`'s contract references nothing in `bad`, yet `good` is reported non-L3.
 /// Also §6 — "The certificate attached to a build artifact lists every
@@ -114,7 +114,7 @@ fn divergence_multi_item_correct_item_not_falsely_failed() {
 /// failing obligation. A witness pointing at an unrelated function is worse than
 /// an adjective; it asserts a falsehood about `good`.
 ///
-/// Authority: `thermite-design.md` §5.1 (counterexamples are the failing
+/// Authority: `fluffy-design.md` §5.1 (counterexamples are the failing
 /// obligation's concrete witness). Tracking: #41
 #[test]
 fn divergence_multi_item_counterexample_misattributed() {

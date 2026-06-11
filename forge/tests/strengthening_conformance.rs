@@ -1,5 +1,5 @@
 //! The LIVE oracle test for forge's STRENGTHENING PROBES (issue #14,
-//! `thermite-design.md` §7 step 5). It drives the BUILT `forge` binary (same as
+//! `fluffy-design.md` §7 step 5). It drives the BUILT `forge` binary (same as
 //! `mutation_conformance.rs`) and asserts the emitted certificate against the
 //! hand-derived oracle `conformance/strengthening/cases.json` (R-CHAR-3 —
 //! expected outcomes trace to §7 / the oracle, never to forge's own output).

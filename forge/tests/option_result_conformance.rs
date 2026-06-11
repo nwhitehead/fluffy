@@ -28,7 +28,7 @@
 //! R-CHAR-3: expected levels trace to `.design/basis/09-option-result.md` AC-1..AC-4
 //! (the GROUNDED forms: Option construct `4 verified, 0 errors`; Result `3 verified,
 //! 0 errors`; the broken bodies FAIL; `parse_u64` `5 verified, 0 errors`, broken
-//! `Some(0)` `3 verified, 1 errors`) + `thermite-design.md` §6 ladder semantics (L3 ==
+//! `Some(0)` `3 verified, 1 errors`) + `fluffy-design.md` §6 ladder semantics (L3 ==
 //! a fully-discharged real-verus proof), NEVER copied from the toolchain's own output.
 
 use std::path::{Path, PathBuf};
@@ -115,18 +115,18 @@ fn cert_for<'a>(certs: &'a [Value], item: &str) -> &'a Value {
         .unwrap_or_else(|| panic!("no cert for `{item}` in {certs:?}"))
 }
 
-/// Lower a Thermite source program to its Verus source via the toolchain's `lower`,
+/// Lower a Fluffy source program to its Verus source via the toolchain's `lower`,
 /// write it to a temp `.rs`, run the real `verus` binary, and return
 /// `(success, combined_output)`. The temp file is removed before returning (#53).
 /// R-CODE-4: the subprocess status is checked + surfaced, never swallowed.
 fn verus_on_lowered(tag: &str, program: &str) -> (bool, String) {
-    let parsed = thermite_syntax::parse(program);
+    let parsed = fluffy_syntax::parse(program);
     assert!(
         parsed.is_clean(),
         "[{tag}] surface must parse cleanly: {:?}",
         parsed.errors
     );
-    let verus_src = thermite_lower::lower(&parsed.program)
+    let verus_src = fluffy_lower::lower(&parsed.program)
         .unwrap_or_else(|e| panic!("[{tag}] lower must succeed: {e:?}"));
     let rs = std::env::temp_dir().join(format!(
         "forge_optres_verus_{tag}_{}.rs",
@@ -160,7 +160,7 @@ fn verus_on_lowered(tag: &str, program: &str) -> (bool, String) {
 /// `Option<u64>` is `Type::Option`; the validator's seeded built-in variant registry
 /// accepts `Some`; the spec-`match` is admitted as a flat built-in; lowers to a Verus
 /// `Option<u64>` + the spec-`match`-in-`ens`. GROUNDED `4 verified, 0 errors`.
-/// `thermite-design.md` §6: a fully-discharged verus proof is L3.
+/// `fluffy-design.md` §6: a fully-discharged verus proof is L3.
 #[test]
 fn ac1_option_construct_payload_in_contract_certifies_l3() {
     if !verus_present() {
@@ -218,7 +218,7 @@ fn ac2_result_two_arg_type_construct_payload_certifies_l3() {
 ///
 /// AUTHORITY: `.design/basis/09-option-result.md` AC-3 — `Some(0)` under the Some-arm
 /// `v == 5` FAILS verus (`1 verified, 1 errors`, postcondition not satisfied) — the
-/// payload contract is real, not vacuous. `thermite-design.md` §7: the battery catches
+/// payload contract is real, not vacuous. `fluffy-design.md` §7: the battery catches
 /// a false claim.
 #[test]
 fn ac3_broken_some_under_payload_ens_is_rejected() {
@@ -249,7 +249,7 @@ fn ac3_broken_some_under_payload_ens_is_rejected() {
 /// all_digits(s.data@) && s.data.len() >= 1 && parse_be(s.data@) == v as nat, None =>
 /// true }`, the Horner-accumulate loop with the BE partial-value invariant +
 /// `decreases`, and the empty/non-digit/overflow `None` arms. GROUNDED `5 verified, 0
-/// errors`. `thermite-design.md` §6: a fully-discharged verus proof. The generated
+/// errors`. `fluffy-design.md` §6: a fully-discharged verus proof. The generated
 /// `parse_u64`'s round-trip is the deliverable (it cannot be a thin caller's
 /// mutation-scored cert — the partial contract's `None => true` arm legitimately
 /// admits an always-`None` body), so non-vacuity is pinned at the codegen-grounding
@@ -281,7 +281,7 @@ fn ac4_parse_u64_lowering_verifies_under_real_verus() {
 /// 0`, so the postcondition is undischarged.
 ///
 /// AUTHORITY: `.design/basis/09-option-result.md` AC-3/AC-4 — the broken `Some(0)`
-/// FAILS (`3 verified, 1 errors`). `thermite-design.md` §7: the battery catches a
+/// FAILS (`3 verified, 1 errors`). `fluffy-design.md` §7: the battery catches a
 /// false claim. The break is injected into a STANDALONE verus probe of the generated
 /// contract (the surface cannot mutate the generated fn body), confirming the round-
 /// trip `ens` is a real proof, not vacuous.
@@ -350,7 +350,7 @@ fn main() {}
 /// construction `return Some(mid)` / `return None` stays accepted.
 ///
 /// AUTHORITY: `conformance/binary_search.th` (the SHIPPED kernel corpus) +
-/// `thermite-design.md` §6. The C7 seeding is purely additive — it must not perturb
+/// `fluffy-design.md` §6. The C7 seeding is purely additive — it must not perturb
 /// an existing `Option` match/construct.
 #[test]
 fn ac5_binary_search_option_corpus_unchanged() {

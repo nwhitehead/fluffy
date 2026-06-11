@@ -31,7 +31,7 @@
 //!
 //! R-CHAR-3: expected levels trace to `.design/basis/13-map.md` AC-1..AC-4 (the
 //! GROUNDED `9 verified, 0 errors`; the broken `Some(0)`-for-absent `get` FAILS
-//! `verified, 1 errors`) + `thermite-design.md` §6 ladder semantics (L3 == a
+//! `verified, 1 errors`) + `fluffy-design.md` §6 ladder semantics (L3 == a
 //! fully-discharged real-verus proof), NEVER copied from the toolchain's own output.
 
 use std::path::{Path, PathBuf};
@@ -82,18 +82,18 @@ fn verus_bin() -> PathBuf {
     PathBuf::from(home).join(".local/bin/verus")
 }
 
-/// Lower a Thermite source program to its Verus source via the toolchain's `lower`,
+/// Lower a Fluffy source program to its Verus source via the toolchain's `lower`,
 /// write it to a temp `.rs`, run the real `verus` binary, and return
 /// `(success, combined_output)`. The temp file is removed before returning (#53).
 /// R-CODE-4: the subprocess status is checked + surfaced, never swallowed.
 fn verus_on_lowered(tag: &str, program: &str) -> (bool, String) {
-    let parsed = thermite_syntax::parse(program);
+    let parsed = fluffy_syntax::parse(program);
     assert!(
         parsed.is_clean(),
         "[{tag}] surface must parse cleanly: {:?}",
         parsed.errors
     );
-    let verus_src = thermite_lower::lower(&parsed.program)
+    let verus_src = fluffy_lower::lower(&parsed.program)
         .unwrap_or_else(|e| panic!("[{tag}] lower must succeed: {e:?}"));
     let rs = std::env::temp_dir().join(format!("forge_map_verus_{tag}_{}.rs", std::process::id()));
     std::fs::write(&rs, &verus_src).expect("write lowered .rs");
@@ -277,7 +277,7 @@ fn main() {}
 /// `verified, 0 errors`.
 ///
 /// AUTHORITY: `.design/basis/13-map.md` AC-1/AC-2/AC-3 — the GROUNDED `TMapU64U64`
-/// over `Vec<(u64,u64)>` (`9 verified, 0 errors`). `thermite-design.md` §6: a
+/// over `Vec<(u64,u64)>` (`9 verified, 0 errors`). `fluffy-design.md` §6: a
 /// fully-discharged verus proof is L3.
 #[test]
 fn ac1_2_3_map_wrapper_roundtrip_and_absent_none_verify_l3() {
@@ -302,7 +302,7 @@ fn ac1_2_3_map_wrapper_roundtrip_and_absent_none_verify_l3() {
 /// `spec_contains_key(k)`, so the postcondition is undischarged.
 ///
 /// AUTHORITY: `.design/basis/13-map.md` AC-2 — the broken `Some(0)`-for-absent form
-/// FAILS (`verified, 1 errors`, postcondition not satisfied). `thermite-design.md`
+/// FAILS (`verified, 1 errors`, postcondition not satisfied). `fluffy-design.md`
 /// §7: the battery catches a false claim.
 #[test]
 fn ac2_broken_get_some_for_absent_fails_real_verus() {
@@ -371,7 +371,7 @@ fn ac1_map_kv_corpus_lowering_verifies_under_real_verus() {
 /// mutation-strong accessor, never overclaim a thin contract.
 ///
 /// AUTHORITY: `.design/basis/13-map.md` AC-3 (contains_key true AND false provable)
-/// + `thermite-design.md` §6/§7.
+/// + `fluffy-design.md` §6/§7.
 #[test]
 fn ac3_map_kv_contains_key_accessor_certifies_l3() {
     if !verus_present() {
@@ -394,7 +394,7 @@ fn ac3_map_kv_contains_key_accessor_certifies_l3() {
 /// a runnable binary that RUNS the insert + get round-trip at L1: `demo` builds a
 /// local `Map<u64,u64>`, `insert(7, 42)`, `get(7)`, and returns `42` (the L1 `TMap`
 /// runtime — `emit_map_runtime_l1`'s plain-Rust Vec-of-pairs newtype with the
-/// `thermite_check!` capacity/uniqueness guards + `get -> Option<V>`). The build
+/// `fluffy_check!` capacity/uniqueness guards + `get -> Option<V>`). The build
 /// uses real `rustc` + a real process run (no skip — `rustc` is always present).
 ///
 /// AUTHORITY: `.design/basis/13-map.md` AC-1 ("`forge build` a Map program →
@@ -442,7 +442,7 @@ fn ac1_map_kv_builds_and_runs_insert_get_yields_value() {
 /// existing node shape.
 ///
 /// AUTHORITY: `conformance/vec_demo.th` (the SHIPPED kernel corpus) +
-/// `thermite-design.md` §6.
+/// `fluffy-design.md` §6.
 #[test]
 fn ac4_vec_demo_corpus_unchanged_no_regression() {
     if !verus_present() {

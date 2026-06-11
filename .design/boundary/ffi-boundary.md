@@ -2,25 +2,25 @@
 <!--
 tier: 3-component
 status: draft
-governs: thermite-syntax/src/ast.rs, thermite-syntax/src/parser.rs, thermite-lower/src/l1.rs, forge/src/check.rs, forge/src/manifest.rs
+governs: fluffy-syntax/src/ast.rs, fluffy-syntax/src/parser.rs, fluffy-lower/src/l1.rs, forge/src/check.rs, forge/src/manifest.rs
 thesis-refs:
-  - thermite-design.md §9
-  - thermite-design.md §8
-  - thermite-design.md §6
-  - thermite-design.md §2.2
-  - thermite-design.md §4.4
+  - fluffy-design.md §9
+  - fluffy-design.md §8
+  - fluffy-design.md §6
+  - fluffy-design.md §2.2
+  - fluffy-design.md §4.4
 -->
 
 ## Summary
 
 A `crates.io` dependency is imported through a **boundary module**: each foreign
-function gets a Thermite signature (`req`/`ens`/`fx`) but **no Thermite body** — the
+function gets a Fluffy signature (`req`/`ens`/`fx`) but **no Fluffy body** — the
 body is the foreign crate's. Because a foreign body cannot be proved, the contract
-is **enforced at L1** (runtime checks on every crossing; `thermite-design.md` §9),
+is **enforced at L1** (runtime checks on every crossing; `fluffy-design.md` §9),
 and the function certifies at `Level::L1` with a `boundary` flag plus the foreign
 target. A boundary fn is the FFI analog of `#[slag]` (§8): an unproven body, a
 mandatory contract that is still stated and checked. This component spans three
-crates — the surface form (`thermite-syntax`), the L1 wrapper (`thermite-lower`),
+crates — the surface form (`fluffy-syntax`), the L1 wrapper (`fluffy-lower`),
 and the cert (`forge`). It is **greenfield**: there is no foreign/extern/boundary
 form anywhere in the grammar, AST, parser, lowerer, or forge today (verified
 below). All REQs are NOT-STARTED, blocked on **crosslink issue #16** (v0.4,
@@ -44,11 +44,11 @@ is. Explicitly OUT of #16 (noted as boundaries, never deferred-as-status):
 
 ## The surface form (the key design choice)
 
-A boundary fn is a `fn` with a contract but **no Thermite body** — the body is
+A boundary fn is a `fn` with a contract but **no Fluffy body** — the body is
 foreign. The chosen form is the **skill-budget-minimal (a) variant**: a bodyless
 `fn` carrying a new `#[boundary("crate::path")]` attribute, terminated by `;`:
 
-```thermite
+```fluffy
 #[boundary("regex::Regex::is_match")]
 fn re_is_match(re: &Regex, hay: &[u32]) -> bool
   req true
@@ -57,7 +57,7 @@ fn re_is_match(re: &Regex, hay: &[u32]) -> bool
 ;
 ```
 
-**Why (a), not a new `boundary`/`extern` keyword (`thermite-design.md` §2.2 — the
+**Why (a), not a new `boundary`/`extern` keyword (`fluffy-design.md` §2.2 — the
 6,000-token skill budget; pillar §2.3 "one way to do everything"):**
 
 - It reuses the *entire* existing `fn` + contract grammar (`parse_fn`,
@@ -70,7 +70,7 @@ fn re_is_match(re: &Regex, hay: &[u32]) -> bool
   body is body-unproven while leaving the contract mandatory. An agent who knows
   `#[slag]` reads `#[boundary]` with zero new mental model — "the body is
   elsewhere/foreign, the contract is still checked at L1."
-- The `;`-body unifies cleanly: a Thermite fn's body is *either* `{ … }` (proved at
+- The `;`-body unifies cleanly: a Fluffy fn's body is *either* `{ … }` (proved at
   L3 / runtime-checked at L1 with a real body) *or* `;` (foreign — only the L1
   wrapper around the contract is emitted). One distinction, structurally encoded.
 
@@ -87,7 +87,7 @@ so a bodyless fn with no contract is a parse error for free.
 ### Exact `ast.rs` / `parser.rs` additions (greenfield — verified absent)
 
 Empirically confirmed against the current crate (a probe of
-`thermite_syntax::parse`):
+`fluffy_syntax::parse`):
 
 - A bodyless `fn foo(x: u32) -> u32 req true ens result == x fx pure ;` → parse
   error `Unexpected { expected: "`{`", found: "`;`" }` — `parse_fn` calls
@@ -97,7 +97,7 @@ Empirically confirmed against the current crate (a probe of
   "slag"` and `parse_item` only routes `HashBracket` into `parse_slag`.
 - A normal `fn … { x }` parses clean (the control).
 
-So the boundary form needs (all in `thermite-syntax`, governed by
+So the boundary form needs (all in `fluffy-syntax`, governed by
 `.design/syntax/ast.md` + `.design/syntax/parser.md` jointly with this doc):
 
 1. **`ast.rs`** — a `struct BoundaryAttr { target: String, span: Span }` (the
@@ -123,7 +123,7 @@ So the boundary form needs (all in `thermite-syntax`, governed by
      `Semi` (the lexer already has `TokKind::Semi`, `;`), `consume` it and set
      `body = None`; else `parse_block` and set `body = Some`. A `#[boundary]`
      attribute REQUIRES the `;` form (a foreign fn with a `{ … }` body is an
-     error — there is no Thermite body to prove); a fn with NO `#[boundary]`
+     error — there is no Fluffy body to prove); a fn with NO `#[boundary]`
      REQUIRES the `{ … }` form (a non-boundary bodyless fn is an error — the §4.1
      "body-second" rule).
    - Per-item recovery (`resync_to_item_boundary`) is unaffected: `#[` is already a
@@ -131,17 +131,17 @@ So the boundary form needs (all in `thermite-syntax`, governed by
      malformed boundary fn cannot bleed into the next item (pillar §2.5 locality).
      OQ-2 below records the one error-recovery interaction to confirm.
 
-## L1 wrapper lowering (thermite-lower)
+## L1 wrapper lowering (fluffy-lower)
 
-A boundary fn lowers to an **L1 wrapper** in `l1.rs` (`thermite-design.md` §9 "L1,
+A boundary fn lowers to an **L1 wrapper** in `l1.rs` (`fluffy-design.md` §9 "L1,
 runtime checks on every crossing"; §6 L1 = always-active runtime checks). The
 wrapper reuses `l1.rs`'s existing executable machinery exactly:
 
 1. Emit the `fn <name>(<params>) -> <ret>` head (`emit_params`, `lower_type` —
    existing).
-2. Check `req` on entry via the always-active `thermite_check!` macro
+2. Check `req` on entry via the always-active `fluffy_check!` macro
    (`emit_check`, `lower_expr_exec` — existing; the same `if !(cond) {
-   thermite_contract_violation(…) }` the proved-body L1 path uses).
+   fluffy_contract_violation(…) }` the proved-body L1 path uses).
 3. **Call the foreign function** named by `BoundaryAttr.target`, binding its return
    to `result`. This replaces the `let result = { <lowered body> }` of a normal
    L1 fn: `let result = <target>(<args>);`. The foreign body is **NOT** lowered,
@@ -153,7 +153,7 @@ wrapper reuses `l1.rs`'s existing executable machinery exactly:
    the proved-body L1 path.
 
 The wrapper IS "the runtime checks on every crossing": `req` before the foreign
-call, `ens` after. The new `thermite-lower` code is a `lower_boundary_fn_l1` arm in
+call, `ens` after. The new `fluffy-lower` code is a `lower_boundary_fn_l1` arm in
 `lower_l1`/`lower_fn_l1` that, when `f.boundary.is_some()` (equivalently `f.body ==
 None`), emits steps 1–2-4-5 with step 3 in place of the body lowering. (OQ-3: a
 boundary fn is NOT lowered to Verus by `lower.rs` at all — there is no body to
@@ -202,8 +202,8 @@ target — NOT L3 (the foreign body is unproven), precisely mirroring the existi
 - **REQ-1 (surface form — bodyless boundary fn)**: a boundary fn parses as a
   `#[boundary("crate::path")] fn NAME(params) -> ret req … ens … fx … ;` — a `fn`
   with a mandatory contract, a `#[boundary]` attribute naming the foreign target,
-  and a `;` body. Derived from `thermite-design.md` §9 (boundary module = a foreign
-  fn given a Thermite signature) + §2.2 (skill-budget-minimal surface) + §4.4
+  and a `;` body. Derived from `fluffy-design.md` §9 (boundary module = a foreign
+  fn given a Fluffy signature) + §2.2 (skill-budget-minimal surface) + §4.4
   (attributes).
 - **REQ-2 (AST shape)**: the AST represents a boundary fn as `FnItem { boundary:
   Some(BoundaryAttr { target }), body: None, .. }` with the contract mandatory and
@@ -214,8 +214,8 @@ target — NOT L3 (the foreign body is unproven), precisely mirroring the existi
   recovery is preserved. Derived from §9 + pillar §2.5 (locality / per-item
   recovery).
 - **REQ-4 (L1 wrapper lowering)**: a boundary fn lowers to an L1 wrapper —
-  `thermite_check!` on `req` → call the foreign target binding `result` →
-  `thermite_check!` on each `ens`; the foreign body is NOT lowered or verified.
+  `fluffy_check!` on `req` → call the foreign target binding `result` →
+  `fluffy_check!` on each `ens`; the foreign body is NOT lowered or verified.
   Derived from §9 ("L1, runtime checks on every crossing") + §6 (L1 = always-active
   runtime checks).
 - **REQ-5 (forge cert — L1 + boundary flag + target)**: a boundary fn certifies at
@@ -238,7 +238,7 @@ ACs tie to a `conformance/boundary/` oracle the orchestrator authors (a
 `boundary.th` example program + a `boundary.cert.json` golden cert + a parse oracle
 entry). The exact example program:
 
-```thermite
+```fluffy
 #[boundary("ext::foreign_id")]
 fn foreign_id(x: u32) -> u32
   req x <= 1000
@@ -255,11 +255,11 @@ fn caller(x: u32) -> u32
 }
 ```
 
-(`foreign_id` is a boundary fn; `caller` is a pure-Thermite fn whose cert is valid
+(`foreign_id` is a boundary fn; `caller` is a pure-Fluffy fn whose cert is valid
 through `foreign_id`'s contract alone — the §9 composition witness. After the
 parser extension lands this PARSES; it does NOT parse today — verified above.)
 
-- **AC-1 (parses)**: `thermite_syntax::parse` of `boundary.th` returns
+- **AC-1 (parses)**: `fluffy_syntax::parse` of `boundary.th` returns
   `errors.is_empty()` and a `Program` whose first item is `FnItem { boundary:
   Some(BoundaryAttr { target: "ext::foreign_id" }), body: None, .. }`. (Oracle:
   `conformance/parse` boundary entry. Today: FAILS — `expected "{"` / `expected
@@ -269,9 +269,9 @@ parser extension lands this PARSES; it does NOT parse today — verified above.)
   `boundary_target == "ext::foreign_id"`, `slag == false`, and an oracle subset
   matching `conformance/boundary/boundary.cert.json`. The cert is NOT `L3` (no
   verus run on a foreign body). (Oracle: the golden boundary cert.)
-- **AC-3 (L1 wrapper checks req/ens on the crossing)**: `thermite_lower::lower_l1`
-  of `boundary.th` emits, for `foreign_id`, a `thermite_check!("req", …, x <= 1000)`
-  before a call to `ext::foreign_id(x)`, then `thermite_check!("ens", …, result ==
+- **AC-3 (L1 wrapper checks req/ens on the crossing)**: `fluffy_lower::lower_l1`
+  of `boundary.th` emits, for `foreign_id`, a `fluffy_check!("req", …, x <= 1000)`
+  before a call to `ext::foreign_id(x)`, then `fluffy_check!("ens", …, result ==
   x)` against the bound `result`; the foreign body is absent from the output.
   (Oracle: a `tests/golden/l1/boundary.l1.rs` golden the orchestrator authors,
   hand-derived, compiling under `rustc` with a stub `ext::foreign_id`.)
@@ -288,9 +288,9 @@ parser extension lands this PARSES; it does NOT parse today — verified above.)
 ## Architecture
 
 The component threads three crates in dependency order (`goal.md` R-DEFER-7):
-`thermite-syntax` (form) → `thermite-lower` (wrapper) → `forge` (cert).
+`fluffy-syntax` (form) → `fluffy-lower` (wrapper) → `forge` (cert).
 
-- **Surface (`thermite-syntax`).** `struct BoundaryAttr` mirrors `struct SlagAttr`
+- **Surface (`fluffy-syntax`).** `struct BoundaryAttr` mirrors `struct SlagAttr`
   in `ast.rs`; `FnItem` gains `boundary: Option<BoundaryAttr>` (mirroring
   `FnItem.slag: Option<SlagAttr>`) and `body: Option<Block>`. `parse_attribute`
   (generalizing `parse_slag` in `parser.rs`) dispatches on the attribute name;
@@ -298,9 +298,9 @@ The component threads three crates in dependency order (`goal.md` R-DEFER-7):
   `TokKind::Semi`). The frontend stays registry-free and the §4.1 mandatory-contract
   rule is enforced by the unchanged `parse_contract`.
 
-- **L1 wrapper (`thermite-lower`).** `lower_l1` routes a `f.boundary.is_some()`
+- **L1 wrapper (`fluffy-lower`).** `lower_l1` routes a `f.boundary.is_some()`
   `FnItem` to a `lower_boundary_fn_l1` arm reusing `emit_check`, `lower_expr_exec`,
-  `emit_params`, `lower_type`, and the `thermite_check!` macro from
+  `emit_params`, `lower_type`, and the `fluffy_check!` macro from
   `emit_check_macro` — the wrapper is `req`-check → `let result = <target>(args);`
   → `ens`-checks. `lower.rs` (the L3 Verus path) skips a boundary fn (no body to
   prove), mirroring `check.rs`'s slag skip.
@@ -315,18 +315,18 @@ The component threads three crates in dependency order (`goal.md` R-DEFER-7):
 
 ## Verification
 
-- **AC-1**: `cargo test -p thermite-syntax` — a parse test of `boundary.th`
+- **AC-1**: `cargo test -p fluffy-syntax` — a parse test of `boundary.th`
   asserting `errors.is_empty()` and the `FnItem { boundary: Some(_), body: None }`
   shape; a `conformance/parse` boundary entry.
 - **AC-2 / AC-4 / AC-5**: the conformance corpus — `forge check` of `boundary.th`
   diffs the emitted cert against `conformance/boundary/boundary.cert.json` (the
   cert oracle, `goal.md` verification model (B)); the existing corpus diffs
   unchanged (AC-5). `cargo test -p forge`.
-- **AC-3**: `cargo test -p thermite-lower` — diff `lower_l1(boundary.th)` against
+- **AC-3**: `cargo test -p fluffy-lower` — diff `lower_l1(boundary.th)` against
   `tests/golden/l1/boundary.l1.rs` (the golden lowering, `goal.md` verification
   model (A) + R-CHAR-3 — hand-authored from this design, never regenerated), and a
   compile+run check (the wrapper compiles under `rustc` with a stub foreign target,
-  and a contract violation fires `thermite_contract_violation`).
+  and a contract violation fires `fluffy_contract_violation`).
 - **Gauntlet (each crate):** `cargo test -p <crate>`, `cargo clippy -p <crate>
   --all-targets -- -D warnings`, `cargo fmt --check` (`goal.md` R-DEFER-6).
 
@@ -356,7 +356,7 @@ The component threads three crates in dependency order (`goal.md` R-DEFER-7):
 - **OQ-4 (effect-row crossing):** does a boundary fn's `fx` row constrain the
   foreign call (e.g. a `fx pure` boundary fn calling a foreign fn that allocates)?
   In v0.1 `fx` is compile-time-subsumption-only (no runtime sandbox, #21,
-  R-SPEC-5), so the `fx` row is checked at the Thermite call site exactly as for a
+  R-SPEC-5), so the `fx` row is checked at the Fluffy call site exactly as for a
   proved fn; the foreign body's actual effects are trusted-by-fiat (the §9/§8
   honesty: the row is *stated*, the body is trusted). No new mechanism in #16.
 
@@ -364,10 +364,10 @@ The component threads three crates in dependency order (`goal.md` R-DEFER-7):
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (surface form) | SHIPPED | `#[boundary("crate::path")] fn NAME(..) -> ret req .. ens .. fx .. ;` parses via `parse_attribute` + the `Semi`-body path in `parse_fn` (`thermite-syntax/src/parser.rs`); verified by `boundary_fn_parses_with_target_and_no_body` in `thermite-syntax/tests/boundary_parse.rs`. |
-| REQ-2 (AST shape) | SHIPPED | `struct BoundaryAttr { target, span }` + `FnItem.boundary: Option<BoundaryAttr>` + `FnItem.body: Option<Block>` in `thermite-syntax/src/ast.rs` (exported from `lib.rs`); a boundary fn is `boundary: Some`, `body: None` — asserted by `boundary_fn_parses_with_target_and_no_body`. |
+| REQ-1 (surface form) | SHIPPED | `#[boundary("crate::path")] fn NAME(..) -> ret req .. ens .. fx .. ;` parses via `parse_attribute` + the `Semi`-body path in `parse_fn` (`fluffy-syntax/src/parser.rs`); verified by `boundary_fn_parses_with_target_and_no_body` in `fluffy-syntax/tests/boundary_parse.rs`. |
+| REQ-2 (AST shape) | SHIPPED | `struct BoundaryAttr { target, span }` + `FnItem.boundary: Option<BoundaryAttr>` + `FnItem.body: Option<Block>` in `fluffy-syntax/src/ast.rs` (exported from `lib.rs`); a boundary fn is `boundary: Some`, `body: None` — asserted by `boundary_fn_parses_with_target_and_no_body`. |
 | REQ-3 (parser extension) | SHIPPED | `parse_attribute` dispatches on the `#[` name (`slag`→`SlagAttr`, `boundary`→`BoundaryAttr`); `parse_fn`'s `Semi`-body path is GATED on `boundary.is_some()` (OQ-2: a bodyless non-`#[boundary]` fn is a `SyntaxError`, a `#[boundary]` fn with `{ }` is a `SyntaxError`, `#[boundary]` on a `spec fn` is a `SyntaxError`). Verified by `bodyless_fn_without_boundary_is_a_parse_error`, `boundary_fn_with_brace_body_is_a_parse_error`, `boundary_on_spec_fn_is_a_parse_error`. |
-| REQ-4 (L1 wrapper lowering) | SHIPPED | `lower_boundary_fn_l1` in `thermite-lower/src/l1.rs` emits `req`-check → `let result = <target>(args);` (the foreign call; body NOT lowered) → `ens`-checks; routed by the `f.boundary.is_some()` guard in `lower_l1`. Consumer: `forge`'s `ladder_for_timeout`/the L1 recording path + the boundary cert. |
+| REQ-4 (L1 wrapper lowering) | SHIPPED | `lower_boundary_fn_l1` in `fluffy-lower/src/l1.rs` emits `req`-check → `let result = <target>(args);` (the foreign call; body NOT lowered) → `ens`-checks; routed by the `f.boundary.is_some()` guard in `lower_l1`. Consumer: `forge`'s `ladder_for_timeout`/the L1 recording path + the boundary cert. |
 | REQ-5 (forge cert L1 + boundary flag) | SHIPPED | `Certificate.boundary: bool` + `boundary_target: Option<String>` + `Certificate::boundary_l1` (`Level::L1`, `boundary: true`, target, no verus, `graduate_triage_clean`) in `forge/src/manifest.rs`; `oracle_subset` is now `(item, level, effects, slag, boundary)`. `check::gate_fn` detects `f.boundary.is_some()` FIRST, validates a non-empty target, runs (a)/(b)/(c) triage, then `boundary_l1`. Verified by `foreign_id_certifies_l1_boundary_not_l3` + `boundary_vacuous_contract_is_rejected` in `forge/tests/boundary_conformance.rs`. |
 | REQ-6 (#15 TCB hook) | SHIPPED | the per-cert `boundary: bool` + `boundary_target` is the enumerable hook (joins `slag` in `oracle_subset`, rendered by `cli::render_human`); a boundary fn's cert carries `boundary: true` + the foreign target for #15's `slag ∪ boundary ∪ toolchain` audit. |
 | REQ-7 (composition independence) | SHIPPED | a boundary fn is gated to the L1 path in `check::gate_fn` BEFORE any L3/L2/mutation/strengthen stage, so a caller `g` lowers/certifies through `f`'s contract alone (its foreign body never enters `g`'s sub-program); the `caller`-through-`foreign_id` example certifies independent of the foreign target. |

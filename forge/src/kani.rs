@@ -1,7 +1,7 @@
 //! `forge/src/kani.rs` — the L2 driver (`.design/lower/l2-kani.md`;
-//! `thermite-design.md` §6 the L2 rung, §5.1 counterexamples, §13 v0.2). It is
+//! `fluffy-design.md` §6 the L2 rung, §5.1 counterexamples, §13 v0.2). It is
 //! the bounded-model-check parallel of `check.rs`'s verus path: it takes a Kani
-//! proof harness (`thermite_lower::lower_l2`), writes it into a TEMP CARGO CRATE
+//! proof harness (`fluffy_lower::lower_l2`), writes it into a TEMP CARGO CRATE
 //! (kani needs a crate context), spawns the REAL `cargo kani` / `cargo-kani`
 //! binary, CHECKS THE EXIT STATUS (R-CODE-4 — never swallow a subprocess
 //! failure), parses Kani 0.67.0's `--output-format terse` summary into either a
@@ -33,7 +33,7 @@
 //! |---|---|---|
 //! | REQ-4 (`run_kani` invocation — real binary, temp crate, exit status) | SHIPPED | `pub fn run_kani` writes a temp cargo crate (`write_kani_crate`, no-`.` stem via `crate_stem`), spawns `cargo-kani`, captures exit status; ENOENT → `ForgeError::KaniAbsent`, other spawn failure → `KaniSpawn`; temp crate removed best-effort. Consumer: `check::check_l2_file` (`check.rs`). |
 //! | REQ-5 (Kani output → L2-or-counterexample) | SHIPPED | `parse_kani_output` keys on `VERIFICATION:- SUCCESSFUL`/`FAILED` + `Failed Checks:`/`File:`; success → `Level::L2` w/ bound obligation, failure → per-`ObligationResult::failed` witnesses, no summary → `KaniOutput`. Pure tests `success_terse_is_l2`/`failure_terse_is_counterexample`/`under_bound_is_reported_failure`/`no_summary_is_kani_output_error`. |
-//! | REQ-6 (the L2 "up to bound" caveat) | SHIPPED | `run_kani` takes the `bound` string (`thermite_lower::bound_string`) and records it on the discharged obligation + the cert (`Level::L2`, programmatically distinct from L3). `bound_recorded_on_l2_cert` (AC-6). |
+//! | REQ-6 (the L2 "up to bound" caveat) | SHIPPED | `run_kani` takes the `bound` string (`fluffy_lower::bound_string`) and records it on the discharged obligation + the cert (`Level::L2`, programmatically distinct from L3). `bound_recorded_on_l2_cert` (AC-6). |
 //! | REQ-8 (Kani-absent = structured error) | SHIPPED | spawn `ErrorKind::NotFound` → `ForgeError::KaniAbsent`, never a silent success; `run_kani_with_absent_binary_is_kani_absent` (AC-7, points `KANI_BIN` at a non-existent binary). |
 //! | REQ-9 (determinism) | SHIPPED | the bound is the fixed input (`l2.rs` `SLICE_BOUND`); the temp crate path uses pid + a monotonic counter (not wall-clock); `solver_time_ms` is the only wall-clock field, excluded from the cert oracle (`manifest::Certificate::oracle_subset`). |
 //!
@@ -67,7 +67,7 @@ pub struct L2Result {
 
 /// Run the real `cargo kani` binary on a Kani proof `harness`, returning the
 /// parsed [`L2Result`] (REQ-4). `bound` is the L2 caveat string
-/// (`thermite_lower::bound_string`, e.g. `"slice <= 4, unwind 5"`) recorded on the
+/// (`fluffy_lower::bound_string`, e.g. `"slice <= 4, unwind 5"`) recorded on the
 /// success obligation so the certificate states the bound (REQ-6).
 ///
 /// A reachable contract `assert!` failure is NOT an `Err`: it is a valid

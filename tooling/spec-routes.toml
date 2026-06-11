@@ -1,4 +1,4 @@
-# spec-routes.toml — the Thermite route table (single source of truth).
+# spec-routes.toml — the Fluffy route table (single source of truth).
 #
 # Each route maps a toolchain source file to the design doc that governs it
 # and, where one exists, the golden/conformance reference that is the
@@ -29,19 +29,19 @@
 # ---------------------------------------------------------------------
 
 [[route]]
-crate_pattern = "thermite-syntax/src/lib.rs"
+crate_pattern = "fluffy-syntax/src/lib.rs"
 design = ".design/scaffold/workspace.md"
 reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-spec/src/lib.rs"
+crate_pattern = "fluffy-spec/src/lib.rs"
 design = ".design/scaffold/workspace.md"
 reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-lower/src/lib.rs"
+crate_pattern = "fluffy-lower/src/lib.rs"
 design = ".design/scaffold/workspace.md"
 reference = []
 conformance_ops = []
@@ -53,27 +53,27 @@ reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-skill/src/lib.rs"
+crate_pattern = "fluffy-skill/src/lib.rs"
 design = ".design/scaffold/workspace.md"
 reference = []
 conformance_ops = []
 
 # ---------------------------------------------------------------------
-# thermite-syntax — lexer, recovering parser, AST, semantic addressing
+# fluffy-syntax — lexer, recovering parser, AST, semantic addressing
 #   (issues #1 scaffold, #3 parser). Owns the SURFACE grammar (the whole
 #   language: fn/req/ens/fx/loop/inv/dec/spec fn/#[slag]); the parser is the
 #   grammar's executable form, spec'd by .design/syntax/ + the conformance
-#   corpus. Registry-free (does not depend on thermite-spec).
+#   corpus. Registry-free (does not depend on fluffy-spec).
 # ---------------------------------------------------------------------
 
 [[route]]
-crate_pattern = "thermite-syntax/src/lexer.rs"
+crate_pattern = "fluffy-syntax/src/lexer.rs"
 design = ".design/syntax/lexer.md"
 reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-syntax/src/parser.rs"
+crate_pattern = "fluffy-syntax/src/parser.rs"
 design = ".design/syntax/parser.md"
 reference = ["conformance/parse"]
 conformance_ops = ["binary_search", "sum", "recover_per_item"]
@@ -82,13 +82,13 @@ conformance_ops = ["binary_search", "sum", "recover_per_item"]
 # the `Vec<T>` type spelling (the contextual `Vec` ident, mirroring `Box<T>`),
 # governed by 04-collections.md.
 [[route]]
-crate_pattern = "thermite-syntax/src/parser.rs"
+crate_pattern = "fluffy-syntax/src/parser.rs"
 design = ".design/basis/04-collections.md"
 reference = ["conformance/vec_demo.th", "conformance/collections/cases.json"]
 conformance_ops = ["checked_get", "push_one"]
 
 [[route]]
-crate_pattern = "thermite-syntax/src/ast.rs"
+crate_pattern = "fluffy-syntax/src/ast.rs"
 design = ".design/syntax/ast.md"
 reference = []
 conformance_ops = []
@@ -97,36 +97,36 @@ conformance_ops = []
 # the `Type::Vec(Box<Type>)` element-type node governed by 04-collections.md
 # (a file may carry multiple governing docs — the lower.rs precedent).
 [[route]]
-crate_pattern = "thermite-syntax/src/ast.rs"
+crate_pattern = "fluffy-syntax/src/ast.rs"
 design = ".design/basis/04-collections.md"
 reference = ["conformance/vec_demo.th", "conformance/collections/cases.json"]
 conformance_ops = ["checked_get", "push_one"]
 
 [[route]]
-crate_pattern = "thermite-syntax/src/address.rs"
+crate_pattern = "fluffy-syntax/src/address.rs"
 design = ".design/syntax/semantic-addressing.md"
 reference = ["conformance/address"]
 conformance_ops = ["binary_search.loop#1.inv#2"]
 
 # ---------------------------------------------------------------------
-# thermite-spec — the SpecTherm combinator registry (issue #2)
-#   Built just before thermite-lower (#4) — its first in-workspace consumer.
+# fluffy-spec — the SpecTherm combinator registry (issue #2)
+#   Built just before fluffy-lower (#4) — its first in-workspace consumer.
 #   The parser (#3) does NOT depend on this crate: it parses combinator calls
 #   as generic call expressions; the "only a fixed combinator set" rule
 #   (design §4.2) is a SEMANTIC check enforced here, not a grammar rule. So
 #   #2 and #3 are independent leaves and #4 depends on both. The SURFACE
-#   grammar is a thermite-syntax concern (governed by .design/syntax/), not a
-#   thermite-spec one — there is no thermite-spec/src/grammar.rs route.
+#   grammar is a fluffy-syntax concern (governed by .design/syntax/), not a
+#   fluffy-spec one — there is no fluffy-spec/src/grammar.rs route.
 # ---------------------------------------------------------------------
 
 [[route]]
-crate_pattern = "thermite-spec/src/combinators.rs"
+crate_pattern = "fluffy-spec/src/combinators.rs"
 design = ".design/spec/spectherm-combinators.md"
 reference = ["tests/golden/combinators"]
 conformance_ops = ["forall_in", "forall_below", "forall_from", "sorted", "permutation_of", "disjoint", "count_where", "exists_in"]
 
 [[route]]
-crate_pattern = "thermite-spec/src/validator.rs"
+crate_pattern = "fluffy-spec/src/validator.rs"
 design = ".design/spec/spectherm-combinators.md"
 reference = ["tests/golden/combinators"]
 conformance_ops = ["accept", "reject"]
@@ -135,7 +135,7 @@ conformance_ops = ["accept", "reject"]
 # carries the scheme-call recognition + flat-step cage governed by
 # 02-recursion-schemes.md (a file may carry multiple governing docs).
 [[route]]
-crate_pattern = "thermite-spec/src/validator.rs"
+crate_pattern = "fluffy-spec/src/validator.rs"
 design = ".design/basis/02-recursion-schemes.md"
 reference = ["conformance/list_fold.th"]
 conformance_ops = ["nested_scheme_in_step", "unknown_scheme"]
@@ -145,7 +145,7 @@ conformance_ops = ["nested_scheme_in_step", "unknown_scheme"]
 # the no-OOB accessor `v.get(i)`) inside the §4.2 cage, governed by
 # 04-collections.md.
 [[route]]
-crate_pattern = "thermite-spec/src/validator.rs"
+crate_pattern = "fluffy-spec/src/validator.rs"
 design = ".design/basis/04-collections.md"
 reference = ["conformance/vec_demo.th", "conformance/collections/cases.json"]
 conformance_ops = ["checked_get", "push_one"]
@@ -153,18 +153,18 @@ conformance_ops = ["checked_get", "push_one"]
 # Basis Stage 2 (recursion schemes, issue #70): the NEW scheme registry,
 # mirroring combinators.rs.
 [[route]]
-crate_pattern = "thermite-spec/src/schemes.rs"
+crate_pattern = "fluffy-spec/src/schemes.rs"
 design = ".design/basis/02-recursion-schemes.md"
 reference = ["conformance/list_fold.th"]
 conformance_ops = ["fold", "map", "for_all", "exists", "traverse"]
 
 # ---------------------------------------------------------------------
-# thermite-lower — Thermite AST -> Verus source; L1 runtime checks
+# fluffy-lower — Fluffy AST -> Verus source; L1 runtime checks
 #   (issue #4)
 # ---------------------------------------------------------------------
 
 [[route]]
-crate_pattern = "thermite-lower/src/lower.rs"
+crate_pattern = "fluffy-lower/src/lower.rs"
 design = ".design/lower/verus-lowering.md"
 reference = ["tests/golden/lower"]
 conformance_ops = ["sum", "binary_search"]
@@ -174,7 +174,7 @@ conformance_ops = ["sum", "binary_search"]
 # + the fold_bound_<e> law + the scheme-call lowering, governed by
 # 02-recursion-schemes.md (a file may carry multiple governing docs).
 [[route]]
-crate_pattern = "thermite-lower/src/lower.rs"
+crate_pattern = "fluffy-lower/src/lower.rs"
 design = ".design/basis/02-recursion-schemes.md"
 reference = ["conformance/list_fold.th"]
 conformance_ops = ["len_list", "sum_list", "all_positive"]
@@ -184,7 +184,7 @@ conformance_ops = ["len_list", "sum_list", "all_positive"]
 # `len`/`get`/`push`, the `final(self)` &mut postcondition, the `fx alloc`
 # boundary), governed by 04-collections.md.
 [[route]]
-crate_pattern = "thermite-lower/src/lower.rs"
+crate_pattern = "fluffy-lower/src/lower.rs"
 design = ".design/basis/04-collections.md"
 reference = ["tests/golden/lower/vec_demo.verus.rs", "conformance/vec_demo.th"]
 conformance_ops = ["checked_get", "push_one"]
@@ -193,19 +193,19 @@ conformance_ops = ["checked_get", "push_one"]
 # arm governed by boundary-composition.md (a file may carry multiple governing
 # docs; the spec-discipline hook requires each matched route satisfied).
 [[route]]
-crate_pattern = "thermite-lower/src/lower.rs"
+crate_pattern = "fluffy-lower/src/lower.rs"
 design = ".design/lower/boundary-composition.md"
 reference = ["conformance/composition"]
 conformance_ops = ["direct_boundary_caller", "transitive_boundary_caller", "req_violating_caller"]
 
 [[route]]
-crate_pattern = "thermite-lower/src/l1.rs"
+crate_pattern = "fluffy-lower/src/l1.rs"
 design = ".design/lower/l1-runtime-checks.md"
 reference = ["tests/golden/l1"]
 conformance_ops = ["sum"]
 
 [[route]]
-crate_pattern = "thermite-lower/src/effects.rs"
+crate_pattern = "fluffy-lower/src/effects.rs"
 design = ".design/lower/effect-subsumption.md"
 reference = []
 conformance_ops = []
@@ -283,32 +283,32 @@ reference = []
 conformance_ops = []
 
 # ---------------------------------------------------------------------
-# thermite-skill — THERMITE.skill.md generator + 6k-token budget gate
+# fluffy-skill — FLUFFY.skill.md generator + 6k-token budget gate
 #   (issue #7)
 # ---------------------------------------------------------------------
 
 [[route]]
-crate_pattern = "thermite-skill/src/generate.rs"
+crate_pattern = "fluffy-skill/src/generate.rs"
 design = ".design/skill/skill-generator.md"
 reference = []
 conformance_ops = []
 
-# The thermite-skill bin (--emit / --check-budget), governed by the same
+# The fluffy-skill bin (--emit / --check-budget), governed by the same
 # skill-generator contract (REQ-6, the bin; REQ-4, the budget gate). Issue #7.
 [[route]]
-crate_pattern = "thermite-skill/src/main.rs"
+crate_pattern = "fluffy-skill/src/main.rs"
 design = ".design/skill/skill-generator.md"
 reference = []
 conformance_ops = []
 
 # ---------------------------------------------------------------------
 # v0.2 — L2 Kani bounded checking (issue #9)
-#   l2.rs lowers a Thermite fn to a Kani proof harness; forge/kani.rs runs the
+#   l2.rs lowers a Fluffy fn to a Kani proof harness; forge/kani.rs runs the
 #   real kani binary. Auto-degrade (#10) + solver profiles (#11) are separate.
 # ---------------------------------------------------------------------
 
 [[route]]
-crate_pattern = "thermite-lower/src/l2.rs"
+crate_pattern = "fluffy-lower/src/l2.rs"
 design = ".design/lower/l2-kani.md"
 reference = []
 conformance_ops = ["sum", "binary_search"]
@@ -358,7 +358,7 @@ conformance_ops = ["weak_loose_bound", "sum"]
 #   The boundary fn syntax also touches ast.rs/parser.rs (governed by their docs
 #   + ffi-boundary.md); the L1 wrapper may live in l1.rs or boundary.rs.
 [[route]]
-crate_pattern = "thermite-lower/src/boundary.rs"
+crate_pattern = "fluffy-lower/src/boundary.rs"
 design = ".design/boundary/ffi-boundary.md"
 reference = []
 conformance_ops = []
@@ -461,39 +461,39 @@ conformance_ops = ["sum"]
 
 # self-verification: the Verus-verified soundness-critical core (epic #60)
 [[route]]
-crate_pattern = "thermite-verified/src/lib.rs"
+crate_pattern = "fluffy-verified/src/lib.rs"
 design = ".design/verified/self-verification.md"
 reference = []
 conformance_ops = []
 
 # Stage 6 IFC — the #[sealed] abstraction barrier governs these (issue #76/#77)
 [[route]]
-crate_pattern = "thermite-spec/src/validator.rs"
+crate_pattern = "fluffy-spec/src/validator.rs"
 design = ".design/basis/06-provenance-and-sinks.md"
 reference = ["conformance/provenance"]
 conformance_ops = []
 
 # Stage 7 Strings — String/str + literals + ops (issue #79)
 [[route]]
-crate_pattern = "thermite-lower/src/lower.rs"
+crate_pattern = "fluffy-lower/src/lower.rs"
 design = ".design/basis/07-strings.md"
 reference = ["conformance/string"]
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-syntax/src/ast.rs"
+crate_pattern = "fluffy-syntax/src/ast.rs"
 design = ".design/basis/07-strings.md"
 reference = ["conformance/string_demo.th"]
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-syntax/src/parser.rs"
+crate_pattern = "fluffy-syntax/src/parser.rs"
 design = ".design/basis/07-strings.md"
 reference = ["conformance/string_demo.th"]
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-spec/src/validator.rs"
+crate_pattern = "fluffy-spec/src/validator.rs"
 design = ".design/basis/07-strings.md"
 reference = ["conformance/string_demo.th"]
 conformance_ops = []
@@ -508,37 +508,37 @@ conformance_ops = []
 # (R-CHAR-3), so `reference = []` until it lands (the hook requires a reference
 # read only for a NON-empty list; the verus-grounded test IS the C7 truth here).
 [[route]]
-crate_pattern = "thermite-spec/src/validator.rs"
+crate_pattern = "fluffy-spec/src/validator.rs"
 design = ".design/basis/09-option-result.md"
 reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-syntax/src/ast.rs"
+crate_pattern = "fluffy-syntax/src/ast.rs"
 design = ".design/basis/09-option-result.md"
 reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-syntax/src/parser.rs"
+crate_pattern = "fluffy-syntax/src/parser.rs"
 design = ".design/basis/09-option-result.md"
 reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-lower/src/lower.rs"
+crate_pattern = "fluffy-lower/src/lower.rs"
 design = ".design/basis/09-option-result.md"
 reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-lower/src/l1.rs"
+crate_pattern = "fluffy-lower/src/l1.rs"
 design = ".design/basis/09-option-result.md"
 reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-lower/src/l2.rs"
+crate_pattern = "fluffy-lower/src/l2.rs"
 design = ".design/basis/09-option-result.md"
 reference = []
 conformance_ops = []
@@ -580,7 +580,7 @@ reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-skill/src/generate.rs"
+crate_pattern = "fluffy-skill/src/generate.rs"
 design = ".design/basis/09-option-result.md"
 reference = []
 conformance_ops = []
@@ -591,25 +591,25 @@ conformance_ops = []
 # Expr::Tuple/projection AST + parse slot (syntax), the self-call validator rule
 # (spec), and the fn `decreases` + Verus-tuple lowering (lower).
 [[route]]
-crate_pattern = "thermite-syntax/src/ast.rs"
+crate_pattern = "fluffy-syntax/src/ast.rs"
 design = ".design/basis/10-recursion-tuples.md"
 reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-syntax/src/parser.rs"
+crate_pattern = "fluffy-syntax/src/parser.rs"
 design = ".design/basis/10-recursion-tuples.md"
 reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-spec/src/validator.rs"
+crate_pattern = "fluffy-spec/src/validator.rs"
 design = ".design/basis/10-recursion-tuples.md"
 reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-lower/src/lower.rs"
+crate_pattern = "fluffy-lower/src/lower.rs"
 design = ".design/basis/10-recursion-tuples.md"
 reference = []
 conformance_ops = []
@@ -622,37 +622,37 @@ conformance_ops = []
 # lower/validator emit. The verus-grounded ergonomics_conformance test IS the C10
 # truth (R-CHAR-3), so `reference = []` until a golden lands.
 [[route]]
-crate_pattern = "thermite-syntax/src/ast.rs"
+crate_pattern = "fluffy-syntax/src/ast.rs"
 design = ".design/basis/11-ergonomics.md"
 reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-syntax/src/parser.rs"
+crate_pattern = "fluffy-syntax/src/parser.rs"
 design = ".design/basis/11-ergonomics.md"
 reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-lower/src/lower.rs"
+crate_pattern = "fluffy-lower/src/lower.rs"
 design = ".design/basis/11-ergonomics.md"
 reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-lower/src/l1.rs"
+crate_pattern = "fluffy-lower/src/l1.rs"
 design = ".design/basis/11-ergonomics.md"
 reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-lower/src/l2.rs"
+crate_pattern = "fluffy-lower/src/l2.rs"
 design = ".design/basis/11-ergonomics.md"
 reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-spec/src/validator.rs"
+crate_pattern = "fluffy-spec/src/validator.rs"
 design = ".design/basis/11-ergonomics.md"
 reference = []
 conformance_ops = []
@@ -694,7 +694,7 @@ reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-skill/src/generate.rs"
+crate_pattern = "fluffy-skill/src/generate.rs"
 design = ".design/basis/11-ergonomics.md"
 reference = []
 conformance_ops = []
@@ -717,7 +717,7 @@ reference = []
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-lower/src/lower.rs"
+crate_pattern = "fluffy-lower/src/lower.rs"
 design = ".design/basis/12-mutual-recursion.md"
 reference = []
 conformance_ops = []
@@ -727,55 +727,55 @@ conformance_ops = []
 # carry the corpus reference + the lower.rs file carry the golden lowering
 # reference (mirroring the C7/C9 multi-file route pattern).
 [[route]]
-crate_pattern = "thermite-syntax/src/ast.rs"
+crate_pattern = "fluffy-syntax/src/ast.rs"
 design = ".design/basis/13-map.md"
 reference = ["conformance/map_kv.th"]
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-syntax/src/parser.rs"
+crate_pattern = "fluffy-syntax/src/parser.rs"
 design = ".design/basis/13-map.md"
 reference = ["conformance/map_kv.th"]
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-spec/src/validator.rs"
+crate_pattern = "fluffy-spec/src/validator.rs"
 design = ".design/basis/13-map.md"
 reference = ["conformance/map_kv.th"]
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-lower/src/lower.rs"
+crate_pattern = "fluffy-lower/src/lower.rs"
 design = ".design/basis/13-map.md"
 reference = ["tests/golden/lower/map_kv.verus.rs"]
 conformance_ops = []
 
 # Contract-faithfulness translation validation (crosslink epic #139).
 # The new artifact is the INDEPENDENT reference encoder for the SpecTherm
-# contract sublanguage (thermite-tv) + the forge check phase that discharges
+# contract sublanguage (fluffy-tv) + the forge check phase that discharges
 # the per-clause Z3 equivalence obligation. Governed by contract-tv.md; the
 # reference is the corpus clause (sum) + its golden lowering (the faithful
 # production side the obligation compares against the reference encoding).
 [[route]]
-crate_pattern = "thermite-tv/src/lib.rs"
+crate_pattern = "fluffy-tv/src/lib.rs"
 design = ".design/verified/contract-tv.md"
 reference = ["tests/golden/lower/sum.verus.rs"]
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-tv/src/ref_encode.rs"
+crate_pattern = "fluffy-tv/src/ref_encode.rs"
 design = ".design/verified/contract-tv.md"
 reference = ["tests/golden/lower/sum.verus.rs"]
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-tv/src/obligation.rs"
+crate_pattern = "fluffy-tv/src/obligation.rs"
 design = ".design/verified/contract-tv.md"
 reference = ["tests/golden/lower/sum.verus.rs"]
 conformance_ops = []
 
 [[route]]
-crate_pattern = "thermite-tv/src/gen.rs"
+crate_pattern = "fluffy-tv/src/gen.rs"
 design = ".design/verified/contract-tv.md"
 reference = []
 conformance_ops = []
@@ -798,12 +798,12 @@ conformance_ops = ["sum"]
 # .design/verified/exec-stmt-tv.md (crosslink epic #158): REQ-1 freezes the kernel
 # exec-statement subset v1, REQ-2 the operational state-denotation, REQ-3 the GROUNDED
 # straight-line body state-refinement TV (2.2.1), REQ-4 frames loops (2.2.2, kernel-
-# gated). The governed code — thermite-tv/src/exec_stmt_encode.rs, forge/src/body_tv.rs,
-# thermite-lower lower_exec_body — is unbuilt (blockers #159/#160/#161/#162); routes are
+# gated). The governed code — fluffy-tv/src/exec_stmt_encode.rs, forge/src/body_tv.rs,
+# fluffy-lower lower_exec_body — is unbuilt (blockers #159/#160/#161/#162); routes are
 # added by the builder at manifest time, exactly as the exec_encode.rs/exec_tv.rs routes
 # below were added when step 2.1 shipped.)
 [[route]]
-crate_pattern = "thermite-tv/src/exec_encode.rs"
+crate_pattern = "fluffy-tv/src/exec_encode.rs"
 design = ".design/verified/exec-tv.md"
 reference = ["tests/golden/lower/sum.verus.rs"]
 conformance_ops = []
@@ -815,12 +815,12 @@ conformance_ops = []
 # #159) wrapped as a body state-refinement obligation `fn tv_body_wrap(..) ensures
 # result == <body_ref_state(source)> { <production lower_exec_body> }` (#160),
 # discharged through forge::check::run_verus. The production side is the per-body
-# exec entry thermite_lower::lower_exec_body (#161, the lower_exec_expr analogue).
+# exec entry fluffy_lower::lower_exec_body (#161, the lower_exec_expr analogue).
 # Governed by exec-stmt-tv.md; the reference is the corpus sum body (the exec
 # let/assign/tail shape). The forge phase (#162), loops (#163, kernel-gated), and
 # the no_std target (#164) are LATER dispatches.
 [[route]]
-crate_pattern = "thermite-tv/src/exec_stmt_encode.rs"
+crate_pattern = "fluffy-tv/src/exec_stmt_encode.rs"
 design = ".design/verified/exec-stmt-tv.md"
 reference = ["tests/golden/lower/sum.verus.rs"]
 conformance_ops = []
@@ -838,8 +838,8 @@ conformance_ops = ["sum"]
 # item's exec body, with four-way Faithful/Divergent/Unverifiable/Skipped reporting
 # (R-HONEST-3 — an out-of-v1 loop / non-scalar mutation / mid-body return is Skipped
 # honestly, never masking an infidelity). It lowers each body via
-# thermite_lower::lower_exec_body, builds the obligation via
-# thermite_tv::{body_equivalence_obligation, loop_entry/preservation/exit_obligation},
+# fluffy_lower::lower_exec_body, builds the obligation via
+# fluffy_tv::{body_equivalence_obligation, loop_entry/preservation/exit_obligation},
 # and discharges through verus (reusing the ScratchDir #53 cleanup, exactly as exec_tv).
 # Governed by exec-stmt-tv.md (REQ-5 is binding here); the reference is the corpus
 # binary_search loop (whose loop-kind / mid-body returns come out Skipped-with-reason —

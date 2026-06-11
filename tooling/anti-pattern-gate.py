@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-anti-pattern-gate hook (production-code discipline for the Thermite
+anti-pattern-gate hook (production-code discipline for the Fluffy
 toolchain).
 
 Deterministic PreToolUse gate on Write|Edit to gated source files that
@@ -25,7 +25,7 @@ Edit patches are always gated since we can't see surrounding context).
 For Write: scans the full content.
 For Edit:  scans the new_string ONLY (the patch being added).
 
-NOTE on Thermite-specific cheats: proof-dodging patterns (emitting
+NOTE on Fluffy-specific cheats: proof-dodging patterns (emitting
 `assume(false)`, `#[verifier::external]`, or `#[slag]` to dodge a real
 proof obligation) are forbidden by goal.md R-DEFER-9 but are NOT regex-
 gated here, because they are legitimate in generated Verus output and in
@@ -47,9 +47,9 @@ from pathlib import Path
 # PROJECT CUSTOMIZATION — edit these for your project
 # =====================================================================
 
-TARGET_CRATE_PREFIXES = ("thermite-",)
+TARGET_CRATE_PREFIXES = ("fluffy-",)
 TARGET_CRATE_EXACT = ("forge",)
-EXCLUDED_CRATES = ("thermite-test-utils",)
+EXCLUDED_CRATES = ("fluffy-test-utils",)
 TARGET_EXTENSION = ".rs"
 
 # =====================================================================
@@ -90,7 +90,7 @@ PATTERNS = [
         ".expect on Result/Option",
         "Forbidden in production code by goal.md R-CODE-2. It crashes "
         "on the error path; callers expect Result propagation.",
-        "Propagate the error via `Result<T, ThermiteError>`. The error "
+        "Propagate the error via `Result<T, FluffyError>`. The error "
         "variant should name what specifically failed.",
     ),
     (
@@ -98,7 +98,7 @@ PATTERNS = [
         ".unwrap on Result/Option",
         "Same as .expect - forbidden in production code (goal.md "
         "R-CODE-2). .unwrap is .expect without even saying why.",
-        "Propagate the error via `Result<T, ThermiteError>`.",
+        "Propagate the error via `Result<T, FluffyError>`.",
     ),
     (
         re.compile(r"\bpanic\s*!\s*\("),
@@ -106,7 +106,7 @@ PATTERNS = [
         "Direct crash-out is forbidden in production code (goal.md "
         "R-CODE-2). A verifier toolchain must degrade and report, never "
         "abort.",
-        "Propagate via `Result<T, ThermiteError>`. If this is a true "
+        "Propagate via `Result<T, FluffyError>`. If this is a true "
         "internal-invariant violation, return a typed `Internal` "
         "variant so callers get a chance to handle it.",
     ),

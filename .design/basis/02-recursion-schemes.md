@@ -2,16 +2,16 @@
 <!--
 tier: 3-component
 status: draft
-governs: thermite-syntax/src/ast.rs
-governs: thermite-syntax/src/parser.rs
-governs: thermite-spec/src/validator.rs
-governs: thermite-spec/src/schemes.rs
-governs: thermite-lower/src/lower.rs
+governs: fluffy-syntax/src/ast.rs
+governs: fluffy-syntax/src/parser.rs
+governs: fluffy-spec/src/validator.rs
+governs: fluffy-spec/src/schemes.rs
+governs: fluffy-lower/src/lower.rs
 thesis-refs:
-  - thermite-design.md §4.1
-  - thermite-design.md §4.2
-  - thermite-design.md §4.4
-  - thermite-design.md §6
+  - fluffy-design.md §4.1
+  - fluffy-design.md §4.2
+  - fluffy-design.md §4.4
+  - fluffy-design.md §6
 -->
 
 ## Summary
@@ -102,7 +102,7 @@ proof fn fold_bound_list(l: List, init: nat, f: spec_fn(u64, nat) -> nat, b: nat
     } } }
 ```
 
-The INSTANCE — the Thermite surface `spec fn sum_list(l: List) -> nat { fold(l, 0,
+The INSTANCE — the Fluffy surface `spec fn sum_list(l: List) -> nat { fold(l, 0,
 |x, acc| x as nat + acc) }` lowers to a CALL of the generated `fold_list` with the
 flat step passed as a `spec_fn`. Its bound is proven with NO induction:
 
@@ -162,7 +162,7 @@ appear BY NAME in the audit surface (§4.2 "composition happens only through nam
 be an anonymous nested recursion the cage forbids; (c) the law `fold_bound_<e>`
 MUST be a named item to be `proof`-cited by an instance. The generated names are a
 deterministic function of the ADT + scheme (`fold_<lowercased-enum-name>`), keyed
-in the new `thermite-spec/src/schemes.rs` registry so the validator resolves a
+in the new `fluffy-spec/src/schemes.rs` registry so the validator resolves a
 scheme call to its generated form without a string-name guess.
 
 **(2) The AST shape (REQ-1/REQ-2 made concrete).** RESOLVED: a scheme call REUSES
@@ -210,16 +210,16 @@ over a heap-allocated `List`.
 Stage 2 lands in three layers, mirroring how Stage 1 shipped (1a surface → 1b
 validator → 1c lowering). Each layer is a separately-verifiable cut:
 
-- **Stage 2a — surface (governs `thermite-syntax/src/ast.rs`,
-  `thermite-syntax/src/parser.rs`).** Parse a scheme CALL as `Expr::Call` with a
+- **Stage 2a — surface (governs `fluffy-syntax/src/ast.rs`,
+  `fluffy-syntax/src/parser.rs`).** Parse a scheme CALL as `Expr::Call` with a
   scheme-name callee `Path` + a scrutinee + a step `Expr::Closure` (REQ-1, REQ-2).
   No new AST node (the §"Decision" (2) result). Deliverable: `list_fold.th` and
   `tree_fold.th` PARSE to the expected `Expr::Call`/`Expr::Closure` AST; a
   parser-fixture asserts the shape. This is the analogue of Stage 1a (the
   `Item::Struct`/`Item::Enum`/`Expr::Is`/`Expr::Deref` surface).
 
-- **Stage 2b — validator / the cage (governs `thermite-spec/src/validator.rs`,
-  `thermite-spec/src/schemes.rs`).** The `schemes.rs` registry (mirroring
+- **Stage 2b — validator / the cage (governs `fluffy-spec/src/validator.rs`,
+  `fluffy-spec/src/schemes.rs`).** The `schemes.rs` registry (mirroring
   `combinators.rs`'s `static REGISTRY` + `lookup`) holds each scheme's kind +
   arity + generated-name function. The validator: (i) ACCEPTS a scheme call as a
   named-composition leaf (REQ-4, mirroring the combinator-call accept of
@@ -233,7 +233,7 @@ validator → 1c lowering). Each layer is a separately-verifiable cut:
   nested-scheme-in-step negative REJECTS with the new `SpecError` variant. This is
   the analogue of Stage 1b (#65 — the `NonExhaustiveMatch`/`UnknownVariant` checks).
 
-- **Stage 2c — lowering + Verus grounding (governs `thermite-lower/src/lower.rs`).**
+- **Stage 2c — lowering + Verus grounding (governs `fluffy-lower/src/lower.rs`).**
   `lower.rs` gains `lower_scheme_defs` (GENERATE the per-(ADT, scheme) `fold_<e>`
   + `for_all_<e>` + `map_<e>` recursive `spec fn`s — reusing the SHIPPED
   `is_adt_fold_sum` recursive-fold emission), `lower_scheme_law` (emit
@@ -250,9 +250,9 @@ validator → 1c lowering). Each layer is a separately-verifiable cut:
 
 ## Requirements
 
-### Surface + AST — scheme primitives (governs `thermite-syntax/src/ast.rs`, `parser.rs`)
+### Surface + AST — scheme primitives (governs `fluffy-syntax/src/ast.rs`, `parser.rs`)
 
-- **REQ-1 (the scheme set as named primitives):** Thermite gains five recursion
+- **REQ-1 (the scheme set as named primitives):** Fluffy gains five recursion
   schemes over a recursive ADT, each a NAMED entity (per §4.2 "composition happens
   only through named `spec fn`s"): **`fold`** (catamorphism — collapse to a
   value), **`map`** (transform each element, same shape), **`for_all`** /
@@ -263,7 +263,7 @@ validator → 1c lowering). Each layer is a separately-verifiable cut:
   — no user traits). **AST shape (OQ-1 RESOLVED):** a scheme CALL reuses the
   existing `Expr::Call { callee: Box<Expr>, args }` — `callee` is a `Path` naming
   the scheme, `args` are the scrutinee + the step closure; NO new `Expr` node. The
-  scheme is recognized by the new `thermite-spec/src/schemes.rs` registry (the
+  scheme is recognized by the new `fluffy-spec/src/schemes.rs` registry (the
   `combinators.rs` `lookup` precedent), which keys the generated-name function
   (`fold_<e>`). Derived from §4.2 (named composition), §4.4 (closed built-in set),
   the existing `Expr::Call` (`ast.rs`), and the GROUNDED `fold_list`/`map_list`/
@@ -274,7 +274,7 @@ validator → 1c lowering). Each layer is a separately-verifiable cut:
   whose body is a FLAT predicate/expression (§4.2 closure-body rule: comparisons,
   arithmetic, field/index access, calls to named `spec fn`s — but NO combinator
   and NO nested scheme). The step REUSES the existing `Expr::Closure { params,
-  body }` node (`thermite-syntax/src/ast.rs`, live today for slice combinators,
+  body }` node (`fluffy-syntax/src/ast.rs`, live today for slice combinators,
   lowered per `.design/lower/verus-lowering.md` REQ-3's `Closure` row to a Verus
   `spec_fn`). The scheme call itself is the named composition point; the step is
   the flat leaf. A nested scheme in a step is a REJECT (REQ-4). Derived from §4.2
@@ -299,7 +299,7 @@ validator → 1c lowering). Each layer is a separately-verifiable cut:
   executable" — the L1 rung), §4.1 (`fx` rows), Stage 1 REQ-3 (SHIPPED), and the
   #62 monomorphized-exec resolution.
 
-### Validator / the SpecTherm cage — the structural-quantification bridge (governs `thermite-spec/src/validator.rs`, `thermite-spec/src/schemes.rs`)
+### Validator / the SpecTherm cage — the structural-quantification bridge (governs `fluffy-spec/src/validator.rs`, `fluffy-spec/src/schemes.rs`)
 
 - **REQ-4 (the cage bridge — structural quantification via named schemes, never
   anonymous nested quantifiers):** A property that must quantify over EVERY element
@@ -334,7 +334,7 @@ validator → 1c lowering). Each layer is a separately-verifiable cut:
   from §4.2 ("No spec-level recursion without a `dec` measure"), §4.1 (termination
   by default), Stage 1 REQ-10 (SHIPPED).
 
-### Verus lowering — schemes + the discharged induction + fusion (governs `thermite-lower/src/lower.rs`)
+### Verus lowering — schemes + the discharged induction + fusion (governs `fluffy-lower/src/lower.rs`)
 
 - **REQ-6 (scheme → generated Verus recursive `spec fn` with `decreases
   <value>`):** Each scheme over an ADT `E` lowers to a GENERATED, MATERIALIZED
@@ -387,10 +387,10 @@ validator → 1c lowering). Each layer is a separately-verifiable cut:
   (named composition), §6, the GROUNDED `map_preserves_len_list`.
 
 - **REQ-9 (`LowerError`/`SpecError` extension, no panics):** The scheme constructs
-  extend the EXISTING `thermite-lower::LowerError` (`.design/lower/verus-lowering.md`
-  REQ-9) and `thermite-spec::SpecError` enums with span-bearing variants for the
+  extend the EXISTING `fluffy-lower::LowerError` (`.design/lower/verus-lowering.md`
+  REQ-9) and `fluffy-spec::SpecError` enums with span-bearing variants for the
   new failure modes (a scheme nested in a step closure — REQ-4; an un-lowerable
-  scheme over a non-ADT value), reusing `thermite_syntax::lexer::Span`. The
+  scheme over a non-ADT value), reusing `fluffy_syntax::lexer::Span`. The
   structural-`dec` reject (REQ-5) reuses Stage 1's existing recursive-`spec fn`
   `dec` diagnostic. No `unwrap`/`expect`/`panic!` in production (R-CODE-2 /
   R-APG-1). Derived from R-CODE-2, the existing error-enum discipline in
@@ -456,8 +456,8 @@ this doc and confirmed to pass `verus`; certificate goldens at
   lowered via `is_adt_fold_sum`) is UNCHANGED — Stage 2 does NOT reshape it; the
   NEW `list_fold.th` is the scheme-CALL form alongside it (the hand-written form
   remains the `is_adt_fold_sum` path, the scheme form is the generated-`fold_list`
-  path). Mechanically: `cargo test -p thermite-syntax -p thermite-spec -p
-  thermite-lower` + the conformance corpus pass with 0 mismatches;
+  path). Mechanically: `cargo test -p fluffy-syntax -p fluffy-spec -p
+  fluffy-lower` + the conformance corpus pass with 0 mismatches;
   `tests/golden/lower/{sum,list_sum}.verus.rs` stay green. (All REQs; the engine
   must not break the SHIPPED Stage 1.)
 
@@ -474,16 +474,16 @@ this doc and confirmed to pass `verus`; certificate goldens at
 The component spans four crates, all additively, atop Stage 1's SHIPPED recursive
 ADTs:
 
-- **`thermite-syntax`** — a scheme CALL reuses the existing `Expr::Call` (`callee:
+- **`fluffy-syntax`** — a scheme CALL reuses the existing `Expr::Call` (`callee:
   Path` naming the scheme, args = the scrutinee + the step closure; OQ-1 RESOLVED —
   no new `Expr` node). The step closure (REQ-2) REUSES the existing `Expr::Closure`
-  (`thermite-syntax/src/ast.rs`, anchor `enum Expr` / `Closure`). `parser.rs` needs
+  (`fluffy-syntax/src/ast.rs`, anchor `enum Expr` / `Closure`). `parser.rs` needs
   no new node — a scheme call parses as an ordinary call; the scheme-ness is a
   validator/registry concern. The mandatory-contract discipline is unchanged: a
   generated scheme `spec fn` carries a `dec`, no `req`/`ens`/`fx` (it is spec); an
   exec scheme form (REQ-3) carries `fx` per Stage 1 REQ-3.
 
-- **`thermite-spec`** — a NEW `thermite-spec/src/schemes.rs` registry (the analogue
+- **`fluffy-spec`** — a NEW `fluffy-spec/src/schemes.rs` registry (the analogue
   of `combinators.rs`'s `static REGISTRY` + `pub fn lookup`) holds each scheme's
   kind, arity, and generated-name function (`fold_<e>`). `validator.rs` gains the
   scheme-as-named-composition accept (REQ-4, mirroring the combinator-call accept of
@@ -495,7 +495,7 @@ ADTs:
   is the only NEW reject. New `SpecError` variants (REQ-9). The structural-`dec`
   enforcement (REQ-5) is inherited from Stage 1's SHIPPED recursive-`spec fn` check.
 
-- **`thermite-lower`** — `lower.rs` gains `lower_scheme_defs` (GENERATE the
+- **`fluffy-lower`** — `lower.rs` gains `lower_scheme_defs` (GENERATE the
   per-(ADT, scheme) recursive `spec fn fold_<e>/map_<e>/for_all_<e> … decreases l`
   — REUSING the SHIPPED `is_adt_fold_sum` emission), `lower_scheme_law` (generate
   `fold_bound_<e>` + the fusion laws — the shape-keyed proof-aid analogue of
@@ -652,12 +652,12 @@ passed-`spec_fn` form. The EXEC mirror's monomorphized shape (OQ-2) is unaffecte
   confirm non-vacuity:** (1) `fold_bound_list` with the per-node premise removed
   FAILS (`8 verified, 1 errors` — the bound is unprovable for an arbitrary step);
   (2) a `fold_list` with no `decreases` is REJECTED by Verus (`recursive function
-  must have a decreases clause`). This proves the FULL path — a Thermite scheme
+  must have a decreases clause`). This proves the FULL path — a Fluffy scheme
   call becoming the generated `fold_list` + the generated law + the law-citing
   instance — is Verus-feasible end to end AND that the discharge does real work.
 
-- **AC-1/AC-2/AC-3/AC-4:** `cargo test -p thermite-syntax -p thermite-spec -p
-  thermite-lower`, plus a harness that shells the real `verus` binary on the emitted
+- **AC-1/AC-2/AC-3/AC-4:** `cargo test -p fluffy-syntax -p fluffy-spec -p
+  fluffy-lower`, plus a harness that shells the real `verus` binary on the emitted
   lowering of `list_fold.th` / `tree_fold.th` and asserts exit 0 + `N verified, 0
   errors` (R-CODE-4: subprocess status checked, never swallowed), plus the AC-2
   structural assertion (the emitted instance proof contains `fold_bound_` and NO
@@ -675,16 +675,16 @@ Gauntlet (R-DEFER-6, per crate): `cargo test -p <crate>`, `cargo clippy -p <crat
 ## Routes to add (orchestrator)
 
 This stage adds NEW concerns to files that already carry routes, plus one new file
-(`thermite-spec/src/schemes.rs`). The orchestrator adds these routes to
+(`fluffy-spec/src/schemes.rs`). The orchestrator adds these routes to
 `tooling/spec-routes.toml` pointing at THIS doc (a file may carry multiple
 governing docs — the `lower.rs` precedent):
 
 ```
-[[route]]  crate_pattern = "thermite-syntax/src/ast.rs"        design = ".design/basis/02-recursion-schemes.md"   reference = ["conformance/list_fold.th", "conformance/tree_fold.th"]
-[[route]]  crate_pattern = "thermite-syntax/src/parser.rs"     design = ".design/basis/02-recursion-schemes.md"   reference = ["conformance/list_fold.th", "conformance/tree_fold.th"]
-[[route]]  crate_pattern = "thermite-spec/src/validator.rs"    design = ".design/basis/02-recursion-schemes.md"   reference = ["conformance/tree_fold.th"]
-[[route]]  crate_pattern = "thermite-spec/src/schemes.rs"      design = ".design/basis/02-recursion-schemes.md"   reference = ["conformance/list_fold.th"]
-[[route]]  crate_pattern = "thermite-lower/src/lower.rs"       design = ".design/basis/02-recursion-schemes.md"   reference = ["tests/golden/lower/list_fold.verus.rs", "tests/golden/lower/tree_fold.verus.rs"]
+[[route]]  crate_pattern = "fluffy-syntax/src/ast.rs"        design = ".design/basis/02-recursion-schemes.md"   reference = ["conformance/list_fold.th", "conformance/tree_fold.th"]
+[[route]]  crate_pattern = "fluffy-syntax/src/parser.rs"     design = ".design/basis/02-recursion-schemes.md"   reference = ["conformance/list_fold.th", "conformance/tree_fold.th"]
+[[route]]  crate_pattern = "fluffy-spec/src/validator.rs"    design = ".design/basis/02-recursion-schemes.md"   reference = ["conformance/tree_fold.th"]
+[[route]]  crate_pattern = "fluffy-spec/src/schemes.rs"      design = ".design/basis/02-recursion-schemes.md"   reference = ["conformance/list_fold.th"]
+[[route]]  crate_pattern = "fluffy-lower/src/lower.rs"       design = ".design/basis/02-recursion-schemes.md"   reference = ["tests/golden/lower/list_fold.verus.rs", "tests/golden/lower/tree_fold.verus.rs"]
 ```
 
 The corpus programs `conformance/list_fold.th`, `conformance/tree_fold.th`, their
@@ -695,12 +695,12 @@ authored by the orchestrator from this doc before the builder runs (R-CHAR-3).
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (the scheme set as named primitives; AST = `Expr::Call` + registry, OQ-1 RESOLVED) | SHIPPED | #70. `thermite-spec/src/schemes.rs` `static REGISTRY: [SchemeSig; 5]` (`fold`/`map`/`for_all`/`exists`/`traverse`) + `lookup`; consumed by `validator::walk_call` (the scheme-call accept) and `thermite_lower::lower::collect_scheme_uses`/`SchemeSig::generated_fn_name`. Asserted against `conformance/adt-schemes/cases.json` in `thermite-spec/tests/scheme_validate.rs::list_fold_validates`. |
+| REQ-1 (the scheme set as named primitives; AST = `Expr::Call` + registry, OQ-1 RESOLVED) | SHIPPED | #70. `fluffy-spec/src/schemes.rs` `static REGISTRY: [SchemeSig; 5]` (`fold`/`map`/`for_all`/`exists`/`traverse`) + `lookup`; consumed by `validator::walk_call` (the scheme-call accept) and `fluffy_lower::lower::collect_scheme_uses`/`SchemeSig::generated_fn_name`. Asserted against `conformance/adt-schemes/cases.json` in `fluffy-spec/tests/scheme_validate.rs::list_fold_validates`. |
 | REQ-2 (the step — flat per-node closure) | SHIPPED | #70. `validator::check_scheme` requires an `Expr::Closure` step of `SchemeSig::step_shape.arity()` params (`SchemeStepShape`) and walks the body in `in_scheme_step` mode; `walk_call` rejects a nested scheme/combinator there with `SpecError::NestedScheme`. Verified: `scheme_validate.rs::reject_cases_yield_the_oracle_error` (`nested_scheme_in_step` → "nested"). |
 | REQ-3 (spec form + exec form — exec MONOMORPHIZED, RESOLVED) | NOT-STARTED | epic **#62** Stage 2c. The SPEC scheme (the generated higher-order `fold_<e>` with the step passed as a `spec_fn`, the verified engine) is SHIPPED (REQ-6). The MONOMORPHIZED EXEC mirror is NOT implemented: the v0.1 corpus `list_fold.th` is SPEC-ONLY (all three items are `spec fn`), so no exec scheme is exercised yet. The exec mirror lands when a corpus exec fn folds an ADT. |
 | REQ-4 (cage bridge — named structural quantification) | SHIPPED | #70. `validator::walk_call` ACCEPTS a top-level scheme call as a named-composition leaf (via `schemes::lookup`) and REJECTS a scheme nested in a step / combinator closure (`NestedScheme`); the caged-flat walk (`walk_expr_inner`, Stage 1 REQ-7) is unchanged. The generated `for_all_list` cage form verifies. Verified: `scheme_validate.rs::list_fold_validates` (`for_all(l, |x| x > 0)` validates). |
 | REQ-5 (structural `decreases <value>` enforcement) | SHIPPED | #70. Each generated scheme `spec fn` (`emit_scheme_spec_fn`) + the law (`emit_fold_bound_law`) carries `decreases l` over the datatype value, inheriting Stage 1's recursive-`spec fn` `dec` discipline. Verified: real `verus --no-cheating` `verified, 0 errors` on the emitted `list_fold.th`; the negative-control no-`decreases` fold is rejected by Verus (grounded during authoring). |
-| REQ-6 (scheme → generated Verus recursive `spec fn` + `decreases <value>`) | SHIPPED | #70. `thermite_lower::lower::emit_scheme_defs` GENERATES `fold_<e>`/`for_all_<e>`/… (`emit_scheme_spec_fn`, `decreases l`, `*tail`, `Box::new`) + the measure `<e>_len`; a scheme CALL lowers via `lower_scheme_call` to a call of the generated fn with the step lowered to a typed `spec_fn` (`lower_step_closure`). Consumer: `lower`. Verified: `thermite-lower/tests/adt_schemes_conformance.rs::list_fold_lowers_to_generated_schemes_and_verifies_l3` (real `verus --no-cheating` `verified, 0 errors`). |
+| REQ-6 (scheme → generated Verus recursive `spec fn` + `decreases <value>`) | SHIPPED | #70. `fluffy_lower::lower::emit_scheme_defs` GENERATES `fold_<e>`/`for_all_<e>`/… (`emit_scheme_spec_fn`, `decreases l`, `*tail`, `Box::new`) + the measure `<e>_len`; a scheme CALL lowers via `lower_scheme_call` to a call of the generated fn with the step lowered to a typed `spec_fn` (`lower_step_closure`). Consumer: `lower`. Verified: `fluffy-lower/tests/adt_schemes_conformance.rs::list_fold_lowers_to_generated_schemes_and_verifies_l3` (real `verus --no-cheating` `verified, 0 errors`). |
 | REQ-7 (induction-discharged-once contract shape — the multiplier) | SHIPPED | #70. `emit_fold_bound_law` GENERATES `fold_bound_<e>` (single `decreases l` induction, parametric in `f` + a per-node premise); an instance bound is proven by CITING it with NO fresh induction. Consumer: `lower`. Verified: `adt_schemes_conformance.rs::multiplier_instance_cites_the_generated_law_no_fresh_induction` (`verus --no-cheating` `verified, 0 errors`; the instance proof cites `fold_bound_list`, no `decreases`) + `negative_control_premise_removed_fails_verus` (premise removed → verus error; the induction is real). |
 | REQ-8 (fusion / composition laws) | NOT-STARTED | epic **#62** Stage 2c. `map_<e>` generation is shipped (`emit_scheme_spec_fn` `SameAdt`), but no fusion-law (`map_preserves_len_<e>`, `fold∘map`, `map∘map`) emission yet; the v0.1 corpus `list_fold.th` does not exercise `map`/fusion (OQ-3 — the fusion family ships when a pipeline corpus program exercises it). GROUNDED during authoring (`map_preserves_len_list` `0 errors`). |
 | REQ-9 (`LowerError`/`SpecError` extension, no panics) | SHIPPED | #70. `SpecError::{NestedScheme, SchemeWrongArity, SchemeStepShape}` (span-bearing) in `validator.rs`; the scheme lowering reuses `LowerError::Unsupported`/`TooDeep` (a scheme over a non-ADT value / un-resolvable scrutinee). The DEC NUANCE is resolved: a scheme-call instance body lowers WITHOUT a spurious `decreases` (`lower_spec_fn` suppresses it for `is_scheme_call_body`); the generated fold/law carry their own. No `unwrap`/`expect`/`panic!` in `src/`. |
@@ -710,7 +710,7 @@ authored by the orchestrator from this doc before the builder runs (R-CHAR-3).
 - **OQ-1 (scheme AST + generation mechanism — RESOLVED).** *(The core of this
   refinement.)* **RESOLVED:** (a) a scheme CALL reuses the existing `Expr::Call`
   (`callee: Path` naming the scheme, args = scrutinee + step `Expr::Closure`) — NO
-  new `Expr` node; the scheme is recognized by a NEW `thermite-spec/src/schemes.rs`
+  new `Expr` node; the scheme is recognized by a NEW `fluffy-spec/src/schemes.rs`
   registry mirroring `combinators.rs`'s `static REGISTRY` + `lookup`. (b) The
   toolchain GENERATES, per (ADT, scheme), MATERIALIZED Verus recursive `spec fn`s
   (`fold_<e>`/`map_<e>`/`for_all_<e>`/…, reusing the SHIPPED `is_adt_fold_sum`

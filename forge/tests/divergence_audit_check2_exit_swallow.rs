@@ -26,7 +26,7 @@
 //!   - `forge/src/cli.rs::run_tv` — the Divergent ⇒ nonzero-exit convention the
 //!     script must consume (the fake forge below reproduces it exactly, including
 //!     `forge/src/contract_tv.rs::render_report`'s header line shape).
-//!   - goal.md R-HONEST-3 (no silent masking of an infidelity); thermite-design.md
+//!   - goal.md R-HONEST-3 (no silent masking of an infidelity); fluffy-design.md
 //!     §1 (trust relocation: the audit is what the skeptic relies on).
 //!
 //! METHOD: extract check [2] VERBATIM from the live `scripts/audit.sh` (between

@@ -5,9 +5,9 @@ tier: 3-component
 status: draft
 governs: forge/src/cli.rs
 thesis-refs:
-  - thermite-design.md §5
-  - thermite-design.md §5.1
-  - thermite-design.md Appendix B
+  - fluffy-design.md §5
+  - fluffy-design.md §5.1
+  - fluffy-design.md Appendix B
 -->
 
 ## Summary
@@ -16,7 +16,7 @@ thesis-refs:
 `argv`, dispatches to `forge new <name>` (project scaffold) and
 `forge check [<file>]` (the v0.1 ladder pipeline), renders results either as
 human-readable text or — under `--json` — as the structured certificate
-(`thermite-design.md` §5.1), and owns `ForgeError`, the boundary error type
+(`fluffy-design.md` §5.1), and owns `ForgeError`, the boundary error type
 that AGGREGATES the per-crate errors of the driven libraries. It is the only
 entry point that touches `std::env::args` / `std::process::ExitCode`; the
 pipeline logic lives in `check.rs` (`.design/forge/check.md`) and the schema in
@@ -35,7 +35,7 @@ This component is GREENFIELD. The only shipped artifact is the empty
   (`goal`/`fill`/`edit` are the deferred incremental REPL, issue #21;
   `battery`/`audit` are #6/#12/#13/#15; `skill` is #7; `repair` is #10/#18). An
   unknown verb is a structured usage error, never a panic.
-  Source: `thermite-design.md` Appendix B; `goal.md` scope (v0.1 kernel =
+  Source: `fluffy-design.md` Appendix B; `goal.md` scope (v0.1 kernel =
   whole-item `forge check`).
 - REQ-2 (argument parsing): argv is parsed by a minimal hand-rolled matcher
   (verb in `argv[1]`, then positional `<name>`/`<file>` and the single
@@ -45,11 +45,11 @@ This component is GREENFIELD. The only shipped artifact is the empty
   is two commands with one flag, well below the threshold where `clap` earns
   its compile-time and dependency cost. The macro removal in §4.4 reinforces a
   low-magic posture. (See OQ-1 — this is the least-settled decision.)
-  Source: `thermite-design.md` §2.2/§2.3/§4.4.
+  Source: `fluffy-design.md` §2.2/§2.3/§4.4.
 - REQ-3 (`ForgeError` aggregation): `forge` introduces its own `ForgeError`
   enum — the BOUNDARY aggregation point. Each driven crate keeps its own error
-  per workspace.md REQ-3 (`thermite_syntax::SyntaxError`,
-  `thermite_spec::SpecError`, `thermite_lower::LowerError`), and `ForgeError`
+  per workspace.md REQ-3 (`fluffy_syntax::SyntaxError`,
+  `fluffy_spec::SpecError`, `fluffy_lower::LowerError`), and `ForgeError`
   carries variants that WRAP each (`ForgeError::Parse(Vec<SyntaxError>)`,
   `ForgeError::Spec(Vec<SpecError>)`, `ForgeError::Effects(Vec<LowerError>)`,
   `ForgeError::Lower(LowerError)`), plus driver-native variants for the verus
@@ -65,7 +65,7 @@ This component is GREENFIELD. The only shipped artifact is the empty
   Diagnostics and progress go to stderr so `--json` stdout is a clean
   machine-parseable document. The certificate value is produced by `check.rs`;
   this component only chooses the rendering.
-  Source: `thermite-design.md` §5.1.
+  Source: `fluffy-design.md` §5.1.
 - REQ-5 (exit codes): process exit is a typed mapping from the run outcome, not
   an ad-hoc integer — verification success (all obligations discharged, L3) →
   0; a reported verification FAILURE (obligations failed; the cert is still a
@@ -74,7 +74,7 @@ This component is GREENFIELD. The only shipped artifact is the empty
   different non-zero code. A failed proof and a missing solver are not the same
   outcome and must be distinguishable by exit code.
   Source: `goal.md` R-CODE-4 (verus-absent is an environment error; obligation
-  failure is reported, not crashed); `thermite-design.md` §5.2 (degrade ≠
+  failure is reported, not crashed); `fluffy-design.md` §5.2 (degrade ≠
   block — in #5 the v0.1 behavior is "report").
 - REQ-6 (no panics; Result discipline): every fallible path returns
   `Result<_, ForgeError>`; `main`/`cli` contain no `unwrap`/`expect`/`panic!`
@@ -90,7 +90,7 @@ This component is GREENFIELD. The only shipped artifact is the empty
   project-config schema; the per-item certificate schema is a separate concern
   (`manifest.rs`). It must refuse to overwrite an existing non-empty target
   (a structured error, not a clobber).
-  Source: `thermite-design.md` Appendix B, §5.3.
+  Source: `fluffy-design.md` Appendix B, §5.3.
 
 ## Acceptance criteria
 
@@ -132,7 +132,7 @@ This component is GREENFIELD. The only shipped artifact is the empty
 The arg matcher is hand-rolled (REQ-2). The v0.1 verb grammar is small enough
 (`new <name>` | `check [<file>] [--json]`) that a `match` over `argv` is
 clearer and lighter than a derive dependency, consistent with the
-no-magic/one-way posture of `thermite-design.md` §2.3 and §4.4. `--json` is the
+no-magic/one-way posture of `fluffy-design.md` §2.3 and §4.4. `--json` is the
 sole flag; it selects the §5.1 structured certificate as the stdout document.
 
 `ForgeError` (REQ-3) is the workspace's first AGGREGATING error. The driven
@@ -184,4 +184,4 @@ error-mapping surface only.
 | REQ-4 (human + `--json` output) | SHIPPED | `fn render_human` + `serde_json::to_string_pretty` in `fn run_check`; diagnostics to stderr; integration test `sum_cert_matches_golden_deterministic_subset` parses the clean `--json` stdout. |
 | REQ-5 (typed exit codes) | SHIPPED | `fn run_check` returns `ExitCode`: all-L3 → 0, reported failure → `EXIT_VERIFICATION_FAILURE`(1); `ForgeError::exit_code` → `EXIT_ENVIRONMENT`(2). Tests `broken_contract_is_reported_failure_with_counterexample` (exit 1) + `missing_file_is_usage_error_nonzero`. |
 | REQ-6 (no panics; Result discipline) | SHIPPED | every fallible `cli.rs` path returns `Result<_, ForgeError>`; no `unwrap`/`expect`/`panic!` in non-test code (anti-pattern gate + clippy `-D warnings` pass); verus exit status inspected in `check::invoke_verus`. |
-| REQ-7 (`forge new` scaffold) | SHIPPED | `pub fn scaffold_project` in `cli.rs` writes `forge.toml`+`forge.lock`(pinned seed)+`THERMITE.skill.pin`, refuses non-empty target; consumer `fn dispatch`; test `scaffold_writes_layout_and_refuses_clobber`. |
+| REQ-7 (`forge new` scaffold) | SHIPPED | `pub fn scaffold_project` in `cli.rs` writes `forge.toml`+`forge.lock`(pinned seed)+`FLUFFY.skill.pin`, refuses non-empty target; consumer `fn dispatch`; test `scaffold_writes_layout_and_refuses_clobber`. |

@@ -2,13 +2,13 @@
 //! `conformance/audit/cases.json`). Drives the BUILT `forge` binary with
 //! `audit <file> --json` and asserts the emitted [`AuditManifest`] against the
 //! HAND-DERIVED oracle (R-CHAR-3 — expected values trace to
-//! `conformance/audit/cases.json` + `thermite-design.md` §6/§8/§9, NEVER copied
+//! `conformance/audit/cases.json` + `fluffy-design.md` §6/§8/§9, NEVER copied
 //! from forge's own output):
 //!
 //! - `corpus_empty_tcb` (`forge audit conformance/sum.th`): `manifest_version ==
 //!   "v1"`, all fns L3, `project_assurance` level L3 + scope end-to-end, the TCB
 //!   `slag_blocks` and `boundary_contracts` EMPTY, the `toolchain` present (verus
-//!   + thermite versions) — the §9 "verified, period" TCB (AC-1).
+//!   + fluffy versions) — the §9 "verified, period" TCB (AC-1).
 //! - `slag_boundary_tcb`: `forge audit` over the slag+boundary program → the TCB
 //!   `slag_blocks` contains `vendored` (reason/owner/review) AND
 //!   `boundary_contracts` contains `ext_f` (target `ext::ext_f`). BOTH enumerated
@@ -141,7 +141,7 @@ fn assert_contract_quality_shape(row: &Value) {
     );
 }
 
-// AC-1: a pure-Thermite corpus program → manifest_version v1, all fns L3,
+// AC-1: a pure-Fluffy corpus program → manifest_version v1, all fns L3,
 // project L3 end-to-end, contract_quality present, TCB empty-but-toolchain.
 #[test]
 fn corpus_empty_tcb() {
@@ -223,11 +223,11 @@ fn corpus_empty_tcb() {
         "the toolchain verus version is present + non-empty: {tcb:?}"
     );
     assert!(
-        tcb["toolchain"]["thermite"]
+        tcb["toolchain"]["fluffy"]
             .as_str()
             .map(|s| !s.is_empty())
             .unwrap_or(false),
-        "the toolchain thermite version is present + non-empty: {tcb:?}"
+        "the toolchain fluffy version is present + non-empty: {tcb:?}"
     );
 
     // solver_time_ms is structurally absent from the manifest (excluded, AC-4).

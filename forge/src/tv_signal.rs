@@ -25,7 +25,7 @@
 //! - `"resource limit exceeded"` — which ALSO catches the distributed z3 binary's OWN
 //!   resourceout diagnostic `max. resource limit exceeded` (its `:reason-unknown`
 //!   text on an rcounts exhaustion — present as a `strings` literal in the bundled
-//!   `verus-x86-linux/z3`, independent of any Thermite source). This is the
+//!   `verus-x86-linux/z3`, independent of any Fluffy source). This is the
 //!   load-bearing phrase #166's `contract_tv` copy had dropped and #189's `exec_tv`
 //!   never had.
 //!

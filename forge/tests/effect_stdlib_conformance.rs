@@ -11,7 +11,7 @@
 //! is EMERGENT (the doc's Resolution 1): `#16` boundary L1-short-circuit + `#52`
 //! verify-through + Stage-1b exhaustive-match + `#57` fx→syscall already compose.
 //! This file is therefore a CONFORMANCE DEMONSTRATION over the shipped pipeline; it
-//! adds no `forge`/`thermite-lower` production code.
+//! adds no `forge`/`fluffy-lower` production code.
 //!
 //! THE MUTATION-FLOOR OQ (resolved here): `read_doubled`'s shape-only effect
 //! contract (`Some(v) => v < 512`) is intrinsically mutation-survivable (a

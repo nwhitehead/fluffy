@@ -1,7 +1,7 @@
 //! End-to-end live pins for crosslink #237 — two related completeness gaps, both
 //! fail-CLOSED today (no false certification), on legitimate frozen-subset source:
 //!
-//! (a) THE INT-LITERAL RETURN-TYPING GAP (`thermite-lower/src/lower.rs`):
+//! (a) THE INT-LITERAL RETURN-TYPING GAP (`fluffy-lower/src/lower.rs`):
 //!     `spec fn count(n: u64) -> u64 dec n { if n == 0 { 0 } else { 1 + count(n - 1) } }`
 //!     lowered the else-arm as `1 + count((n - 1) as u64)` — `int`-typed in Verus
 //!     spec against the `u64` return → E0308 → L0. FIX: narrow the body RESULT back
@@ -17,7 +17,7 @@
 //!     fixture must now certify L3.
 //!
 //! THE AUTHORITY (R-CHAR-3): the expected level L3 is the design contract —
-//! `thermite-design.md` §6 ladder semantics (L3 == a fully-discharged real-verus
+//! `fluffy-design.md` §6 ladder semantics (L3 == a fully-discharged real-verus
 //! proof) — NOT copied from the toolchain's own output.
 //!
 //! The verus check SKIPS LOUDLY when verus is absent (the `editor_runs.rs`

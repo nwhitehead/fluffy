@@ -1,21 +1,21 @@
-# Thermite AST (node shapes)
+# Fluffy AST (node shapes)
 <!--
 tier: 3-component
 status: draft
-governs: thermite-syntax/src/ast.rs
+governs: fluffy-syntax/src/ast.rs
 thesis-refs:
-  - thermite-design.md §4.1
-  - thermite-design.md §4.2
-  - thermite-design.md §4.3
-  - thermite-design.md §4.4
-  - thermite-design.md §8
-  - thermite-design.md Appendix A
+  - fluffy-design.md §4.1
+  - fluffy-design.md §4.2
+  - fluffy-design.md §4.3
+  - fluffy-design.md §4.4
+  - fluffy-design.md §8
+  - fluffy-design.md Appendix A
 -->
 
 ## Summary
 
 The AST is the structured output of the parser (`parser.md`) and the **boundary
-type** consumed downstream by thermite-lower (issue #4, AST → Verus source) and
+type** consumed downstream by fluffy-lower (issue #4, AST → Verus source) and
 forge (issues #5/#6, the ladder + vacuity battery). Its node set mirrors the
 surface grammar (`surface-grammar.md`) one-for-one. Certain nodes are
 **addressable** — they carry a stable semantic address (`semantic-addressing.md`,
@@ -121,7 +121,7 @@ This doc is GREENFIELD / FORWARD-LOOKING: no `ast.rs` exists. Every REQ is
 
 - **REQ-9 (spans + boundary-type stability):** Every node carries the source
   span of the tokens it was built from (from `lexer.md` REQ-7) for diagnostics.
-  The AST is the stable boundary type consumed by thermite-lower (#4) and forge
+  The AST is the stable boundary type consumed by fluffy-lower (#4) and forge
   (#5/#6) — its shape is a contract; changing a node is a design-doc amendment
   (R-SPEC-3 spirit). Derived from §2 pillar 4 + the authority chain.
 
@@ -170,7 +170,7 @@ This doc is GREENFIELD / FORWARD-LOOKING: no `ast.rs` exists. Every REQ is
 
 - **REQ-12 (`Break` / `Continue` statement nodes — NEW, #93):** `Stmt` gains two
   variants `Break` and `Continue` (REQ-4) carrying NO payload (labelless, value-
-  less — `break;` / `continue;`; Thermite has no loop labels and no `break expr`,
+  less — `break;` / `continue;`; Fluffy has no loop labels and no `break expr`,
   matching §2.3). They are the AST forms of the loop-control statements lexed in
   `lexer.md` REQ-10 and parsed in `parser.md` REQ-10. They are NOT addressable
   (no `semantic-addressing.md` number — they are body statements, not clauses).
@@ -226,7 +226,7 @@ This doc is GREENFIELD / FORWARD-LOOKING: no `ast.rs` exists. Every REQ is
 
 ## Architecture
 
-The AST is a tree of plain Rust enums/structs in `thermite-syntax/src/ast.rs`,
+The AST is a tree of plain Rust enums/structs in `fluffy-syntax/src/ast.rs`,
 one node family per grammar production. The mandatory-contract rule (§4.1) is
 encoded in the types.
 
@@ -241,23 +241,23 @@ they ARE `IntLit`, so they flow through the existing arms verbatim.
 variants `Rem`/`Shl`/`Shr`/`BitAnd`/`BitOr`/`BitXor` and the new `UnaryOp`/`Unary`
 node breaks every exhaustive `match BinOp` / `match Expr` in the workspace. The
 sites the builder MUST extend (non-test production):
-- `thermite-syntax/src/parser.rs` — the precedence ladder: a new tier for `%`
+- `fluffy-syntax/src/parser.rs` — the precedence ladder: a new tier for `%`
   (alongside `*` `/` in `parse_mul`), new tiers for shifts / `&` / `^` / `|`
   (between `+ -` and comparison, per the precedence in REQ-10 / surface-grammar.md),
   and a `!` prefix arm in `parse_ref` (or a sibling) building `Unary`.
-- `thermite-lower/src/lower.rs` — `binop` (operator string for each new variant:
+- `fluffy-lower/src/lower.rs` — `binop` (operator string for each new variant:
   `Rem`→`%`, `Shl`→`<<`, `Shr`→`>>`, `BitAnd`→`&`, `BitOr`→`|`, `BitXor`→`^`) +
   `precedence` (the new tiers) + a `Unary`/`UnaryOp::Not` emit arm (`!`) + the
   `Expr` walk/leaf arms gain `Unary`.
-- `thermite-lower/src/l1.rs` — the mirror `binop_str` + `precedence` + the
+- `fluffy-lower/src/l1.rs` — the mirror `binop_str` + `precedence` + the
   `Unary` walk/emit arms (the L1 runtime-check form).
 - `forge/src/mutation.rs` — `mutate_op`/`op_str`/`negate` gain arms for the new
   binops (a sound mutant for each, e.g. `Shl`↔`Shr`, `BitAnd`↔`BitOr`) and the
   `Unary` walk arm.
 - `forge/src/vacuity.rs` — the `Expr` walk gains a `Unary` leaf-descent arm.
-- `thermite-skill/src/generate.rs` — a `SkillFragment` for each new binop AND a
+- `fluffy-skill/src/generate.rs` — a `SkillFragment` for each new binop AND a
   fragment for `UnaryOp::Not` (the operator vocabulary the skill teaches).
-- `thermite-spec/src/validator.rs`, `forge/src/strengthen.rs`,
+- `fluffy-spec/src/validator.rs`, `forge/src/strengthen.rs`,
   `forge/src/closure.rs`, `forge/src/review.rs` — any exhaustive `Expr` match
   gains a `Unary` arm.
 
@@ -267,16 +267,16 @@ the workspace (the existing arms are `Let`/`Assign`/`Return`/`If`/`Loop`/`Expr` 
 131 `Stmt::` arm references across production today). The sites the builder MUST
 extend (non-test production), each adding a `Break`/`Continue` arm (almost always
 a no-op / leaf arm — break/continue carry no sub-expression to walk):
-- `thermite-syntax/src/parser.rs` — `parse_block`'s statement dispatch gains
+- `fluffy-syntax/src/parser.rs` — `parse_block`'s statement dispatch gains
   `TokKind::Break`/`Continue` arms building `Stmt::Break`/`Continue` (`parser.md`
   REQ-10), plus the in-loop structural check.
-- `thermite-syntax/src/address.rs` — the statement walk (loops/clauses numbered)
+- `fluffy-syntax/src/address.rs` — the statement walk (loops/clauses numbered)
   gains leaf `Break`/`Continue` arms (they carry no addressable child).
-- `thermite-lower/src/lower.rs` — `lower_stmt`/`lower_loop_body` gain
+- `fluffy-lower/src/lower.rs` — `lower_stmt`/`lower_loop_body` gain
   `Break`→`break;` / `Continue`→`continue;` emit arms (Verus has NATIVE
   `break`/`continue`; `verus-lowering.md` REQ-12).
-- `thermite-lower/src/l1.rs` and `l2.rs` — the mirror statement-walk/emit arms.
-- `thermite-lower/src/effects.rs` — the `Stmt` effect-walk gains leaf
+- `fluffy-lower/src/l1.rs` and `l2.rs` — the mirror statement-walk/emit arms.
+- `fluffy-lower/src/effects.rs` — the `Stmt` effect-walk gains leaf
   `Break`/`Continue` arms (a loop-control statement contributes NO effect).
 - `forge/src/mutation.rs` — the `Stmt` walk gains leaf arms (a `break`/`continue`
   is not a mutation target in v0.1; recorded so the critic confirms no mutant is
@@ -284,8 +284,8 @@ a no-op / leaf arm — break/continue carry no sub-expression to walk):
 - `forge/src/vacuity.rs`, `forge/src/closure.rs`, `forge/src/review.rs`,
   `forge/src/check.rs` — any exhaustive `Stmt` match gains leaf `Break`/`Continue`
   arms.
-- `thermite-spec/src/validator.rs` — the `Stmt` walk gains leaf arms.
-- `thermite-skill/src/generate.rs` — a `SkillFragment` teaching `break`/`continue`
+- `fluffy-spec/src/validator.rs` — the `Stmt` walk gains leaf arms.
+- `fluffy-skill/src/generate.rs` — a `SkillFragment` teaching `break`/`continue`
   in a loop (the loop-control vocabulary the skill teaches — the skill layer
   ripple).
 
@@ -306,7 +306,7 @@ AST field carries them.
 
 ## Verification
 
-`cargo test -p thermite-syntax` over AST-shape fixtures (`conformance/parse/`):
+`cargo test -p fluffy-syntax` over AST-shape fixtures (`conformance/parse/`):
 the two-item shape of `sum.th`/`binary_search.th` (AC-1, AC-3), the `1_000_000`
 value+raw assertion (AC-1b), char/hex/binary→`IntLit` assertions (AC-1c),
 the non-optional-`Contract` check (AC-2), address resolution (AC-4), operator-
@@ -316,7 +316,7 @@ shape assertions that `a % b`/`a << k`/`a & b`/`!a` parse to the right
 (R-CHAR-3).
 
 The END-TO-END operator + obligation grounding (AC-1c, AC-6) is discharged by
-`forge`/`thermite-lower` conformance probes lowering each form to Verus and
+`forge`/`fluffy-lower` conformance probes lowering each form to Verus and
 certifying. GROUNDED with real `verus 0.2026.05.24` (the #92 amendment):
 
 ```
@@ -353,13 +353,13 @@ early-exit with the loop `ensures` certifies L3; a `fx diverge` loop with
 | REQ-5 (loop nodes, addressable) | SHIPPED | `struct LoopNode { kind, invs, dec, .. }`; addressed by `address.rs`. |
 | REQ-6 — VALUE (`IntLit` value) | SHIPPED | `enum Expr` with `IntLit { value, .. }` in `ast.rs`; built by `parse_primary`; lowered by `IntLit { value, .. } => value.to_string()` in `lower.rs`/`l1.rs`. |
 | REQ-6 — RAW (`IntLit` verbatim raw, #37) | SHIPPED | `Expr::IntLit { value: u128, raw: String }` in `ast.rs`; built from `TokKind::Int { value, raw }`; test `int_literal_preserves_value_and_raw`. |
-| REQ-6 — CHAR/HEX/BIN reuse `IntLit` (#91/#92) | SHIPPED | `'A'`/`0x1b`/`0b101` lex into `TokKind::Int { value, raw }` (`lexer.rs` `lex_char`/`lex_int`, REQ-3/REQ-9) and `parse_primary` in `parser.rs` builds them into `Expr::IntLit { value, raw }` — NO new Expr variant, ZERO match-arm churn (test `char_hex_binary_parse_to_intlit_no_new_variant` in `thermite-syntax/tests/operators_parse.rs`). Lowering emits the decimal `value` (`lower.rs`/`l1.rs` `Expr::IntLit { value, .. }`). GROUNDED L3 (`forge/tests/operators_conformance.rs`). |
+| REQ-6 — CHAR/HEX/BIN reuse `IntLit` (#91/#92) | SHIPPED | `'A'`/`0x1b`/`0b101` lex into `TokKind::Int { value, raw }` (`lexer.rs` `lex_char`/`lex_int`, REQ-3/REQ-9) and `parse_primary` in `parser.rs` builds them into `Expr::IntLit { value, raw }` — NO new Expr variant, ZERO match-arm churn (test `char_hex_binary_parse_to_intlit_no_new_variant` in `fluffy-syntax/tests/operators_parse.rs`). Lowering emits the decimal `value` (`lower.rs`/`l1.rs` `Expr::IntLit { value, .. }`). GROUNDED L3 (`forge/tests/operators_conformance.rs`). |
 | REQ-7 (pattern/type/effect nodes) | SHIPPED | `enum Pattern`/`enum Type`/`enum EffectRow` in `ast.rs`; built by `parse_pattern`/`parse_type`. |
 | REQ-8 (addressable nodes) | SHIPPED | `Item`/`LoopNode`/`Clause` keep source order; numbered by `address.rs`. |
 | REQ-9 (spans + boundary stability) | SHIPPED | `Span` on `FnItem`/`SpecFnItem`/`LoopNode`/`SlagAttr`/`Clause`. |
 | REQ-10 (binary + unary operator set, #92) | SHIPPED | `enum BinOp` in `ast.rs` gains `Rem`/`Shl`/`Shr`/`BitAnd`/`BitOr`/`BitXor`; the NEW `enum UnaryOp { Not }` + `Expr::Unary { op, expr }` node carry the prefix `!`. Built by the `parser.rs` precedence ladder (`parse_mul`+`%`, `parse_shift`/`parse_bitand`/`parse_bitxor`/`parse_bitor`, `parse_unary`); the match-arm ripple is closed across lower/l1/effects/validator/mutation/vacuity/closure/review/check/strengthen/skill (no `_`/panic — see commit). Tests `each_new_operator_parses_to_its_binop_node` (parser). GROUNDED L3 for all 7 forms (`forge/tests/operators_conformance.rs`). |
 | REQ-11 (partial-operator obligations, #92) | SHIPPED | `binop` in `lower.rs`/`l1.rs` emits the BARE Verus `%`/`<<`/`>>` (no `external`/`assume` — R-DEFER-9), so Verus raises the div-by-zero / shift-bound obligation at the operator site. GROUNDED (real verus): `a % b` WITH `req b != 0` → L3, WITHOUT → L0; `a << k` WITH `req k < 64` → L3, unbounded → L0 (`forge/tests/operators_conformance.rs::rem_with_nonzero_req_certifies_l3` / `rem_without_nonzero_req_is_l0` / `shifts_and_bitwise_certify_l3` / `shift_without_bound_is_l0`). The existing `/` already bit; `%`/shifts inherit the same Verus-native obligation. |
-| REQ-12 (`Break`/`Continue` statement nodes, #93) | SHIPPED | `enum Stmt` in `ast.rs` gains the payload-less `Break`/`Continue` variants (the loop-control statements). Built by `parse_break_continue` in `parser.rs` (`parser.md` REQ-10). The `Stmt` ripple is closed across every exhaustive `match Stmt` in the workspace with the layer-neutral leaf value (NO `_`/panic): `lower.rs`/`l1.rs` emit `break;`/`continue;`; `l2.rs` routes through `lower_stmt_l1`; `effects.rs` (no effect), `validator.rs` (no cage/ADT node), `mutation.rs` (no mutant — OQ-4), `vacuity.rs`/`closure.rs`/`review.rs`/`check.rs` (leaf walks); `address.rs` (non-addressable leaf, the existing `_ => {}`); `thermite-skill/src/generate.rs` (the loop-control prose). Tests: `forge/tests/break_continue_conformance.rs::break_and_continue_inside_a_loop_parse_cleanly_as_stmt_nodes` asserts the `Stmt::Break`/`Continue` shape; the lowering/verification semantics are GROUNDED in `verus-lowering.md` REQ-12 (continue+inv/dec → L3, bad continue → L0, break → L3, diverge loop → L1). |
+| REQ-12 (`Break`/`Continue` statement nodes, #93) | SHIPPED | `enum Stmt` in `ast.rs` gains the payload-less `Break`/`Continue` variants (the loop-control statements). Built by `parse_break_continue` in `parser.rs` (`parser.md` REQ-10). The `Stmt` ripple is closed across every exhaustive `match Stmt` in the workspace with the layer-neutral leaf value (NO `_`/panic): `lower.rs`/`l1.rs` emit `break;`/`continue;`; `l2.rs` routes through `lower_stmt_l1`; `effects.rs` (no effect), `validator.rs` (no cage/ADT node), `mutation.rs` (no mutant — OQ-4), `vacuity.rs`/`closure.rs`/`review.rs`/`check.rs` (leaf walks); `address.rs` (non-addressable leaf, the existing `_ => {}`); `fluffy-skill/src/generate.rs` (the loop-control prose). Tests: `forge/tests/break_continue_conformance.rs::break_and_continue_inside_a_loop_parse_cleanly_as_stmt_nodes` asserts the `Stmt::Break`/`Continue` shape; the lowering/verification semantics are GROUNDED in `verus-lowering.md` REQ-12 (continue+inv/dec → L3, bad continue → L0, break → L3, diverge loop → L1). |
 
 ## Open questions (for the orchestrator)
 

@@ -2,7 +2,7 @@
 
 This directory holds the acceptance oracle for the Lean-style goal-state REPL
 (`forge goal` / `forge fill` / `forge edit` / `forge battery` — design
-`.design/forge/goal-repl.md`, thesis `thermite-design.md` §5/§5.1, Appendix B).
+`.design/forge/goal-repl.md`, thesis `fluffy-design.md` §5/§5.1, Appendix B).
 
 ## The dialogue golden
 
@@ -11,14 +11,14 @@ This directory holds the acceptance oracle for the Lean-style goal-state REPL
 introducing `?1 ?2` → one discharged / one open-with-counterexample → guard the
 branch → `ALL GOALS DISCHARGED ✓ binary_search certified L3`).
 
-It is **hand-derived from `thermite-design.md` §5.1's hand-written dialogue text +
+It is **hand-derived from `fluffy-design.md` §5.1's hand-written dialogue text +
 the design doc's AC-6** — NEVER regenerated from running the verbs (`goal.md`
 R-CHAR-3). A fabricated golden copied from the tool's own output would be a false
 anchor (the same rule the cert-oracle README states).
 
 ## Structural-oracle vs illustrative (R-CHAR-3 honesty)
 
-`thermite-design.md` §5.1 is an ILLUSTRATIVE narrative — its concrete numbers are
+`fluffy-design.md` §5.1 is an ILLUSTRATIVE narrative — its concrete numbers are
 not all assertable against the real prover. The golden's `oracle_kind` field and
 its `expect_structure` / `illustrative_not_asserted` blocks pin the split:
 

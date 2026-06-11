@@ -3,13 +3,13 @@
 <!--
 tier: 3-component
 status: draft
-governs: thermite-tv/src/exec_stmt_encode.rs, thermite-tv/src/obligation.rs, thermite-lower/src/lower.rs, forge/src/body_tv.rs
+governs: fluffy-tv/src/exec_stmt_encode.rs, fluffy-tv/src/obligation.rs, fluffy-lower/src/lower.rs, forge/src/body_tv.rs
 thesis-refs:
-  - thermite-design.md §1 (trust relocated: code → spec → spec-intent)
-  - thermite-design.md §4.1 (contract-first functions — the exec BODY they guard: let/assign/while/inv/dec)
-  - thermite-design.md §6 (the verification ladder; L3 = Verus-derived SMT proof; L1 runtime checks)
-  - thermite-design.md §5.1 (counterexamples, not adjectives)
-  - thermite-design.md §13 (v0.1 kernel scope; the forward-looking verified-microkernel convergence)
+  - fluffy-design.md §1 (trust relocated: code → spec → spec-intent)
+  - fluffy-design.md §4.1 (contract-first functions — the exec BODY they guard: let/assign/while/inv/dec)
+  - fluffy-design.md §6 (the verification ladder; L3 = Verus-derived SMT proof; L1 runtime checks)
+  - fluffy-design.md §5.1 (counterexamples, not adjectives)
+  - fluffy-design.md §13 (v0.1 kernel scope; the forward-looking verified-microkernel convergence)
 epic: crosslink #158
 step-2.1-sibling: .design/verified/exec-tv.md (crosslink #151 — exec-EXPRESSION TV, shipped + total on the corpus)
 step-1-sibling: .design/verified/contract-tv.md (crosslink #139 — CONTRACT-position TV, shipped + total on the corpus)
@@ -58,12 +58,12 @@ component delivers the groundwork:
 Body-TV checks `production-body-lowering ≡ independent-operational-reference` over STATE. Agreement is
 EVIDENCE, not PROOF (both could share a wrong assumption). What makes it meaningful is the same
 asymmetry of auditability: the reference state-denotation is a small total recursion over the FROZEN
-exec-statement subset, authored against `thermite-design.md` §4.1/§6 + standard imperative semantics,
+exec-statement subset, authored against `fluffy-design.md` §4.1/§6 + standard imperative semantics,
 independently of `lower_block_inner in lower.rs` / `lower_stmt in lower.rs`. A human certifies the
 reference by inspection; the production body lowering (the ~5000-line shape-keyed `lower.rs`) cannot.
 The honesty boundary is HARD (REQ-2): the reference MUST NOT call any production lowering symbol; the
-`thermite-tv` crate keeps NO `thermite-lower` dependency (the step-1/2.1 invariant, `cargo tree -p
-thermite-tv` = syntax + spec only).
+`fluffy-tv` crate keeps NO `fluffy-lower` dependency (the step-1/2.1 invariant, `cargo tree -p
+fluffy-tv` = syntax + spec only).
 
 **Where step 2.1 plugs in.** Each statement's RHS is an exec EXPRESSION — `let a = x + 1`'s `x + 1`,
 the `if` condition, an assignment's value. Step 2.1's `exec_ref_value` ALREADY checks those expression
@@ -74,7 +74,7 @@ faithfulness ON TOP of the per-RHS value faithfulness. The state-denotation (REQ
 ## REQ-1 — the FROZEN kernel exec-statement subset v1 (the key deliverable)
 
 Enumerated from the EXISTING surface (`enum Stmt`, `struct Block`, `struct LoopNode`, `enum LoopKind`
-in `thermite-syntax/src/ast.rs`; lowered by `lower_stmt`/`lower_block_inner`/`lower_loop in lower.rs`).
+in `fluffy-syntax/src/ast.rs`; lowered by `lower_stmt`/`lower_block_inner`/`lower_loop in lower.rs`).
 This set is DECLARED STABLE: no new exec-statement construct is admitted into the kernel exec language
 or the operational semantics without a design amendment (the moving-target problem `exec-tv.md` "Step
 2.2 horizon" named). It is BOTH the operational semantics' fixed target AND the verified-microkernel's
@@ -122,7 +122,7 @@ type. The state values are those bounded scalar types (the v1 kernel-exec state 
   name→value map). HONESTLY SKIPPED if detected.
 
 This frozen list is the design-pinned contract REQ-2's reference is authored against and REQ-4's loop
-horizon extends. Derived from `thermite-design.md` §4.1 (the exec body the contract guards) + the
+horizon extends. Derived from `fluffy-design.md` §4.1 (the exec body the contract guards) + the
 existing `Stmt`/`LoopNode` surface.
 
 ## REQ-2 — the operational-semantics reference denotation (state-transformer, independent)
@@ -133,7 +133,7 @@ TRANSFORMER. The **program state** is the environment of in-scope mutable + immu
 threading an initial environment (the fn params) through the statement sequence to a FINAL environment,
 and the body's value is the tail expression evaluated in that final environment.
 
-`thermite_tv::exec_stmt_encode::body_ref_state(block: &Block, &BodyRefCtx) -> Result<String>` maps a
+`fluffy_tv::exec_stmt_encode::body_ref_state(block: &Block, &BodyRefCtx) -> Result<String>` maps a
 straight-line `Block` to a Verus **spec-fn state-denotation**: the final state (and hence the tail
 value) as a FUNCTION of the initial state (the inputs). Mechanizability dictates big-step over
 small-step for the straight-line case: the final state is a closed-form expression in the inputs, so
@@ -145,12 +145,12 @@ mutated cell, ORDER-SENSITIVE (a reorder changes the substitution chain → a di
 `if` denotes a Verus `if`-expression over the two branch state-transformers.
 
 **Independence (HARD, R-CHAR-3 / trust model):** `body_ref_state` MUST NOT call any
-`thermite_lower::lower::*` symbol. It composes step 2.1's `exec_ref_value` (`exec_encode.rs`) on each
+`fluffy_lower::lower::*` symbol. It composes step 2.1's `exec_ref_value` (`exec_encode.rs`) on each
 statement's RHS / the `if` condition / the tail — the per-RHS expression VALUE is already an
 independent reference — and adds ONLY the state-threading / mutation-substitution / branch-composition
-logic (the new, small, auditable part). The `thermite-tv` crate keeps NO `thermite-lower` dependency.
+logic (the new, small, auditable part). The `fluffy-tv` crate keeps NO `fluffy-lower` dependency.
 
-Derived from `thermite-design.md` §4.1/§6 + standard big-step imperative semantics.
+Derived from `fluffy-design.md` §4.1/§6 + standard big-step imperative semantics.
 
 ## REQ-3 — step-2.2.1 straight-line body-refinement TV (the concrete first slice, GROUNDED)
 
@@ -179,17 +179,17 @@ VERIFIED (`success: true, verified: 1, errors: 0`) ⟺ production's lowered body
 FINAL STATE for ALL inputs (Z3) ⟺ faithful. A `postcondition not satisfied` counterexample ⟺ a
 state-transformation infidelity (a dropped statement, a reordered mutation, a swapped `if`-branch — any
 of which changes the final state while each sub-expression stays value-faithful). The production body
-is an EXEC `fn` (not `proof`/`spec`), so the always-active runtime overflow checks (`thermite-design.md`
+is an EXEC `fn` (not `proof`/`spec`), so the always-active runtime overflow checks (`fluffy-design.md`
 §6, L1) are LIVE — the same structural reason as 2.1's exec-fn obligation.
 
 **The home (reuse the step-2.1 architecture; extend, do not fork):**
-- `thermite-tv/src/exec_stmt_encode.rs` — the NEW reference state-denotation encoder (REQ-2), sibling
+- `fluffy-tv/src/exec_stmt_encode.rs` — the NEW reference state-denotation encoder (REQ-2), sibling
   to `exec_encode.rs` (which stays exec-EXPRESSION-only). Composes `exec_ref_value`.
-- `thermite-tv/src/obligation.rs` — a NEW `body_equivalence_obligation` + `BodyObligationFrame`
+- `fluffy-tv/src/obligation.rs` — a NEW `body_equivalence_obligation` + `BodyObligationFrame`
   (REQ-3), sibling to `exec_equivalence_obligation`. Emits the body-wrapped `ensures` form above.
-- `thermite-lower/src/lower.rs` — a `lower_exec_body` per-body EXEC-context entry (the production side,
+- `fluffy-lower/src/lower.rs` — a `lower_exec_body` per-body EXEC-context entry (the production side,
   blocker #161 — the analogue of the `lower_exec_expr` step-2.1 prerequisite; `lower_block_inner` is
-  private and fn-context-bound, so a thermite-tv-driven obligation needs a reachable per-body exec
+  private and fn-context-bound, so a fluffy-tv-driven obligation needs a reachable per-body exec
   entry).
 - `forge/src/body_tv.rs` — the NEW forge check phase (REQ-5, blocker #162), sibling to `exec_tv.rs`.
   Four-way `Faithful` / `Divergent` / `Unverifiable` / `Skipped` (a loop body / non-scalar state / an
@@ -203,18 +203,18 @@ is an EXEC `fn` (not `proof`/`spec`), so the always-active runtime overflow chec
   `Break`/`Continue` IN the frozen set but step 2.2.2; non-scalar state / mid-body early return /
   `match`-state / recursion-as-stmt / re-shadow OUT). Declared STABLE — no new construct without a
   design amendment. This is the operational semantics' fixed target AND the kernel exec language v1.
-  Derived from `thermite-design.md` §4.1 + the `Stmt`/`LoopNode in ast.rs` surface. **Blocker #158
+  Derived from `fluffy-design.md` §4.1 + the `Stmt`/`LoopNode in ast.rs` surface. **Blocker #158
   (epic).**
 - **REQ-2 (operational-semantics reference state-denotation — independent)** —
-  `thermite_tv::exec_stmt_encode::body_ref_state(block: &Block, &BodyRefCtx) -> Result<String>` maps a
+  `fluffy_tv::exec_stmt_encode::body_ref_state(block: &Block, &BodyRefCtx) -> Result<String>` maps a
   straight-line `Block` (the frozen 2.2.1 subset) to a Verus spec-fn STATE-TRANSFORMER: the final state
   (tail value) as a closed-form function of the inputs, big-step, threading each `let`/assignment in
   ORDER (mutation = order-sensitive substitution), an `if` as a branch-composed Verus `if`-expression.
   Composes step-2.1's `exec_ref_value` on each RHS / condition / tail. **HARD CONSTRAINT (R-CHAR-3):**
-  MUST NOT call `thermite_lower::lower::*`; `thermite-tv` keeps NO `thermite-lower` dep. Derived from
-  `thermite-design.md` §4.1/§6. **Blocker #159.**
+  MUST NOT call `fluffy_lower::lower::*`; `fluffy-tv` keeps NO `fluffy-lower` dep. Derived from
+  `fluffy-design.md` §4.1/§6. **Blocker #159.**
 - **REQ-3 (step-2.2.1 straight-line body state-refinement obligation + discharge)** —
-  `thermite_tv::obligation::body_equivalence_obligation(body: &Block, p_production: &str, frame:
+  `fluffy_tv::obligation::body_equivalence_obligation(body: &Block, p_production: &str, frame:
   &BodyObligationFrame) -> Result<String>` emits the self-contained `fn tv_body_wrap(<inputs>) requires
   <req>, ensures result == body_ref(<inputs>), { <p_production> }` Verus unit (the STATE analogue of
   `exec_equivalence_obligation`, over the final state, not a single value). Discharged through the
@@ -233,7 +233,7 @@ is an EXEC `fn` (not `proof`/`spec`), so the always-active runtime overflow chec
   state-refinement TV over each checked item's exec body, exposed as `forge body-tv <file>` (non-test
   consumer `cli::run_body_tv`). Four-way `Faithful`/`Divergent`/`Unverifiable`/`Skipped` reported
   DISTINCTLY (a loop / non-scalar-state / mid-body early-return body is Skipped HONESTLY — never
-  masking an infidelity, R-HONEST-3). Derived from `thermite-design.md` §6. **Blocker #162.**
+  masking an infidelity, R-HONEST-3). Derived from `fluffy-design.md` §6. **Blocker #162.**
 
 ## Acceptance criteria
 
@@ -257,9 +257,9 @@ is an EXEC `fn` (not `proof`/`spec`), so the always-active runtime overflow chec
   #122/#146 class) is caught by the SAME obligation (the RHS value faithfulness is necessary for the
   state faithfulness). (Verification: a body with a #146 cast-`<` RHS fails the obligation — inherited
   from `exec-tv.md` AC-3.)
-- **AC-6 (independence is structural)** — `thermite-tv` keeps NO `thermite-lower` dependency;
+- **AC-6 (independence is structural)** — `fluffy-tv` keeps NO `fluffy-lower` dependency;
   `exec_stmt_encode.rs` references no `lower_stmt`/`lower_block`/`lower_expr` symbol (`cargo tree -p
-  thermite-tv` = syntax + spec only).
+  fluffy-tv` = syntax + spec only).
 - **AC-7 (loops / out-of-scope bodies skipped HONESTLY)** — a body containing a `Stmt::Loop`, a
   non-scalar mutation, or a mid-body early return reaches the `forge::body_tv` phase as `Skipped` (with
   a reason), NEVER as `Faithful` — the honest 2.2.1-vs-2.2.2 boundary in the certificate.
@@ -267,7 +267,7 @@ is an EXEC `fn` (not `proof`/`spec`), so the always-active runtime overflow chec
 ## Verification
 
 GROUNDED end-to-end against the real `verus` binary (`Verus 0.2026.05.24.ecee80a`) during authoring,
-exactly as 2.1. The conformance test (a future `thermite-tv/tests/body_teeth.rs` + `forge/tests/
+exactly as 2.1. The conformance test (a future `fluffy-tv/tests/body_teeth.rs` + `forge/tests/
 body_tv_conformance.rs`, blocker #160/#162) replays these through `forge::check::run_verus`.
 
 **AC-1 (faithful straight-line `{ let a = x + 1; let b = a * 2; b }` → verified).**
@@ -336,8 +336,8 @@ classes the per-expression 2.1 TV cannot see — a dropped statement (AC-2), a r
 (AC-3), a swapped branch (AC-4), each a `postcondition not satisfied` counterexample, none a silent
 pass. **Straight-line body state-refinement (2.2.1) is genuinely tractable NOW.**
 
-**Crate gauntlet (when built):** `cargo test -p thermite-tv`, `cargo test -p forge` (`body_tv`
-conformance), `cargo clippy -p thermite-tv -p forge --all-targets -- -D warnings`, `cargo fmt
+**Crate gauntlet (when built):** `cargo test -p fluffy-tv`, `cargo test -p forge` (`body_tv`
+conformance), `cargo clippy -p fluffy-tv -p forge --all-targets -- -D warnings`, `cargo fmt
 --check`. Scratch/verus temp cleaned per the `ScratchDir` Drop guard (blocker #53).
 
 ## Step 2.2.2 horizon — LOOPS (kernel-gated, FRAMED not designed)
@@ -361,7 +361,7 @@ approaches:
   invariant rather than re-deriving the loop's closed form.
 - **(b) Bounded unrolling for a bound.** For a loop with a known small bound, unroll N iterations into a
   straight-line body and apply 2.2.1 directly — sound only up to the bound (a bounded-model-checking
-  flavour, the L2/Kani spirit of `thermite-design.md` §13 v0.2), NOT a full refinement.
+  flavour, the L2/Kani spirit of `fluffy-design.md` §13 v0.2), NOT a full refinement.
 
 **WHY it stays FRAMED (the frozen-subset prerequisite).** A loop's operational semantics is a
 definition of meaning for the loop-step + the fixpoint/invariant interaction. Authoring it against a
@@ -374,7 +374,7 @@ kernel's exec-body set is mechanically complete (`goal.md` stopping condition), 
 ## Kernel convergence — the frozen subset IS the kernel exec language (note, not designed here)
 
 The REQ-1 frozen exec-statement subset + the REQ-2 operational semantics are the verified-microkernel's
-EXEC-LANGUAGE foundation: a kernel written in Thermite needs (a) a pinned, semantics-bearing exec
+EXEC-LANGUAGE foundation: a kernel written in Fluffy needs (a) a pinned, semantics-bearing exec
 statement language (REQ-1/REQ-2 deliver exactly this — let/assign/mutation/seq/if/while with a
 mechanized state-transformer meaning) and (b) a freestanding `no_std` lowering target. (b) is a
 SEPARATE sibling groundwork item — `forge build --target kernel` emitting `no_std` freestanding
@@ -403,8 +403,8 @@ as the kernel target.
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (frozen kernel exec-statement subset v1) | SHIPPED | the IN/OUT construct set is PINNED IN CODE: `thermite_tv::exec_stmt_encode::body_ref_state` (and its `thread_stmt`/`encode_value`) ADMIT exactly `Stmt::Let`/`Assign`/`If`/`Expr`/tail-`Return` + `Block` sequencing/tail, and HONESTLY REJECT (an `Unsupported` `Err`) `Stmt::Loop`/`Break`/`Continue` (2.2.2), a mid-`if`-branch early return, `match`-stmt, non-scalar mutation, and a re-shadow — the design-amendment-gated stable set; mirrored on the production side by `thermite_lower::lower_exec_body` (a loop body → `LowerError::Unsupported`, the `exec_body_tests::loop_body_is_err_not_silent` pin). Verified by `thermite-tv/tests/body_teeth.rs` B1–B4 + `exec_stmt_encode::tests` (the loop/re-shadow honest-skip tests). |
-| REQ-2 (operational-semantics reference state-denotation) | SHIPPED | `pub fn body_ref_state` (+ `body_ref_state_ensures`, `BodyRefCtx`) in `thermite-tv/src/exec_stmt_encode.rs` — the big-step state-transformer (let/assign substitution-threading, mutation-ORDER sensitivity, `if`-branch composition, multi-cell TUPLE projection), composing step-2.1's `exec_ref_value` on each env-substituted RHS / condition / tail. Non-test consumer: `thermite_tv::obligation::body_equivalence_obligation`. Independence is STRUCTURAL: deps `thermite-syntax` + `thermite-spec` ONLY (`cargo tree -p thermite-tv` — no `thermite-lower`, AC-6). Verified by `tests/body_teeth.rs` B1–B4 against real verus (B2 mutation-ORDER, B4 multi-cell tuple) + `exec_stmt_encode::tests` (the closed-form pins, incl. the reorder ≠ ordered form). |
-| REQ-3 (step-2.2.1 straight-line body state-refinement obligation + discharge) | SHIPPED | `thermite_tv::obligation::body_equivalence_obligation` + `BodyObligationFrame`/`BodyParamDecl` (`obligation.rs`) — emits the self-contained `fn tv_body_wrap(<inputs>) requires <req>, ensures <result-state == body_ref_state>, { <p_production> }` STATE form (single-cell: `result == <ref>`; multi-cell: `result.0 == <c0> && result.1 == <c1>`). The production side is the per-body exec entry `thermite_lower::lower_exec_body` (#161 — `lower_block_inner(block, Ctx::exec(), 0, zero_span())`, the minimal standalone-body frame, pinned by `lower.rs::exec_body_tests` B1–B4 as the cross-crate faithful bridge). GROUNDED end-to-end against real verus (`Verus 0.2026.05.24`, `tests/body_teeth.rs`): all FOUR faithful bodies VERIFY (`verified: 1, errors: 0`); the dropped-statement (B1) / reordered-mutation (B2) / swapped-branch (B3) / wrong-cell (B4) infidelities each fail `postcondition not satisfied` (`errors: 1`). The forge `body_tv` phase consumer is REQ-5 (#162, next dispatch — the `lower_exec_expr`→`forge::exec_tv` precedent). |
+| REQ-1 (frozen kernel exec-statement subset v1) | SHIPPED | the IN/OUT construct set is PINNED IN CODE: `fluffy_tv::exec_stmt_encode::body_ref_state` (and its `thread_stmt`/`encode_value`) ADMIT exactly `Stmt::Let`/`Assign`/`If`/`Expr`/tail-`Return` + `Block` sequencing/tail, and HONESTLY REJECT (an `Unsupported` `Err`) `Stmt::Loop`/`Break`/`Continue` (2.2.2), a mid-`if`-branch early return, `match`-stmt, non-scalar mutation, and a re-shadow — the design-amendment-gated stable set; mirrored on the production side by `fluffy_lower::lower_exec_body` (a loop body → `LowerError::Unsupported`, the `exec_body_tests::loop_body_is_err_not_silent` pin). Verified by `fluffy-tv/tests/body_teeth.rs` B1–B4 + `exec_stmt_encode::tests` (the loop/re-shadow honest-skip tests). |
+| REQ-2 (operational-semantics reference state-denotation) | SHIPPED | `pub fn body_ref_state` (+ `body_ref_state_ensures`, `BodyRefCtx`) in `fluffy-tv/src/exec_stmt_encode.rs` — the big-step state-transformer (let/assign substitution-threading, mutation-ORDER sensitivity, `if`-branch composition, multi-cell TUPLE projection), composing step-2.1's `exec_ref_value` on each env-substituted RHS / condition / tail. Non-test consumer: `fluffy_tv::obligation::body_equivalence_obligation`. Independence is STRUCTURAL: deps `fluffy-syntax` + `fluffy-spec` ONLY (`cargo tree -p fluffy-tv` — no `fluffy-lower`, AC-6). Verified by `tests/body_teeth.rs` B1–B4 against real verus (B2 mutation-ORDER, B4 multi-cell tuple) + `exec_stmt_encode::tests` (the closed-form pins, incl. the reorder ≠ ordered form). |
+| REQ-3 (step-2.2.1 straight-line body state-refinement obligation + discharge) | SHIPPED | `fluffy_tv::obligation::body_equivalence_obligation` + `BodyObligationFrame`/`BodyParamDecl` (`obligation.rs`) — emits the self-contained `fn tv_body_wrap(<inputs>) requires <req>, ensures <result-state == body_ref_state>, { <p_production> }` STATE form (single-cell: `result == <ref>`; multi-cell: `result.0 == <c0> && result.1 == <c1>`). The production side is the per-body exec entry `fluffy_lower::lower_exec_body` (#161 — `lower_block_inner(block, Ctx::exec(), 0, zero_span())`, the minimal standalone-body frame, pinned by `lower.rs::exec_body_tests` B1–B4 as the cross-crate faithful bridge). GROUNDED end-to-end against real verus (`Verus 0.2026.05.24`, `tests/body_teeth.rs`): all FOUR faithful bodies VERIFY (`verified: 1, errors: 0`); the dropped-statement (B1) / reordered-mutation (B2) / swapped-branch (B3) / wrong-cell (B4) infidelities each fail `postcondition not satisfied` (`errors: 1`). The forge `body_tv` phase consumer is REQ-5 (#162, next dispatch — the `lower_exec_expr`→`forge::exec_tv` precedent). |
 | REQ-4 (step-2.2.2 loops — harder horizon) | NOT-STARTED | open prereq blocker #163. Kernel-gated (REQ-1 frozen-subset prerequisite). NOW DESIGNED in `.design/verified/loop-tv.md`: a variant of (a) — three per-run loop obligations (entry/preservation/exit `inv ∧ ¬cond`) reusing the SHIPPED `body_ref_state` single-step + a Lean partial-correctness WHILE-RULE (`Exec/Loop.lean`, new) extending the `Faithfulness.lean` `h_tv` capstone; termination is the per-run Verus `decreases` residual. Bounded unrolling (b) DROPPED for v1 (the future v0.2 L2 fallback for invariant-free loops). Unbuilt. |
-| REQ-5 (forge `body_tv` plug-in point) | SHIPPED | `forge::body_tv` module (`forge/src/body_tv.rs`): `pub fn body_tv_file` walks each fn body and runs the straight-line body state-refinement TV — lowering via `thermite_lower::lower_exec_body` (`P_production`), building `thermite_tv::body_equivalence_obligation`, discharging through `verus` (`discharge` → `run_obligation`, reusing `crate::check::ScratchDir`/#53 cleanup, exactly as `exec_tv::discharge`). The four-way `enum BodyVerdict` (`Faithful`/`Divergent`/`Unverifiable`/`Skipped`) is REPORTED DISTINCTLY (distinct human/JSON output AND exit code — R-HONEST-3): a body outside the frozen subset (a non-derivable frame, a re-shadow / mid-body return / non-scalar mutation `body_ref_state` `Unsupported`, an out-of-v1 loop) is `Skipped` with a reason, NEVER `Faithful`. Non-test consumer: `cli::run_body_tv` (the `forge body-tv <file> [--json]` verb — nonzero exit on Divergent, zero on Faithful/Skipped/Unverifiable, the `forge exec-tv` convention). Verified by `forge/tests/body_tv.rs` against real verus: a faithful straight-line `{ let a = x+1; let b = a*2; b }` → `faithful`; a faithful v1 `while` → `faithful` (all three obligations); a REORDERED-mutation production → `Divergent` (`postcondition not satisfied`); `binary_search.th`'s `loop`-kind body → `Skipped`-with-reason. Closes the `lower_exec_body` consumer loop (R-DEFER-1). |
+| REQ-5 (forge `body_tv` plug-in point) | SHIPPED | `forge::body_tv` module (`forge/src/body_tv.rs`): `pub fn body_tv_file` walks each fn body and runs the straight-line body state-refinement TV — lowering via `fluffy_lower::lower_exec_body` (`P_production`), building `fluffy_tv::body_equivalence_obligation`, discharging through `verus` (`discharge` → `run_obligation`, reusing `crate::check::ScratchDir`/#53 cleanup, exactly as `exec_tv::discharge`). The four-way `enum BodyVerdict` (`Faithful`/`Divergent`/`Unverifiable`/`Skipped`) is REPORTED DISTINCTLY (distinct human/JSON output AND exit code — R-HONEST-3): a body outside the frozen subset (a non-derivable frame, a re-shadow / mid-body return / non-scalar mutation `body_ref_state` `Unsupported`, an out-of-v1 loop) is `Skipped` with a reason, NEVER `Faithful`. Non-test consumer: `cli::run_body_tv` (the `forge body-tv <file> [--json]` verb — nonzero exit on Divergent, zero on Faithful/Skipped/Unverifiable, the `forge exec-tv` convention). Verified by `forge/tests/body_tv.rs` against real verus: a faithful straight-line `{ let a = x+1; let b = a*2; b }` → `faithful`; a faithful v1 `while` → `faithful` (all three obligations); a REORDERED-mutation production → `Divergent` (`postcondition not satisfied`); `binary_search.th`'s `loop`-kind body → `Skipped`-with-reason. Closes the `lower_exec_body` consumer loop (R-DEFER-1). |

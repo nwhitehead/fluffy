@@ -5,11 +5,11 @@ tier: 3-component
 status: draft
 governs: forge/src/vacuity.rs
 thesis-refs:
-  - thermite-design.md §7
-  - thermite-design.md §7.1
-  - thermite-design.md §4.1
-  - thermite-design.md §6
-  - thermite-design.md §8
+  - fluffy-design.md §7
+  - fluffy-design.md §7.1
+  - fluffy-design.md §4.1
+  - fluffy-design.md §6
+  - fluffy-design.md §8
 -->
 
 ## Summary
@@ -19,7 +19,7 @@ battery — step 1, "structural triage" — run as a gate stage inside
 `forge check` BEFORE each item's L3 proof. A function "does not certify until
 its **contract** certifies" (§7); this component is the cheapest, solver-free
 guard on that rule. It rejects the four §7.1 degenerate moves by inspecting the
-parsed `Contract` AST alone (`thermite_syntax::Contract { req, ens, fx }`): no
+parsed `Contract` AST alone (`fluffy_syntax::Contract { req, ens, fx }`): no
 `verus`, no Z3, no solver query. The non-trivial counterparts of these moves
 (the SOLVER tautology / unsat-precondition checks, §7 steps 2–3) are
 issue #13; mutation scoring (step 4) is #12; strengthening probes (step 5) are
@@ -45,7 +45,7 @@ escape hatch", milestone #1, currently blocked by #3 which has shipped).
   trivially true; the conservative syntactic rule rejects only when the contract
   carries no non-trivial conjunct (case (i)) or contains a syntactically-trivial
   identity clause (case (ii)).
-  Source: `thermite-design.md` §7.1 ("`ens` simplifies to `true` → reject").
+  Source: `fluffy-design.md` §7.1 ("`ens` simplifies to `true` → reject").
 - **REQ-2 (ens-omits-result reject — §7.1 (b), §4.1):** an item whose return
   type is NOT `()` (`ast.rs` `Type::Unit`) and whose `ens` never mentions
   `result` is rejected. The check walks every `ens` `Clause.expr` for an
@@ -55,7 +55,7 @@ escape hatch", milestone #1, currently blocked by #3 which has shipped).
   "structurally enforced — see §7", and THIS is that check. A `Type::Unit`
   return is EXEMPT (§4.1: "Must mention `result` unless the return type is
   `()`").
-  Source: `thermite-design.md` §4.1, §7.1 ("`ens` does not mention `result`
+  Source: `fluffy-design.md` §4.1, §7.1 ("`ens` does not mention `result`
   (non-unit return) → reject").
 - **REQ-3 (ens-syntactically-implied-by-req reject — §7.1 (c)):** an item is
   rejected when its `ens` is *syntactically* implied by `req` alone, defined as:
@@ -67,7 +67,7 @@ escape hatch", milestone #1, currently blocked by #3 which has shipped).
   along both arms. This is FREE and SYNTACTIC: the SOLVER question "is `ens`
   provable from `req` + types WITHOUT the body" (§7 step 2) is issue **#13** —
   NOT this check.
-  Source: `thermite-design.md` §7.1 ("`ens` is syntactically implied by `req`
+  Source: `fluffy-design.md` §7.1 ("`ens` is syntactically implied by `req`
   alone → reject").
 - **REQ-4 (maximal-fx-without-slag reject — §7.1 (d)):** an item whose effect
   row is *maximal* and which is NOT `#[slag]` is rejected. There is NO `fx *`
@@ -80,7 +80,7 @@ escape hatch", milestone #1, currently blocked by #3 which has shipped).
   partial `Set` is never maximal. A maximal row is admissible ONLY on a
   `#[slag]` item (`FnItem.slag.is_some()`): slag is the only thing that justifies
   it (§8; the `slag.md` interaction). Maximal-`fx` with no slag → reject.
-  Source: `thermite-design.md` §7.1 ("Effect row is maximal (`fx *`) without
+  Source: `fluffy-design.md` §7.1 ("Effect row is maximal (`fx *`) without
   `#[slag]` justification → reject"), §8.
 - **REQ-5 (`VacuityVerdict` + typed reject cause):** triage returns a structured
   verdict that names WHICH of (a)–(d) fired, with a clause-level diagnostic
@@ -91,7 +91,7 @@ escape hatch", milestone #1, currently blocked by #3 which has shipped).
   a bare boolean, never a panic (`goal.md` R-CODE-2). The verdict is `pub` so
   `check.rs` consumes it; the surface form (a new `ForgeError::Vacuity` variant
   vs. a `VacuityVerdict::Rejected` mapped at the call site) is OQ-1.
-  Source: `thermite-design.md` §7 ("a function does not certify until its
+  Source: `fluffy-design.md` §7 ("a function does not certify until its
   contract certifies"; "reject with the proof as the explanation" — here the
   explanation is the syntactic cause).
 - **REQ-6 (forge-check gate integration; the `contract_quality` field #6 sets):**
@@ -110,7 +110,7 @@ escape hatch", milestone #1, currently blocked by #3 which has shipped).
   two existing `bool`s and when they go live. Any need for a *new* field
   (e.g. a distinct `structural_reject_cause`) is flagged OQ-2 and is a design
   amendment, not a code-local choice.
-  Source: `thermite-design.md` §7; `.design/forge/certificate-manifest.md`
+  Source: `fluffy-design.md` §7; `.design/forge/certificate-manifest.md`
   REQ-3 (the forward-declared `contract_quality.*`); `goal.md` R-SPEC-2.
 - **REQ-7 (slag exempts proving, never stating; triage still applies):** a
   `#[slag]` item is exempt from REQ-4 (maximal `fx` is justified by slag) but is
@@ -119,14 +119,14 @@ escape hatch", milestone #1, currently blocked by #3 which has shipped).
   Slag exempts PROVING (the L3 obligation, `slag.md`), never STATING or checking
   the contract (§8: "slag exempts you from *proving*, never from *stating and
   checking*"; `goal.md` R-DEFER-9).
-  Source: `thermite-design.md` §8, §7.
+  Source: `fluffy-design.md` §8, §7.
 
 ## Acceptance criteria
 
 ACs tie to a `conformance/vacuity/` oracle (authored by the orchestrator, NOT
 this component): a reject fixture per (a)–(d) plus the corpus accept fixtures.
 Each fixture is PARSE-VERIFIED below (it parses clean today; the listed AST is
-the grounded `thermite_syntax::parse` output).
+the grounded `fluffy_syntax::parse` output).
 
 - **AC-1 (accept: the corpus is non-vacuous):** `conformance/sum.th`'s `sum` and
   `conformance/binary_search.th`'s `binary_search` both PASS triage (all four
@@ -168,7 +168,7 @@ the grounded `thermite_syntax::parse` output).
 ## Architecture
 
 `vacuity.rs` is **pure, syntactic, solver-free** — it imports only
-`thermite_syntax` AST types and produces a verdict. It is a new `mod vacuity;`
+`fluffy_syntax` AST types and produces a verdict. It is a new `mod vacuity;`
 in `forge/src/main.rs`/`lib.rs`, consumed by `check.rs`.
 
 The public entry is `pub fn triage(item: &FnItem) -> VacuityVerdict` (a
@@ -195,7 +195,7 @@ reported cause (cheapest-first within the free tier — all four are O(AST size)
 **Gate integration (REQ-6, `.design/forge/check.md`).** In
 `check::check_file`, after `validate`/`check_effects` and the per-item
 sub-program split, `triage` runs on each `Item::Fn` BEFORE
-`thermite_lower::lower` + `run_verus`. A `VacuityVerdict::Rejected` short-circuits
+`fluffy_lower::lower` + `run_verus`. A `VacuityVerdict::Rejected` short-circuits
 that item: no lowering, no `verus`, the certificate records a non-L3
 contract-certification failure naming the §7.1 cause. A
 `VacuityVerdict::Passed` lets the item proceed AND fixes
@@ -221,7 +221,7 @@ structural gate ONLY — it never issues a solver query.
 
 - `cargo test -p forge` — unit tests over `triage`'s public API: one reject test
   per §7.1 cause (a/b/c/d) and the `Type::Unit` / partial-`fx` / slag-justified
-  boundary cases (AC-2..AC-6). Expected verdicts trace to `thermite-design.md`
+  boundary cases (AC-2..AC-6). Expected verdicts trace to `fluffy-design.md`
   §7.1 and the hand-authored `conformance/vacuity/` fixtures (R-CHAR-3), never
   to `forge`'s own output.
 - Conformance integration (`goal.md` model (B); the `conformance/vacuity` route
@@ -235,13 +235,13 @@ structural gate ONLY — it never issues a solver query.
 
 ## Exact `conformance/vacuity/` fixture programs (PARSE-VERIFIED)
 
-All parse clean under `thermite_syntax::parse` today (verified by direct probe);
+All parse clean under `fluffy_syntax::parse` today (verified by direct probe);
 the grounded AST is noted per fixture. These are REJECT fixtures the orchestrator
 authors; the ACCEPT side is the existing `conformance/sum.th` /
 `binary_search.th`.
 
 **`ens_true.th`** — reject (a):
-```thermite
+```fluffy
 fn f(x: u32) -> u32
   req true
   ens true
@@ -251,7 +251,7 @@ fn f(x: u32) -> u32
 Grounded: `ens#0.expr = BoolLit(true)`.
 
 **`ens_eq_self.th`** — reject (a), identity form:
-```thermite
+```fluffy
 fn f(x: u32) -> u32
   req true
   ens x == x
@@ -261,7 +261,7 @@ fn f(x: u32) -> u32
 Grounded: `ens#0.expr = Binary { op: Eq, lhs: Path(["x"]), rhs: Path(["x"]) }`.
 
 **`no_result.th`** — reject (b):
-```thermite
+```fluffy
 fn f(x: u32) -> u32
   req true
   ens x <= 100
@@ -272,7 +272,7 @@ Grounded: `ret = Prim(U32)`, `ens#0.expr = Binary { op: Le, lhs: Path(["x"]),
 rhs: IntLit(100) }` — no `result` path.
 
 **`unit_ok.th`** — ACCEPTS (b) (the `Type::Unit` exemption boundary):
-```thermite
+```fluffy
 fn f(x: u32) -> ()
   req true
   ens x <= 100
@@ -284,7 +284,7 @@ No — `x <= 100` is not trivially true; it passes (a), (c), (d) too, so it is a
 clean ACCEPT demonstrating the unit exemption.)
 
 **`ens_eq_req.th`** — reject (c), identical clause:
-```thermite
+```fluffy
 fn f(x: u32) -> u32
   req x <= 10
   ens x <= 10
@@ -299,7 +299,7 @@ mirrors a req conjunct isolates (c): see `ens_conjunct_req.th`.)
 **`ens_conjunct_req.th`** — reject (c), conjunct form (isolates (c): `ens`
 mentions `result` via the req, so (b) does not fire on the req side, but the
 `ens` clause itself is a req conjunct):
-```thermite
+```fluffy
 fn f(x: u32) -> u32
   req x <= 10 && result == x
   ens x <= 10
@@ -314,7 +314,7 @@ may prefer an `ens result == x` clause that duplicates the second req conjunct;
 both forms are valid (c) rejects — flagged OQ-3.)
 
 **`maximal_fx.th`** — reject (d):
-```thermite
+```fluffy
 fn f(x: u32) -> u32
   req true
   ens result == x

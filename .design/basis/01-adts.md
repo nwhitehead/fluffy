@@ -2,24 +2,24 @@
 <!--
 tier: 3-component
 status: draft
-governs: thermite-syntax/src/ast.rs
-governs: thermite-syntax/src/parser.rs
-governs: thermite-spec/src/validator.rs
-governs: thermite-lower/src/lower.rs
+governs: fluffy-syntax/src/ast.rs
+governs: fluffy-syntax/src/parser.rs
+governs: fluffy-spec/src/validator.rs
+governs: fluffy-lower/src/lower.rs
 thesis-refs:
-  - thermite-design.md §3
-  - thermite-design.md §4
-  - thermite-design.md §4.1
-  - thermite-design.md §4.2
-  - thermite-design.md §4.4
-  - thermite-design.md §6
+  - fluffy-design.md §3
+  - fluffy-design.md §4
+  - fluffy-design.md §4.1
+  - fluffy-design.md §4.2
+  - fluffy-design.md §4.4
+  - fluffy-design.md §6
 -->
 
 ## Summary
 
 Stage 1 of the universal verified primitive basis (crosslink epic **#62**) adds
 **product types (`struct`)**, **sum types (`enum`)**, **recursive types**, and
-**`match`** to the Thermite surface — the DATA half of "program anything,
+**`match`** to the Fluffy surface — the DATA half of "program anything,
 verified." Product + sum + recursion is, by construction, every finite algebraic
 data type; joined with the structural recursion Stage 2 layers on top, that is
 total functional completeness. Verus models ADTs + structural induction natively
@@ -32,8 +32,8 @@ by Stage 2 (recursion schemes fold over these recursive ADTs), Stage 4
 Stage 5 (composition reasons over ADT contracts). The recursive-type
 representation decision (below) is therefore load-bearing for the whole buildout.
 
-This doc is GREENFIELD / FORWARD-LOOKING. Thermite v0.1 today admits exactly
-`u32`/`u64`/`usize`, `bool`, and `&[T]` (`thermite-syntax/src/ast.rs` `enum
+This doc is GREENFIELD / FORWARD-LOOKING. Fluffy v0.1 today admits exactly
+`u32`/`u64`/`usize`, `bool`, and `&[T]` (`fluffy-syntax/src/ast.rs` `enum
 PrimType` + `enum Type`); there is no `struct`, `enum`, `match` in item position,
 or heap. **Every REQ below is NOT-STARTED**, tracked under epic **#62** (no
 separate blocker is filed — #62 owns this stage; gaps that need an independent
@@ -81,11 +81,11 @@ enforcement of the toolchain's core safety law.
 ## Decision: the recursive-type representation — `Box<T>` on the `Alloc` effect
 
 A recursive `enum` needs indirection at the recursive occurrence (Rust/Verus
-reject an infinitely-sized inline type). Thermite v0.1 has NO heap. Three options
+reject an infinitely-sized inline type). Fluffy v0.1 has NO heap. Three options
 were considered:
 
 - **(a) `Box<T>`** — introduce `Box<T>` as the first heap primitive, tied to the
-  EXISTING `Alloc` effect (`thermite-syntax/src/ast.rs` `Effect::Alloc`; the
+  EXISTING `Alloc` effect (`fluffy-syntax/src/ast.rs` `Effect::Alloc`; the
   `fx alloc` row of §4.1). Verus models recursive ADTs with `Box` natively.
 - **(b) bounded-depth inline types** — no indirection; a fixed maximum depth.
 - **(c) arena / index representation** — store nodes in a `Vec`, recurse through
@@ -119,7 +119,7 @@ node `Box(Box<Type>)` or a `Generic { name: "Box", arg }` reusing the existing
 
 ## Requirements
 
-### Surface + AST (governs `thermite-syntax/src/ast.rs`, `parser.rs`)
+### Surface + AST (governs `fluffy-syntax/src/ast.rs`, `parser.rs`)
 
 - **REQ-1 (struct items — product types):** The surface admits a top-level
   `struct NAME { field: TYPE, … }` item, optionally carrying a **type-invariant
@@ -182,7 +182,7 @@ node `Box(Box<Type>)` or a `Generic { name: "Box", arg }` reusing the existing
   ergonomics special cases → One desugaring, always explicit"), Appendix A's
   slice `match`, and the GROUNDED enum `match`.
 
-### Validator / the SpecTherm cage (governs `thermite-spec/src/validator.rs`)
+### Validator / the SpecTherm cage (governs `fluffy-spec/src/validator.rs`)
 
 - **REQ-5 (exhaustiveness checking — the validator rejects a non-exhaustive
   `match`):** The validator, knowing the declared `enum`'s variant set (collected
@@ -224,7 +224,7 @@ node `Box(Box<Type>)` or a `Generic { name: "Box", arg }` reusing the existing
   `spec fn` call stays a named-composition accept. Derived from §4.2 (the cage)
   + `.design/spec/spectherm-combinators.md` REQ-6.
 
-### Verus lowering (governs `thermite-lower/src/lower.rs`)
+### Verus lowering (governs `fluffy-lower/src/lower.rs`)
 
 - **REQ-8 (struct → Verus struct; type-invariant → enforced predicate):** A
   `StructItem` lowers to a Verus `struct` with the same fields; its `inv` clause
@@ -255,15 +255,15 @@ node `Box(Box<Type>)` or a `Generic { name: "Box", arg }` reusing the existing
   l { Nil => 0, Cons(_, tail) => 1 + len(*tail) } }` and `sum_list`, plus a
   `proof fn` by structural induction, verified `0 errors`. The exec-position
   construction of a boxed value lowers to `Box::new(..)` and the owning `fn`
-  emits no Verus effect annotation but carries `fx alloc` at the Thermite layer
+  emits no Verus effect annotation but carries `fx alloc` at the Fluffy layer
   (REQ-3). Derived from §3, §4.1 (`alloc`, termination by default), §6, and the
   GROUNDED recursive-`List` proof.
 
 - **REQ-11 (`LowerError`/`SpecError` extension, no panics):** The new ADT
-  constructs extend the EXISTING `thermite-lower::LowerError` and
-  `thermite-spec::SpecError` enums with span-bearing variants for the new failure
+  constructs extend the EXISTING `fluffy-lower::LowerError` and
+  `fluffy-spec::SpecError` enums with span-bearing variants for the new failure
   modes (REQ-5/REQ-6 reject cases; an un-lowerable ADT construct), reusing
-  `thermite_syntax::lexer::Span`. No `unwrap`/`expect`/`panic!` in production
+  `fluffy_syntax::lexer::Span`. No `unwrap`/`expect`/`panic!` in production
   (R-CODE-2 / R-APG-1). Derived from R-CODE-2, the existing error-enum discipline
   in `validator.rs` / `lower.rs`.
 
@@ -337,7 +337,7 @@ live at `conformance/bank_account.cert.json` / `conformance/list_sum.cert.json`.
   byte-stable `tests/golden/lower/{sum,binary_search}.verus.rs`, and certify L3.
   The ADT additions are purely additive (new `Item`/`Expr`/`Pattern`/`Type`
   variants, new `SpecError`/`LowerError` variants); no existing node reshapes.
-  Mechanically: `cargo test -p thermite-syntax -p thermite-spec -p thermite-lower`
+  Mechanically: `cargo test -p fluffy-syntax -p fluffy-spec -p fluffy-lower`
   and the conformance corpus pass with 0 mismatches. (All REQs; the keystone
   must not break the kernel.)
 
@@ -345,8 +345,8 @@ live at `conformance/bank_account.cert.json` / `conformance/list_sum.cert.json`.
 
 The component spans three crates, all additively:
 
-- **`thermite-syntax`** — `enum Item` gains `Struct(StructItem)` and
-  `Enum(EnumItem)` (`thermite-syntax/src/ast.rs`); `enum Expr` gains `StructLit`
+- **`fluffy-syntax`** — `enum Item` gains `Struct(StructItem)` and
+  `Enum(EnumItem)` (`fluffy-syntax/src/ast.rs`); `enum Expr` gains `StructLit`
   and `Is`; `enum Pattern` gains `Struct`; `enum Type` gains the `Box`
   indirection (OQ-1). `parser.rs` gains `parse_struct`/`parse_enum`/`parse_match`
   (the last already partially present for the slice `match` of Appendix A) and
@@ -354,7 +354,7 @@ The component spans three crates, all additively:
   (`ast.md` REQ-2) is unchanged — a `struct`/`enum` item carries no `req`/`ens`/
   `fx`; only `fn` does.
 
-- **`thermite-spec`** — `validator.rs` gains the enum-variant-set collection (a
+- **`fluffy-spec`** — `validator.rs` gains the enum-variant-set collection (a
   pass over `Item::Enum` mirroring the existing `spec fn` name collection,
   `.design/spec/spectherm-combinators.md` REQ-3), the exhaustiveness/redundancy
   check (REQ-5), and the field/variant well-formedness + `is` checks (REQ-6),
@@ -364,7 +364,7 @@ The component spans three crates, all additively:
   structure are NAMED `spec fn`s (REQ-7) — composition stays named, never
   anonymous, so the §4.2 cage is preserved.
 
-- **`thermite-lower`** — `lower.rs` gains `lower_struct`/`lower_enum`/
+- **`fluffy-lower`** — `lower.rs` gains `lower_struct`/`lower_enum`/
   `lower_match`/`lower_is` and the `well_formed`-predicate emission (REQ-8). The
   two lowering contexts (exec vs spec, `.design/lower/verus-lowering.md`) extend
   to ADTs: a `struct`/`enum` value is the same spelling in both; the
@@ -522,8 +522,8 @@ induction native) arrive together, exactly the basis thesis.
   structural-recursion stack is Verus-feasible end to end — the foundation for
   Stages 2 and 4.
 
-- **AC-1/AC-2/AC-3/AC-4:** `cargo test -p thermite-syntax -p thermite-spec -p
-  thermite-lower`, plus a harness that shells the real `verus` binary on the
+- **AC-1/AC-2/AC-3/AC-4:** `cargo test -p fluffy-syntax -p fluffy-spec -p
+  fluffy-lower`, plus a harness that shells the real `verus` binary on the
   emitted lowering of `bank_account.th` / `list_sum.th` / the enum program and
   asserts exit 0 + `N verified, 0 errors` (R-CODE-4: subprocess status checked,
   never swallowed), plus `forge check` matching the golden certificates
@@ -542,10 +542,10 @@ adds these routes to `tooling/spec-routes.toml` pointing at THIS doc (a file may
 carry multiple governing docs — the §52 `lower.rs` precedent):
 
 ```
-[[route]]  crate_pattern = "thermite-syntax/src/ast.rs"        design = ".design/basis/01-adts.md"   reference = ["conformance/bank_account.th", "conformance/list_sum.th"]
-[[route]]  crate_pattern = "thermite-syntax/src/parser.rs"     design = ".design/basis/01-adts.md"   reference = ["conformance/bank_account.th", "conformance/list_sum.th"]
-[[route]]  crate_pattern = "thermite-spec/src/validator.rs"    design = ".design/basis/01-adts.md"   reference = ["conformance/bank_account.th"]
-[[route]]  crate_pattern = "thermite-lower/src/lower.rs"       design = ".design/basis/01-adts.md"   reference = ["tests/golden/lower/bank_account.verus.rs", "tests/golden/lower/list_sum.verus.rs"]
+[[route]]  crate_pattern = "fluffy-syntax/src/ast.rs"        design = ".design/basis/01-adts.md"   reference = ["conformance/bank_account.th", "conformance/list_sum.th"]
+[[route]]  crate_pattern = "fluffy-syntax/src/parser.rs"     design = ".design/basis/01-adts.md"   reference = ["conformance/bank_account.th", "conformance/list_sum.th"]
+[[route]]  crate_pattern = "fluffy-spec/src/validator.rs"    design = ".design/basis/01-adts.md"   reference = ["conformance/bank_account.th"]
+[[route]]  crate_pattern = "fluffy-lower/src/lower.rs"       design = ".design/basis/01-adts.md"   reference = ["tests/golden/lower/bank_account.verus.rs", "tests/golden/lower/list_sum.verus.rs"]
 ```
 
 The corpus programs `conformance/bank_account.th`, `conformance/list_sum.th`,
@@ -556,14 +556,14 @@ authored by the orchestrator from this doc before the builder runs (R-CHAR-3).
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (struct items + type invariant) | NOT-STARTED | epic **#62** Stage 1. No `Item::Struct`/`StructItem` in `thermite-syntax/src/ast.rs` (`enum Item` is `Fn`/`SpecFn` only); no `struct` parse path in `parser.rs`. GROUNDED-feasible (verus `8 verified, 0 errors`), not yet implemented. |
+| REQ-1 (struct items + type invariant) | NOT-STARTED | epic **#62** Stage 1. No `Item::Struct`/`StructItem` in `fluffy-syntax/src/ast.rs` (`enum Item` is `Fn`/`SpecFn` only); no `struct` parse path in `parser.rs`. GROUNDED-feasible (verus `8 verified, 0 errors`), not yet implemented. |
 | REQ-2 (enum items + variant construction) | NOT-STARTED | epic **#62** Stage 1. No `Item::Enum`/`EnumItem`/`Expr::StructLit` in `ast.rs`; the surface admits no `enum` item today. |
 | REQ-3 (recursive types via `Box` + `alloc`) | NOT-STARTED | epic **#62** Stage 1. `enum Type` (`ast.rs`) has no `Box` indirection; `Effect::Alloc` exists but is unexercised; no corpus program is non-`pure`. Representation DECIDED (`Box`+`alloc`, GROUNDED), not implemented. |
 | REQ-4 (`match` exhaustive + binding, struct destructuring) | NOT-STARTED | epic **#62** Stage 1. `Expr::Match` + `Pattern::Enum` exist (slice-`match` of Appendix A) but no `Pattern::Struct` and no enum-item `match` validation/lowering. |
-| REQ-5 (exhaustiveness checking in the validator) | SHIPPED | epic **#62** Stage 1b (#65). `thermite-spec/src/validator.rs`: the declaration pre-pass `Validator::new` collects `enums` (name → variant order) + `variant_to_enum`; `check_match_exhaustiveness` (reached from the caged `walk_expr_inner` `Match` arm AND the exec-body `scan_expr_for_loops` `Match` arm) emits `SpecError::NonExhaustiveMatch { missing }` (declaration order), `SpecError::UnreachableArm` (variant twice / arm after wildcard), and `SpecError::UnknownVariant` (undeclared variant in a pattern); a slice/`Option` `match` is inert (no regression). Consumer: `pub fn validate`. Verification: `thermite-spec/tests/adt_validate.rs` over `conformance/adt-validate/cases.json` — `non_exhaustive_match` → `missing:[Rect]`, `unreachable_redundant_arm` → `UnreachableArm`, `unknown_variant_pattern` → `UnknownVariant{Square}`; `shape`/`list_sum` accept. The Verus LOWERING of `match` (REQ-9) stays Stage 1c. |
+| REQ-5 (exhaustiveness checking in the validator) | SHIPPED | epic **#62** Stage 1b (#65). `fluffy-spec/src/validator.rs`: the declaration pre-pass `Validator::new` collects `enums` (name → variant order) + `variant_to_enum`; `check_match_exhaustiveness` (reached from the caged `walk_expr_inner` `Match` arm AND the exec-body `scan_expr_for_loops` `Match` arm) emits `SpecError::NonExhaustiveMatch { missing }` (declaration order), `SpecError::UnreachableArm` (variant twice / arm after wildcard), and `SpecError::UnknownVariant` (undeclared variant in a pattern); a slice/`Option` `match` is inert (no regression). Consumer: `pub fn validate`. Verification: `fluffy-spec/tests/adt_validate.rs` over `conformance/adt-validate/cases.json` — `non_exhaustive_match` → `missing:[Rect]`, `unreachable_redundant_arm` → `UnreachableArm`, `unknown_variant_pattern` → `UnknownVariant{Square}`; `shape`/`list_sum` accept. The Verus LOWERING of `match` (REQ-9) stays Stage 1c. |
 | REQ-6 (well-formed field/variant access + `is`) | SHIPPED | epic **#62** Stage 1b (#65). `validator.rs`: the pre-pass collects `struct_fields` (every `struct`/struct-variant field); `check_field` (on `Expr::Field` + `Expr::StructLit` field names, both walks) → `SpecError::UnknownField` (inert when no struct declared); `check_variant_ref` (on `Expr::Is`, both walks) → `SpecError::UnknownVariant` for an undeclared variant. Consumer: `pub fn validate`. Verification: `tests/adt_validate.rs` — `unknown_field` → `UnknownField{bogus}`, `unknown_variant_is` → `UnknownVariant{Triangle}`; `bank_account`/`shape` accept. The Verus LOWERING of `is` (REQ-9) stays Stage 1c. |
 | REQ-7 (ADT predicates fit the SpecTherm cage) | SHIPPED | epic **#62** Stage 1b (#65). The caged-flat walk (`.design/spec/spectherm-combinators.md` REQ-6) shipped under #40; in `validator.rs`'s `walk_expr_inner`, `Expr::Match`/`Field`/`Is`/`Deref` recurse operands WITHOUT setting `in_combinator_closure` and WITHOUT resolving as combinators, so they are admitted as FLAT built-ins inside a combinator predicate-closure body unchanged. No recursive scheme exists yet to nest in a closure (forward-declared; schemes are Stage 2). Verification: the combinator cage tests (`tests/combinators_conformance.rs`, `divergence_nesting.rs`) stay green. |
-| REQ-8 (struct → Verus struct; invariant → predicate) | SHIPPED | epic **#62** Stage 1c (#67). `thermite-lower/src/lower.rs`: `lower_struct` emits a `pub struct` + `pub` fields + `impl { pub open spec fn well_formed(&self) -> bool { <inv with self.field> } }` (`lower_inv_expr`); **OQ-3 RESOLVED — automatic threading**: `lower_fn_signature` weaves `<param>.well_formed()` / `result.well_formed()` into `requires`/`ensures` for every invariant-bearing struct param/return (the `inv_structs` set built in `lower`). The `pub` visibility tier is the recorded grounding finding. L1 mirror: `l1.rs::lower_struct_l1` emits the `well_formed` method + `lower_fn_l1` weaves the always-active `thermite_check!`. Consumer: `pub fn lower` / `pub fn lower_l1`. Verification: real verus `1 verified, 0 errors` on the emitted `bank_account` lowering + cert oracle (`conformance/bank_account.cert.json` L3/pure/non-vacuous) — `thermite-lower/tests/adt_lower_conformance.rs::bank_account_lowers_struct_invariant_and_verifies_l3`, `deposit_matches_cert_oracle_stable_subset`, `bank_account_l1_compiles_and_runs`, `bank_account_l1_req_check_fires`. |
+| REQ-8 (struct → Verus struct; invariant → predicate) | SHIPPED | epic **#62** Stage 1c (#67). `fluffy-lower/src/lower.rs`: `lower_struct` emits a `pub struct` + `pub` fields + `impl { pub open spec fn well_formed(&self) -> bool { <inv with self.field> } }` (`lower_inv_expr`); **OQ-3 RESOLVED — automatic threading**: `lower_fn_signature` weaves `<param>.well_formed()` / `result.well_formed()` into `requires`/`ensures` for every invariant-bearing struct param/return (the `inv_structs` set built in `lower`). The `pub` visibility tier is the recorded grounding finding. L1 mirror: `l1.rs::lower_struct_l1` emits the `well_formed` method + `lower_fn_l1` weaves the always-active `fluffy_check!`. Consumer: `pub fn lower` / `pub fn lower_l1`. Verification: real verus `1 verified, 0 errors` on the emitted `bank_account` lowering + cert oracle (`conformance/bank_account.cert.json` L3/pure/non-vacuous) — `fluffy-lower/tests/adt_lower_conformance.rs::bank_account_lowers_struct_invariant_and_verifies_l3`, `deposit_matches_cert_oracle_stable_subset`, `bank_account_l1_compiles_and_runs`, `bank_account_l1_req_check_fires`. |
 | REQ-9 (enum → Verus enum; `match` → `match`; `is`) | SHIPPED | epic **#62** Stage 1c (#67). `lower.rs`: `lower_enum` emits a Verus `enum` (unit/tuple/struct variants); `lower_match`/`lower_pattern` emit ENUM-QUALIFIED arms via the program `(variant,enum)` map (`qualify_variant_path`) incl. `Pattern::Struct` (`Rect { w, h }`/`..`); `Expr::Is`→`(s is Circle)` the Verus-native discriminant. L1 mirror: `l1.rs` `lower_enum_l1`/`lower_match_exec`/`lower_pattern_exec` + `Expr::Is`→`matches!(s, Shape::Circle { .. })`. Consumer: `pub fn lower`/`pub fn lower_l1`. Verification: real verus `1 verified, 0 errors` on the emitted `shape` lowering + cert oracle (`conformance/shape.cert.json` L3/pure/non-vacuous) — `shape_lowers_enum_match_is_and_verifies_l3`, `is_circle_matches_cert_oracle_stable_subset`, `shape_l1_compiles_and_runs`, `shape_l1_ens_check_fires_on_a_lying_body`. |
 | REQ-10 (recursive type → Verus recursive enum; `Box`; structural `decreases`) | SHIPPED | epic **#62** Stage 1c (#67). `lower.rs`: `lower_enum` emits `Cons(u64, Box<List>)` (`lower_type` `Type::Box`→`Box<…>`); a `spec fn` of the ADT-fold-sum shape (`is_adt_fold_sum`) lowers `-> nat` with `decreases l` over the datatype VALUE (Verus's built-in structural order) and `Expr::Deref`→`*t`, integer casts coerced `as nat` (`Ctx::nat_ret`). Consumer: `pub fn lower`. Verification: real verus `1 verified, 0 errors` on the emitted `list_sum` lowering (the recursive spec fn terminates + totals) — `list_sum_lowers_recursive_box_and_verifies_l3`. The `fx alloc` effect-row for an exec `Box`-constructor is forward-ready (`effects.rs` accepts `alloc`); the corpus `list_sum` is spec-fn-only (`pure`), so no exec `alloc` is exercised this stage. |
 | REQ-11 (`LowerError`/`SpecError` extension, no panics) | SHIPPED | epic **#62** Stage 1c (#67). The lowering reuses the existing `LowerError` (`Unsupported`/`TooDeep`) — no new lower variant was needed (the validator #65 already owns the `SpecError` reject cases REQ-5/REQ-6); no `unwrap`/`expect`/`panic!` added in `lower.rs`/`l1.rs`/`l2.rs`. Verification: `cargo clippy --workspace --all-targets -- -D warnings` PASS + the anti-pattern-gate. |
@@ -586,7 +586,7 @@ authored by the orchestrator from this doc before the builder runs (R-CHAR-3).
   structured values (`Option`, slices, `match result { Some(i) … }`) freely. This
   stage admits user `struct`/`enum` as DATA (no methods, no traits — the closed
   built-in interface set of §4.4 still applies). The skill-budget consequence
-  (§10, #7) — the ADT grammar must fit the 6k-token `THERMITE.skill.md` — is real
+  (§10, #7) — the ADT grammar must fit the 6k-token `FLUFFY.skill.md` — is real
   and is the orchestrator's check at Stage 1's skill regeneration. Flagged
   because it is the one place the basis buildout touches a hard design budget;
   the grammar is small (struct/enum/match/`is`/`Box`) and expected to fit, but
@@ -599,7 +599,7 @@ authored by the orchestrator from this doc before the builder runs (R-CHAR-3).
   used here — the predicate is referenced explicitly). The open question is
   whether the lowerer threads it automatically (every param/return of an
   invariant-bearing struct gets the `well_formed` conjunct) or whether the
-  Thermite surface requires the author to write it. RECOMMEND automatic threading
+  Fluffy surface requires the author to write it. RECOMMEND automatic threading
   (the invariant is a property of the TYPE, so it should be implicit at every use
   — the "data-invariant unlock" of the decided scope). This is the
   highest-judgment, least-confident part of REQ-8: the GROUNDED proof writes the

@@ -25,14 +25,14 @@
 //! R-CHAR-3: expected levels trace to `.design/basis/10-recursion-tuples.md`
 //! AC-4/AC-5/AC-6 (the GROUNDED forms: `swap` `2 verified, 0 errors`; wrong body
 //! `postcondition not satisfied`; 3-tuple `3 verified, 0 errors`) +
-//! `thermite-design.md` §6 ladder semantics (L3 == a fully-discharged real-verus
+//! `fluffy-design.md` §6 ladder semantics (L3 == a fully-discharged real-verus
 //! proof), NEVER copied from the toolchain's own output.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use serde_json::Value;
-use thermite_syntax::{Expr, Type};
+use fluffy_syntax::{Expr, Type};
 
 fn forge_bin() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_forge"))
@@ -103,7 +103,7 @@ fn cert_for<'a>(certs: &'a [Value], item: &str) -> &'a Value {
 /// `Type::Unit`; the parenthesised `(u64)` is the inner type (grouping, arity 1).
 #[test]
 fn tuple_type_disambiguation_unit_grouping_tuple() {
-    let parsed = thermite_syntax::parse(
+    let parsed = fluffy_syntax::parse(
         "fn swap(a: u64, b: u64) -> (u64, u64)\n  req true\n  ens result.0 == b && result.1 == a\n  fx pure\n{ (b, a) }\n",
     );
     assert!(
@@ -114,7 +114,7 @@ fn tuple_type_disambiguation_unit_grouping_tuple() {
     );
     let item = &parsed.program.items[0];
     let f = match item {
-        thermite_syntax::Item::Fn(f) => f,
+        fluffy_syntax::Item::Fn(f) => f,
         other => panic!("expected an Item::Fn, got {other:?}"),
     };
     match &f.ret {
@@ -127,13 +127,13 @@ fn tuple_type_disambiguation_unit_grouping_tuple() {
     }
 
     // The unit `()` return stays `Type::Unit` (the disambiguation did NOT break it).
-    let unit = thermite_syntax::parse("fn log() -> ()\n  req true\n  ens true\n  fx pure\n{ }\n");
+    let unit = fluffy_syntax::parse("fn log() -> ()\n  req true\n  ens true\n  fx pure\n{ }\n");
     assert!(
         unit.is_clean(),
         "`()` unit return still parses: {:?}",
         unit.errors
     );
-    if let thermite_syntax::Item::Fn(f) = &unit.program.items[0] {
+    if let fluffy_syntax::Item::Fn(f) = &unit.program.items[0] {
         assert_eq!(
             f.ret,
             Type::Unit,
@@ -144,7 +144,7 @@ fn tuple_type_disambiguation_unit_grouping_tuple() {
     }
 
     // The parenthesised `(u64)` is grouping → the inner type (arity 1, NOT a tuple).
-    let grouped = thermite_syntax::parse(
+    let grouped = fluffy_syntax::parse(
         "fn id(a: u64) -> (u64)\n  req true\n  ens result == a\n  fx pure\n{ a }\n",
     );
     assert!(
@@ -152,10 +152,10 @@ fn tuple_type_disambiguation_unit_grouping_tuple() {
         "`(u64)` grouping still parses: {:?}",
         grouped.errors
     );
-    if let thermite_syntax::Item::Fn(f) = &grouped.program.items[0] {
+    if let fluffy_syntax::Item::Fn(f) = &grouped.program.items[0] {
         assert_eq!(
             f.ret,
-            Type::Prim(thermite_syntax::PrimType::U64),
+            Type::Prim(fluffy_syntax::PrimType::U64),
             "DESIGN REQ-7: arity-1 `(u64)` is grouping — the inner type, NOT a tuple"
         );
     } else {
@@ -167,12 +167,12 @@ fn tuple_type_disambiguation_unit_grouping_tuple() {
 /// `result.0` / `result.1` parse to `Expr::TupleProj` (the dedicated node, OQ-1).
 #[test]
 fn tuple_expr_and_projection_nodes() {
-    let parsed = thermite_syntax::parse(
+    let parsed = fluffy_syntax::parse(
         "fn swap(a: u64, b: u64) -> (u64, u64)\n  req true\n  ens result.0 == b && result.1 == a\n  fx pure\n{ (b, a) }\n",
     );
     assert!(parsed.is_clean(), "must parse: {:?}", parsed.errors);
     let f = match &parsed.program.items[0] {
-        thermite_syntax::Item::Fn(f) => f,
+        fluffy_syntax::Item::Fn(f) => f,
         other => panic!("expected fn, got {other:?}"),
     };
 
@@ -225,7 +225,7 @@ const SWAP_L3: &str = "fn swap(a: u64, b: u64) -> (u64, u64)\n  req true\n  ens 
 /// AUTHORITY: `.design/basis/10-recursion-tuples.md` AC-4 — the GROUNDED form
 /// (`2 verified, 0 errors`): `(u64, u64)` lowers to a Verus tuple type, `(b, a)`
 /// to a Verus tuple, `result.0`/`result.1` to native Verus projections.
-/// `thermite-design.md` §6: a fully-discharged verus proof is L3.
+/// `fluffy-design.md` §6: a fully-discharged verus proof is L3.
 #[test]
 fn ac4_swap_tuple_projection_certifies_l3() {
     if !verus_present() {
@@ -249,7 +249,7 @@ fn ac4_swap_tuple_projection_certifies_l3() {
 ///
 /// AUTHORITY: `.design/basis/10-recursion-tuples.md` AC-5 — `(a, b)` under the
 /// projection `ens` (`result.0 == b`) FAILS verus (`postcondition not satisfied`)
-/// — the projection contract is real, not vacuous. `thermite-design.md` §7: the
+/// — the projection contract is real, not vacuous. `fluffy-design.md` §7: the
 /// battery catches the false claim. The §7 vacuity gate is respected.
 #[test]
 fn ac5_wrong_body_under_projection_ens_is_rejected() {

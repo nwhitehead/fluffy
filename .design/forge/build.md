@@ -1,27 +1,27 @@
-# forge build — lower a Thermite program to executable Rust and compile it with rustc into a contract-checked artifact
+# forge build — lower a Fluffy program to executable Rust and compile it with rustc into a contract-checked artifact
 <!--
 tier: 3-component
 status: draft
 governs: forge/src/build.rs
 thesis-refs:
-  - thermite-design.md §3
-  - thermite-design.md §5.3
-  - thermite-design.md §6
-  - thermite-design.md §9
-  - thermite-design.md Appendix A
-  - thermite-design.md Appendix B
+  - fluffy-design.md §3
+  - fluffy-design.md §5.3
+  - fluffy-design.md §6
+  - fluffy-design.md §9
+  - fluffy-design.md Appendix A
+  - fluffy-design.md Appendix B
 -->
 
 ## Summary
 
-`forge build <file.th>` is the missing assembly step that turns a verified Thermite
+`forge build <file.th>` is the missing assembly step that turns a verified Fluffy
 program into a compiled, runnable artifact: parse → validate → effect-check →
-(reuse `forge check`'s verification) → `thermite_lower::lower_l1` to a self-contained
+(reuse `forge check`'s verification) → `fluffy_lower::lower_l1` to a self-contained
 executable Rust crate → invoke real `rustc`/`cargo` → a compiled artifact whose L1
-`thermite_check!` contract checks are baked in and active in EVERY build profile
+`fluffy_check!` contract checks are baked in and active in EVERY build profile
 (§6). It is the SAME pipeline shape as `forge check` (the per-item parse→validate→
 effect→lower→backend loop), but the backend is `rustc` (COMPILE) instead of `verus`
-(VERIFY). There is **no new compiler**: Thermite transpiles to Rust and rustc/LLVM
+(VERIFY). There is **no new compiler**: Fluffy transpiles to Rust and rustc/LLVM
 is the codegen backend (§3, the stack). Alongside the artifact, `forge build` emits a
 **build manifest** recording the artifact path, the achieved assurance level (reusing
 `forge check`'s `Certificate`/`AssuranceManifest`), the per-fn `fx` rows, and
@@ -33,9 +33,9 @@ NOT-STARTED, blocked on issue #56. This doc is the forward-looking contract the
 builder implements against; it is grounded against real `rustc` (see Verification).
 
 > **Appendix B note.** `forge build` is **not** in the v0.1 command surface listed in
-> `thermite-design.md` Appendix B (which lists `new`/`goal`/`fill`/`edit`/`check`/
+> `fluffy-design.md` Appendix B (which lists `new`/`goal`/`fill`/`edit`/`check`/
 > `battery`/`audit`/`skill`/`repair`). It is an additive command tracked by crosslink
-> issue #56, motivated by §3 ("Thermite lowers to Rust … inheriting the optimizer")
+> issue #56, motivated by §3 ("Fluffy lowers to Rust … inheriting the optimizer")
 > and §6 (L1 checks "active all profiles") — the toolchain already EMITS compilable,
 > runnable Rust at L1 (`tests/golden/l1/sum.l1.rs` is compiled and run under real
 > rustc by `l1_conformance.rs`), so `build` is the documented act of turning that
@@ -45,10 +45,10 @@ builder implements against; it is grounded against real `rustc` (see Verificatio
 ## Requirements
 
 - **REQ-1 (build pipeline: lower_l1 → emit crate → rustc → artifact).** Derived from
-  §3 (Thermite lowers to Rust; rustc/LLVM is codegen) + §6 (L1 active all profiles).
+  §3 (Fluffy lowers to Rust; rustc/LLVM is codegen) + §6 (L1 active all profiles).
   `forge build <file.th>` runs the same front of the pipeline `forge check` runs —
-  `thermite_syntax::parse` → `thermite_spec::validate` → `thermite_lower::check_effects`
-  — then `thermite_lower::lower_l1` to a single self-contained executable Rust source,
+  `fluffy_syntax::parse` → `fluffy_spec::validate` → `fluffy_lower::check_effects`
+  — then `fluffy_lower::lower_l1` to a single self-contained executable Rust source,
   emits it as a crate file, and invokes `rustc`/`cargo` to produce a compiled artifact.
   Any front-of-pipeline failure short-circuits into a `ForgeError` exactly as
   `check_file` does; no stage is skipped.
@@ -65,7 +65,7 @@ builder implements against; it is grounded against real `rustc` (see Verificatio
   on every exit path (the #53 leak lesson; compiled binaries are large).
 
 - **REQ-3 (artifact form: a compiled library, with an optional generated entry runner).**
-  Derived from §3 + §9 (a Thermite program is a library of contract-carrying `fn`s; the
+  Derived from §3 + §9 (a Fluffy program is a library of contract-carrying `fn`s; the
   corpus `sum`/`binary_search` have no `main`) and the #57 setup requirement. The v0.1
   baseline deliverable is a **compiled library** (`--crate-type=rlib`) of the
   L1-checked fns. `forge build --entry <fn>` additionally appends a deterministic
@@ -77,10 +77,10 @@ builder implements against; it is grounded against real `rustc` (see Verificatio
 
 - **REQ-4 (L1 checks baked in, active in every build profile).** Derived from §6 ("L1 …
   active all profiles") and the §3 active-all-profiles fix. The compiled artifact
-  carries the always-active `thermite_check!` macro (a plain `if !(cond)`, NOT
+  carries the always-active `fluffy_check!` macro (a plain `if !(cond)`, NOT
   `debug_assert!`) that `lower_l1` emits, so every `req`/`ens`/loop-`inv` clause fires
   on violation in any profile (debug or release). `forge build` does not strip or gate
-  the checks; the emitted `thermite_contract_violation` handler is the artifact's
+  the checks; the emitted `fluffy_contract_violation` handler is the artifact's
   defined contract-failure behavior.
 
 - **REQ-5 (build manifest: artifact path, assurance level, fx rows, reproducibility).**
@@ -130,7 +130,7 @@ below (Verification) against real rustc.
   non-zero exit is a hard fail surfaced as `ForgeError`).
 
 - **AC-2 (checks baked in).** The compiled artifact's source contains the always-active
-  `thermite_check!` macro (`if !($cond)`) and NO `debug_assert` — the §6 every-profile
+  `fluffy_check!` macro (`if !($cond)`) and NO `debug_assert` — the §6 every-profile
   property is structurally present (the same check `l1_conformance.rs::
   no_debug_assert_in_emission` asserts on the lowered source).
 
@@ -142,7 +142,7 @@ below (Verification) against real rustc.
 - **AC-4 (the check FIRES on a violation, observably).** A corrupted sum body
   (`acc = acc + xs[i] as u64` → `… + 1`) still COMPILES (rustc exit 0 — only the
   runtime check is affected), but the built binary, run, ABORTS with a non-zero exit
-  and the structured diagnostic `thermite L1 contract violation [inv]` (or `[ens]`) —
+  and the structured diagnostic `fluffy L1 contract violation [inv]` (or `[ens]`) —
   the contract failure is OBSERVABLE, never silent (this is the #57-relevant kill
   behavior; mirrors `l1_conformance.rs::negative_fixture_fires_violation`).
 
@@ -181,17 +181,17 @@ below (Verification) against real rustc.
 
 `forge build` is structurally `forge check` with the verus backend swapped for rustc.
 The front of the pipeline is shared verbatim: `forge check`'s `check_file` (in
-`check.rs`) runs `thermite_syntax::parse` → `thermite_spec::validate` →
-`thermite_lower::check_effects`, then per item assembles an `item_subprogram`
+`check.rs`) runs `fluffy_syntax::parse` → `fluffy_spec::validate` →
+`fluffy_lower::check_effects`, then per item assembles an `item_subprogram`
 (`check.rs`) and lowers it. `forge build` reuses that front, then diverges at the
 backend:
 
-- **The lowering.** `forge check`'s L3 path calls `thermite_lower::lower` (Verus
+- **The lowering.** `forge check`'s L3 path calls `fluffy_lower::lower` (Verus
   source); `forge build` calls `pub fn lower_l1 in l1.rs`, which already emits a single
-  self-contained, runnable Rust source — the always-active `thermite_check!` macro +
-  `thermite_contract_violation` handler (`emit_check_macro` in `l1.rs`), every
+  self-contained, runnable Rust source — the always-active `fluffy_check!` macro +
+  `fluffy_contract_violation` handler (`emit_check_macro` in `l1.rs`), every
   combinator's executable form (`emit_combinator_l1_defs`, sourced from the
-  `thermite-spec` registry `l1` field), every `spec fn` as a real recursive Rust fn
+  `fluffy-spec` registry `l1` field), every `spec fn` as a real recursive Rust fn
   (`lower_spec_fn_l1`), and every `fn` with its `req`/`ens`/`inv` checks woven in
   (`lower_fn_l1`). `lower_l1` does NOT emit a `main` — the program is a library of fns
   (REQ-3, OQ-1). This is the same emission the L1 golden `tests/golden/l1/sum.l1.rs`
@@ -233,7 +233,7 @@ Boundaries (what `forge build` is NOT):
 - The runtime seccomp SANDBOX is #57 — this doc only documents the two hooks `forge
   build` hands it (the runnable executable + the per-fn `fx` rows). v0.1 effects are
   compile-time-only (R-SPEC-5, issue #21).
-- Cross-platform packaging, optimization-flag selection, multi-file Thermite projects:
+- Cross-platform packaging, optimization-flag selection, multi-file Fluffy projects:
   future work, out of v0.1 scope.
 
 ## Verification
@@ -254,10 +254,10 @@ the `conformance/build/` oracle the orchestrator authors, reusing the corpus and
   gauntlet).
 
 **This doc is grounded against real rustc (rustc 1.95.0).** The exact `lower_l1` output
-for `conformance/sum.th` was emitted (the production `thermite_lower::lower_l1`), then:
+for `conformance/sum.th` was emitted (the production `fluffy_lower::lower_l1`), then:
 
 1. **Library form (REQ-3 baseline).** Compiled `--crate-type=rlib --crate-name
-   sum_thermite` → **rustc exit 0**, produced `libsum_thermite.rlib` (the L1-checked fns
+   sum_fluffy` → **rustc exit 0**, produced `libsum_fluffy.rlib` (the L1-checked fns
    as a library; rustc emits dead-code WARNINGS for the unused fns, not errors — AC-1).
 2. **Executable form (REQ-3 `--entry`).** Appended a generated `fn main() { let r =
    sum(&[1u32,2,3]); println!("sum(&[1,2,3]) = {r}"); }` runner, compiled → **rustc exit
@@ -267,7 +267,7 @@ for `conformance/sum.th` was emitted (the production `thermite_lower::lower_l1`)
 3. **Violation form (REQ-4 / AC-4 — the #57 kill behavior).** Corrupted the fold
    (`+ xs[i] as u64` → `+ xs[i] as u64 + 1`); the binary still **compiled (rustc exit
    0)** but, run, ABORTED with **exit 101** and printed
-   `thermite L1 contract violation [inv]: acc == spec_sum(&xs[..i])` — the always-active
+   `fluffy L1 contract violation [inv]: acc == spec_sum(&xs[..i])` — the always-active
    check fired observably, never reaching the runner's tail.
 4. **Reproducibility (REQ-5 / AC-6, §5.3).** The `lower_l1` source was **bit-identical**
    across two emissions (forge-owned determinism). The original grounding (ABSOLUTE source
@@ -295,13 +295,13 @@ must:
   - the positive `--entry sum` expected stdout `sum(&[1,2,3]) = 6` (R-CHAR-3:
     hand-derived from Appendix A's `spec_sum`, not toolchain output) — AC-3.
   - the corrupted-body fixture (`acc = acc + xs[i] as u64 + 1;`) + its expected non-zero
-    exit and `thermite L1 contract violation [inv]`/`[ens]` diagnostic — AC-4.
+    exit and `fluffy L1 contract violation [inv]`/`[ens]` diagnostic — AC-4.
   - an un-compilable fixture (or an injected source edit) for the AC-7 exit-status check.
   - the expected build-manifest `sum` row: `"effects": ["pure"]` (Appendix A) — AC-5.
 
 ## Open questions
 
-- **OQ-1 (load-bearing — the entry-point form).** A v0.1 Thermite program is a library
+- **OQ-1 (load-bearing — the entry-point form).** A v0.1 Fluffy program is a library
   of fns with no `main` (the corpus). What runnable form does `forge build` produce for
   #57? Options laid out:
   - (a) **library only** (`.rlib`) — the baseline; but #57 needs a runnable binary, so
@@ -333,10 +333,10 @@ must:
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (build pipeline: lower_l1 → emit → rustc) | SHIPPED | `pub fn build_file in build.rs` runs `parse`/`validate`/`check_effects` (the `check_file` front, via `parse_program`), `thermite_lower::lower_l1` (via `emit_source`), writes a crate, invokes `rustc` (`invoke_rustc`); short-circuits into `ForgeError`. Consumer: `cli::run_build` (`cli.rs`). Verified by `build_conformance::sum_runs` + `sum_builds_as_library`. |
+| REQ-1 (build pipeline: lower_l1 → emit → rustc) | SHIPPED | `pub fn build_file in build.rs` runs `parse`/`validate`/`check_effects` (the `check_file` front, via `parse_program`), `fluffy_lower::lower_l1` (via `emit_source`), writes a crate, invokes `rustc` (`invoke_rustc`); short-circuits into `ForgeError`. Consumer: `cli::run_build` (`cli.rs`). Verified by `build_conformance::sum_runs` + `sum_builds_as_library`. |
 | REQ-2 (rustc invocation; exit-status; crate-name gotcha) | SHIPPED | `invoke_rustc in build.rs` passes `--crate-name` (no `.` — `crate_name_for`), `--edition 2021`, checks `status.success()` → `ForgeError::RustcOutput`; spawn ENOENT → `ForgeError::RustcAbsent`; reuses `check::ScratchDir`'s Drop guard + `unique_scratch_dir` to remove the crate dir wholesale. `RustcAbsent`/`RustcSpawn`/`RustcOutput` added to `ForgeError` in `cli.rs`. Verified by `uncompilable_lowering_is_nonzero_exit` (AC-7). |
 | REQ-3 (artifact form: library + optional `--entry` runner) | SHIPPED | `build_file(path, None)` → `CrateType::Rlib`; `build_file(path, Some(fn))` → `CrateType::Bin` with `synthesize_entry_main`'s deterministic runner (`&[u32]` → `&[1u32,2,3]`, scalars → fixed literals). Verified by `sum_runs` (exe prints `6`) + `sum_builds_as_library`. |
-| REQ-4 (L1 checks baked in, all profiles) | SHIPPED | the artifact is `lower_l1`'s output verbatim (the always-active `thermite_check!`, NOT `debug_assert!`); `build_file` never strips it. Verified by `ens_violation_fires_at_runtime` (the runtime `[ens]` check fires, non-zero exit) + `checks_are_baked_in` (AC-2: macro present, no `debug_assert`). |
+| REQ-4 (L1 checks baked in, all profiles) | SHIPPED | the artifact is `lower_l1`'s output verbatim (the always-active `fluffy_check!`, NOT `debug_assert!`); `build_file` never strips it. Verified by `ens_violation_fires_at_runtime` (the runtime `[ens]` check fires, non-zero exit) + `checks_are_baked_in` (AC-2: macro present, no `debug_assert`). |
 | REQ-5 (build manifest: path, level, fx rows, reproducibility) | SHIPPED | `struct BuildManifest in build.rs` composes the artifact path + `CrateType`, the assurance string `"L1 (built, runtime-checked)"`, the per-fn `fx` rows (`effects_of` via `build_functions`), and the `Reproducibility` block (pinned `rustc` identity via `resolve_rustc_version` + `SOURCE_DATE_EPOCH=0`). Consumer: `cli::run_build` (human `render_build` + `--json`). Verified by `rebuilt_library_is_byte_identical` (AC-6: byte-identical rlib via `SOURCE_DATE_EPOCH` + `--remap-path-prefix`). |
 | REQ-6 (#57 hook: runnable exe + fx rows) | SHIPPED | the `--entry` runnable binary (REQ-3) + `BuildManifest::functions` `fx` rows (`sum` → `["pure"]`); v0.1 installs no sandbox (R-SPEC-5). Verified by `sum_runs` (`fx == ["pure"]` + the binary runs). |
 | REQ-7 (`--out <PATH>`: place the artifact at a user-named runnable path) | SHIPPED | `build_file(.., out: Option<&Path>)` copies the stable /tmp artifact to `<PATH>` via `place_artifact in build.rs` (overwrite + `chmod +x`; #128), reports `<PATH>` as `BuildManifest::artifact`; `None` keeps the existing /tmp path; a bad `<PATH>` → `ForgeError::Io`. Consumer: `cli::run_build` threads the `--out`/`-o` flag (`Command::Build.out`). Verified by `build_conformance::out_places_runnable_binary` (AC-8: placed, executable, runs, prints 6) + `out_bad_path_is_structured_error` (structured error, no panic) + `cli::parses_build_out_flag`. |

@@ -1,13 +1,13 @@
-# Thermite Parser (recovering recursive descent)
+# Fluffy Parser (recovering recursive descent)
 <!--
 tier: 3-component
 status: draft
-governs: thermite-syntax/src/parser.rs
+governs: fluffy-syntax/src/parser.rs
 thesis-refs:
-  - thermite-design.md §4.1
-  - thermite-design.md §4.3
-  - thermite-design.md §4.4
-  - thermite-design.md §2 (pillar 4 crisp feedback, pillar 5 locality)
+  - fluffy-design.md §4.1
+  - fluffy-design.md §4.3
+  - fluffy-design.md §4.4
+  - fluffy-design.md §2 (pillar 4 crisp feedback, pillar 5 locality)
 references:
   - conformance/sum.th
   - conformance/binary_search.th
@@ -159,7 +159,7 @@ This doc is GREENFIELD / FORWARD-LOOKING: no `parser.rs` exists. Every REQ is
 
 ## Architecture
 
-A hand-written recursive-descent parser in `thermite-syntax/src/parser.rs` with a
+A hand-written recursive-descent parser in `fluffy-syntax/src/parser.rs` with a
 cursor over the `Vec<Token>` from `lexer.md`. One function per grammar family.
 
 **Expression ladder (REQ-1, REQ-8).** The existing ladder
@@ -206,7 +206,7 @@ contract.
 
 ## Verification
 
-`cargo test -p thermite-syntax` against `conformance/parse/`:
+`cargo test -p fluffy-syntax` against `conformance/parse/`:
 - round-trip / AST-shape fixtures for the corpus (AC-1);
 - missing/misordered-clause negatives (AC-2);
 - `recover_per_item` (AC-3);
@@ -219,7 +219,7 @@ contract.
   loop-nested-`if` `break;` is accepted (AC-8).
 
 The operator + literal SEMANTICS are GROUNDED end-to-end through `forge`/
-`thermite-lower` certifying real Verus (`ast.md` Verification). The `break`/
+`fluffy-lower` certifying real Verus (`ast.md` Verification). The `break`/
 `continue` END-TO-END verification semantics (invariant-at-continue, decreases
 interaction, break-exit, diverge-loop) are owned + GROUNDED in
 `verus-lowering.md` (#93). Expected ASTs are hand-derived (R-CHAR-3).

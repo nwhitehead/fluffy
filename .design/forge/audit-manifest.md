@@ -4,16 +4,16 @@ tier: 3-component
 status: draft
 governs: forge/src/audit.rs
 thesis-refs:
-  - thermite-design.md §6
-  - thermite-design.md §8
-  - thermite-design.md §9
-  - thermite-design.md Appendix A
-  - thermite-design.md Appendix B
+  - fluffy-design.md §6
+  - fluffy-design.md §8
+  - fluffy-design.md §9
+  - fluffy-design.md Appendix A
+  - fluffy-design.md Appendix B
 -->
 
 ## Summary
 
-`thermite-design.md` §6 promises: "The certificate attached to a build artifact
+`fluffy-design.md` §6 promises: "The certificate attached to a build artifact
 lists every function's level, every `#[slag]` block, and the contract-quality
 scores from §7. This manifest **is** the deliverable's trust statement." This
 component is that aggregate manifest: a **stable, versioned project-level
@@ -102,11 +102,11 @@ The v1 field set, in three sections:
      `boundary_target` + its enforced contract (the `req`/`ens`/`fx`, §9
      per-function contracts),
    - `toolchain` — the toolchain identity: the `verus` version
-     (`resolve_verus_version` in `check.rs`) and the `thermite`/`forge` version
-     (`THERMITE_VERSION = env!("CARGO_PKG_VERSION")` in `check.rs`).
+     (`resolve_verus_version` in `check.rs`) and the `fluffy`/`forge` version
+     (`FLUFFY_VERSION = env!("CARGO_PKG_VERSION")` in `check.rs`).
 
 The TCB section is EMPTY of `slag_blocks` and `boundary_contracts` for a
-pure-Thermite project (only the `toolchain` entry remains — the irreducible base
+pure-Fluffy project (only the `toolchain` entry remains — the irreducible base
 every artifact trusts). That empty-but-for-toolchain state is the §9 "verified,
 period" claim, mechanically witnessed.
 
@@ -133,22 +133,22 @@ not the version-sensitive ratio string (OQ-2).
   aggregate: level headline + project scope + lowered-assurance list), and the
   `tcb` section (slag_blocks ∪ boundary_contracts ∪ toolchain). Additive
   evolution only (`#[serde(default, skip_serializing_if)]` precedent). Derived
-  from `thermite-design.md` §6 (the manifest IS the trust statement: level +
+  from `fluffy-design.md` §6 (the manifest IS the trust statement: level +
   slag + §7 scores) + R-SPEC-2/R-SPEC-3 (a stable versioned contract).
 - **REQ-2 (`forge audit <file>` — emit JSON + human summary):** a `forge audit
   <file>` command runs the check pipeline over the file (the same
   `check::check_file_with_options` the default `forge check` runs — NO extra
   verification, NO re-derivation), aggregates the resulting cert collection into
   an `AuditManifest`, and emits it as `--json` (the stable document) or a human
-  summary (the default). Derived from `thermite-design.md` Appendix B (`forge
+  summary (the default). Derived from `fluffy-design.md` Appendix B (`forge
   audit` = "full slag + boundary + assurance inventory") + §5.1 (structured,
   machine-readable, rendered to text).
 - **REQ-3 (the TCB enumeration = slag ∪ boundary ∪ toolchain):** the `tcb`
   section enumerates EVERY `#[slag]` block (name + reason/owner/review), EVERY
   `#[boundary]` contract (name + foreign target + the enforced req/ens/fx), and
-  the toolchain identity (verus version + thermite version). Nothing
+  the toolchain identity (verus version + fluffy version). Nothing
   fiat-trusted is omitted: the TCB is exactly (slag ∪ boundary ∪ toolchain).
-  Derived from `thermite-design.md` §9 ("the trusted computing base is
+  Derived from `fluffy-design.md` §9 ("the trusted computing base is
   enumerable — it is exactly (slag blocks ∪ boundary contracts ∪ the toolchain
   itself)") + §8 (`grep slag` is the complete inventory) + `goal.md` R-DEFER-9
   (the manifest must HONESTLY enumerate the entire fiat-trusted base).
@@ -176,7 +176,7 @@ not the version-sensitive ratio string (OQ-2).
 ACs tie to a `conformance/audit/` oracle (a hand-derived JSON cases file, the
 `conformance/boundary/cases.json` / `conformance/e2e/cases.json` precedent —
 authored by the orchestrator, NOT this doc; R-CHAR-3, expected values
-hand-derived from `thermite-design.md`, never copied from forge output).
+hand-derived from `fluffy-design.md`, never copied from forge output).
 
 - **AC-1 (pure corpus → all-L3, project end-to-end, contract_quality present,
   TCB empty-but-toolchain):** `forge audit conformance/sum.th` emits an
@@ -185,7 +185,7 @@ hand-derived from `thermite-design.md`, never copied from forge output).
   `Certified(L3)` END-TO-END; each fn row carries a `contract_quality` block
   (shape asserted, not the version-sensitive ratio — OQ-2); and the `tcb`
   section has EMPTY `slag_blocks` and EMPTY `boundary_contracts`, with only the
-  `toolchain` (verus + thermite versions) populated — the §9 "verified, period"
+  `toolchain` (verus + fluffy versions) populated — the §9 "verified, period"
   TCB. Same for `conformance/binary_search.th`.
 - **AC-2 (slag + boundary file → TCB lists BOTH):** `forge audit` over a fixture
   containing a valid `#[slag(reason=…, owner=…, review=…)]` fn AND a
@@ -220,7 +220,7 @@ The manifest is a new pure aggregation module, expected at `forge/src/audit.rs`
 (the route the orchestrator must add — see Verification). It depends ONLY on the
 certificate collection `check::check_file_with_options` returns, the
 `AssuranceManifest::aggregate` over that collection (both in `manifest.rs`), and
-the two version strings (`resolve_verus_version` + `THERMITE_VERSION`, both in
+the two version strings (`resolve_verus_version` + `FLUFFY_VERSION`, both in
 `check.rs`). It owns NO prover invocation and computes NO verdict — it LAYERS a
 stable serializable trust statement on top of the per-fn certificates `forge
 check` already produced (the §6 "the certificate IS the trust statement" made a
@@ -239,7 +239,7 @@ check::check_file_with_options(file, default)  ── the SAME pipeline forge ch
 manifest::AssuranceManifest::aggregate(&certs)  ── project headline (min level) + ProjectScope (§9)
       │
       ▼
-audit::AuditManifest::from(&certs, &assurance, verus_version, THERMITE_VERSION)
+audit::AuditManifest::from(&certs, &assurance, verus_version, FLUFFY_VERSION)
       │   functions[]  (project per-fn rows)
       │   project_assurance  (the #10/#17 aggregate)
       │   tcb  (slag_blocks ∪ boundary_contracts ∪ toolchain)  ── §9 enumerable TCB, R-DEFER-9
@@ -259,12 +259,12 @@ re-parsing the source.
 ### Why the toolchain identity is part of the TCB (R-DEFER-9)
 
 §9 states the TCB is *exactly* (slag ∪ boundary ∪ the toolchain itself). Omitting
-the toolchain identity would make a pure-Thermite project's TCB appear empty,
+the toolchain identity would make a pure-Fluffy project's TCB appear empty,
 which is dishonest — every artifact trusts the prover that produced its
-certificates. The `toolchain` entry (verus version + thermite version) is the
+certificates. The `toolchain` entry (verus version + fluffy version) is the
 irreducible residue, so even an all-L3 end-to-end project has a non-empty,
 honestly-enumerated TCB. The two versions are the same strings the proof cache
-keys on (`resolve_verus_version` + `THERMITE_VERSION` in `check.rs`), so the TCB
+keys on (`resolve_verus_version` + `FLUFFY_VERSION` in `check.rs`), so the TCB
 identity and the cache provenance agree.
 
 ## Verification
@@ -291,7 +291,7 @@ identity and the cache provenance agree.
     `#[boundary("ext::foreign_id")]` fn (modeled on
     `conformance/boundary/cases.json`'s `foreign_id`): the TCB lists BOTH (slag
     with reason/owner/review; boundary with target + contract) (AC-2).
-  - `to_boundary_project` — a pure-Thermite caller whose closure reaches the
+  - `to_boundary_project` — a pure-Fluffy caller whose closure reaches the
     boundary fn (modeled on `conformance/e2e/cases.json`'s `boundary_caller`):
     `project_assurance` is `ToBoundary` listing the crossing (AC-3).
 - **Crate gauntlet (the kernel discipline):** `cargo test -p forge`, `cargo

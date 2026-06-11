@@ -9,8 +9,8 @@
 //!
 //! ## Why this module exists (the GROUNDED gap)
 //!
-//! `thermite_lower::lower_l1` lowers a `#[boundary("os::now")]` fn to an L1 wrapper
-//! whose crossing is `let result = os::now();` (`thermite-lower/src/l1.rs`
+//! `fluffy_lower::lower_l1` lowers a `#[boundary("os::now")]` fn to an L1 wrapper
+//! whose crossing is `let result = os::now();` (`fluffy-lower/src/l1.rs`
 //! `lower_boundary_fn_l1`). With no `os` module in the generated crate, raw `rustc`
 //! fails `error[E0433]: cannot find module or crate \`os\``. Stage 8 supplies the
 //! missing module: [`emit_mod_os`] prepends a `mod os { pub fn now() -> u64 { … } }`
@@ -20,7 +20,7 @@
 //! ## The decision (OQ-1/OQ-2, resolved emit-`mod os`, inline table)
 //!
 //! Per `08-runnable-effect-link.md` OQ-1, the link EMITS a self-contained `mod os`
-//! into the crate (option (a)) rather than linking a `thermite-stdlib` crate
+//! into the crate (option (a)) rather than linking a `fluffy-stdlib` crate
 //! dependency (option (b)) — keeping the single-source raw-`rustc` build hermetic
 //! (no `cargo`/dependency resolution, `build.md` OQ-2). Per OQ-2, the target→source
 //! table lives INLINE here in `forge/src/` (the orchestrator's settled packaging) —
@@ -40,7 +40,7 @@
 //!
 //! | REQ | Status | Evidence |
 //! |---|---|---|
-//! | REQ-1 (the `os::<name>` wrapper stdlib — real `std` syscall bodies) | SHIPPED | the [`WRAPPERS`] table holds a real `std` body for each v1 target: `os::now` (`SystemTime::now()`), `os::read_byte`/`os::read_key`/`os::read_line` (`std::io::stdin().read`/`read_line`), `os::key_str` (a keystroke byte → a bounded 1-byte `TString`, the editor's host glue the surface lacks), `os::write`/`os::print` (`std::io::stdout().write_all`), the editor's terminal-control + render boundaries `os::raw_mode_on`/`os::raw_mode_off`/`os::read_key_raw`/`os::write_frame` (#90), and the editor's file-LOAD/SAVE boundaries `os::read_file` (`std::fs::read` of the fixed `THERMITE_EDITOR_FILE`/`/tmp` path → empty `TString` on error) / `os::write_file` (`std::fs::write`, 0/1 status, #125). Consumer: [`emit_mod_os`] (emitted into the generated crate by `build::emit_source`). Verified by `effect_link_conformance::elapsed_ok_builds_and_runs` (the linked `os::now` runs a real `clock_gettime`) + `effect_wrappers::tests::{read_key_wrapper_mirrors_read_byte_eof_sentinel,key_str_wrapper_is_bounded_one_byte_string,read_file_wrapper_is_total_empty_on_error,write_file_wrapper_is_total_status_arm}` (the editor's terminal-I/O + file-I/O wrappers) + the runnable editor `forge/tests/editor_runs.rs` (the linked `os::read_key_raw`/`os::write_frame`/`os::read_file`/`os::write_file` build + run with piped multi-line keystrokes + a save). |
+//! | REQ-1 (the `os::<name>` wrapper stdlib — real `std` syscall bodies) | SHIPPED | the [`WRAPPERS`] table holds a real `std` body for each v1 target: `os::now` (`SystemTime::now()`), `os::read_byte`/`os::read_key`/`os::read_line` (`std::io::stdin().read`/`read_line`), `os::key_str` (a keystroke byte → a bounded 1-byte `TString`, the editor's host glue the surface lacks), `os::write`/`os::print` (`std::io::stdout().write_all`), the editor's terminal-control + render boundaries `os::raw_mode_on`/`os::raw_mode_off`/`os::read_key_raw`/`os::write_frame` (#90), and the editor's file-LOAD/SAVE boundaries `os::read_file` (`std::fs::read` of the fixed `FLUFFY_EDITOR_FILE`/`/tmp` path → empty `TString` on error) / `os::write_file` (`std::fs::write`, 0/1 status, #125). Consumer: [`emit_mod_os`] (emitted into the generated crate by `build::emit_source`). Verified by `effect_link_conformance::elapsed_ok_builds_and_runs` (the linked `os::now` runs a real `clock_gettime`) + `effect_wrappers::tests::{read_key_wrapper_mirrors_read_byte_eof_sentinel,key_str_wrapper_is_bounded_one_byte_string,read_file_wrapper_is_total_empty_on_error,write_file_wrapper_is_total_status_arm}` (the editor's terminal-I/O + file-I/O wrappers) + the runnable editor `forge/tests/editor_runs.rs` (the linked `os::read_key_raw`/`os::write_frame`/`os::read_file`/`os::write_file` build + run with piped multi-line keystrokes + a save). |
 //! | REQ-2 (`forge build` LINKS via emit-`mod os` keyed off boundary targets) | SHIPPED | [`emit_mod_os`] assembles a `mod os { … }` carrying EXACTLY the wrappers in the given target set (sorted, deterministic); `build::reachable_boundary_targets` keys it off the program's `#[boundary]` fns; `build::emit_source` prepends it. Verified by `effect_link_conformance::elapsed_ok_builds_and_runs` (rustc exit 0, no `E0433`) + `effect_wrappers::tests::emits_only_named_wrappers`. |
 //! | REQ-3 (a verified program COMPILES + RUNS + does real I/O) | SHIPPED | the linked `os::now` wrapper does a real `clock_gettime` → `elapsed_ok()` prints a live Unix timestamp. Verified by `effect_link_conformance::elapsed_ok_builds_and_runs` (run exit 0, output is a u64 < 4_000_000_000). |
 
@@ -57,7 +57,7 @@ struct Wrapper {
     name: &'static str,
     /// The full `pub fn <name>(…) -> … { <real std body> }` source, emitted verbatim
     /// inside `mod os { … }`. Signed to MATCH the boundary's lowered signature
-    /// (`thermite-lower/src/l1.rs` `lower_boundary_fn_l1`: the wrapper forwards its
+    /// (`fluffy-lower/src/l1.rs` `lower_boundary_fn_l1`: the wrapper forwards its
     /// params to `os::<name>(args)`).
     source: &'static str,
 }
@@ -174,7 +174,7 @@ const WRAPPERS: &[Wrapper] = &[
     // termios). MUST run on the editor's exit path so the terminal is never left in
     // raw mode. A no-op (returns 0) when raw mode was never entered (no saved
     // termios — the non-TTY/piped case) or on a `tcsetattr` error (returns 1), never
-    // a panic. Shares the `__THERMITE_ORIG_TERMIOS` OnceLock + the extern-C decls
+    // a panic. Shares the `__FLUFFY_ORIG_TERMIOS` OnceLock + the extern-C decls
     // with `raw_mode_on` (emitted once in `TERMIOS_RAW_MODE_SOURCE`); this entry is
     // EMPTY so the pair is emitted exactly once even when both targets are named.
     Wrapper {
@@ -221,33 +221,33 @@ const WRAPPERS: &[Wrapper] = &[
                  Err(_) => 1,\n        }\n    }\n",
     },
     // os::read_file (the editor's file-LOAD boundary, #125) — read the editor's fixed
-    // demo file (THERMITE_EDITOR_FILE) into a Stage-7 `String` (the lowered `TString`
+    // demo file (FLUFFY_EDITOR_FILE) into a Stage-7 `String` (the lowered `TString`
     // newtype, `pub data: Vec<u8>`). The v0.1 `forge build --entry run` synthesizes no
-    // path arg, so the load source is a FIXED path: the `THERMITE_EDITOR_FILE` env var
-    // if set, else `/tmp/thermite_editor.txt`. A missing file / read error yields the
+    // path arg, so the load source is a FIXED path: the `FLUFFY_EDITOR_FILE` env var
+    // if set, else `/tmp/fluffy_editor.txt`. A missing file / read error yields the
     // EMPTY string (the honest arm — a fresh buffer), NEVER a panic. The byte content
     // is taken verbatim (`\n` bytes are preserved — the multi-line buffer is one
     // String). Trusted-by-fiat, #57-confined to the `read`/`open` syscall set.
     Wrapper {
         name: "read_file",
         source: "    pub fn read_file() -> super::TString {\n        \
-                 let path = std::env::var(\"THERMITE_EDITOR_FILE\")\n            \
-                 .unwrap_or_else(|_| \"/tmp/thermite_editor.txt\".to_string());\n        \
+                 let path = std::env::var(\"FLUFFY_EDITOR_FILE\")\n            \
+                 .unwrap_or_else(|_| \"/tmp/fluffy_editor.txt\".to_string());\n        \
                  match std::fs::read(&path) {\n            \
                  Ok(bytes) => super::TString { data: bytes },\n            \
                  Err(_) => super::TString { data: Vec::new() },\n        }\n    }\n",
     },
     // os::write_file (the editor's file-SAVE boundary, #125 — Ctrl-S) — write the
-    // buffer `String`'s bytes to the editor's fixed demo file (THERMITE_EDITOR_FILE if
-    // set, else `/tmp/thermite_editor.txt`). Returns a status u64 (0 = ok, 1 = I/O
+    // buffer `String`'s bytes to the editor's fixed demo file (FLUFFY_EDITOR_FILE if
+    // set, else `/tmp/fluffy_editor.txt`). Returns a status u64 (0 = ok, 1 = I/O
     // error), the honest closed status arm, NEVER a panic. The bytes (incl. the `\n`
     // line breaks) are written verbatim — the multi-line buffer round-trips through
     // read_file. Trusted-by-fiat, #57-confined to the `open`/`write` syscall set.
     Wrapper {
         name: "write_file",
         source: "    pub fn write_file(s: super::TString) -> u64 {\n        \
-                 let path = std::env::var(\"THERMITE_EDITOR_FILE\")\n            \
-                 .unwrap_or_else(|_| \"/tmp/thermite_editor.txt\".to_string());\n        \
+                 let path = std::env::var(\"FLUFFY_EDITOR_FILE\")\n            \
+                 .unwrap_or_else(|_| \"/tmp/fluffy_editor.txt\".to_string());\n        \
                  match std::fs::write(&path, &s.data) {\n            \
                  Ok(()) => 0,\n            \
                  Err(_) => 1,\n        }\n    }\n",
@@ -257,7 +257,7 @@ const WRAPPERS: &[Wrapper] = &[
 /// The extern-C termios raw-mode wrapper pair (`os::raw_mode_on` + `os::raw_mode_off`,
 /// #90), emitted VERBATIM into `mod os` when EITHER target is named (the
 /// `raw_mode_off` table row is empty — this source carries both so the shared
-/// `extern "C"` decls + the `__THERMITE_ORIG_TERMIOS` OnceLock are emitted exactly
+/// `extern "C"` decls + the `__FLUFFY_ORIG_TERMIOS` OnceLock are emitted exactly
 /// once, never duplicated). The `Termios` struct + `tcgetattr`/`tcsetattr` are
 /// declared `extern "C"` and resolve against the std binary's already-linked libc
 /// (NO libc crate dependency — the SAME hermetic single-file path the #57 seccomp
@@ -286,7 +286,7 @@ const TERMIOS_RAW_MODE_SOURCE: &str = r#"    #[repr(C)]
     }
     // The original terminal mode, saved on the first `raw_mode_on` so `raw_mode_off`
     // can restore it. A process-global OnceLock (no Mutex/RefCell escape hatch).
-    static __THERMITE_ORIG_TERMIOS: std::sync::OnceLock<Termios> = std::sync::OnceLock::new();
+    static __FLUFFY_ORIG_TERMIOS: std::sync::OnceLock<Termios> = std::sync::OnceLock::new();
     pub fn raw_mode_on() -> u64 {
         const STDIN_FD: i32 = 0;
         const ICANON: u32 = 0x0000_0002;
@@ -307,7 +307,7 @@ const TERMIOS_RAW_MODE_SOURCE: &str = r#"    #[repr(C)]
             // graceful no-crash arm) — read_key_raw still reads the piped bytes.
             return 1;
         }
-        let _ = __THERMITE_ORIG_TERMIOS.set(t);
+        let _ = __FLUFFY_ORIG_TERMIOS.set(t);
         let mut raw = t;
         raw.c_lflag &= !(ICANON | ECHO);
         raw.c_cc[VMIN] = 1;
@@ -321,7 +321,7 @@ const TERMIOS_RAW_MODE_SOURCE: &str = r#"    #[repr(C)]
     pub fn raw_mode_off() -> u64 {
         const STDIN_FD: i32 = 0;
         const TCSANOW: i32 = 0;
-        match __THERMITE_ORIG_TERMIOS.get() {
+        match __FLUFFY_ORIG_TERMIOS.get() {
             // Restore the saved original mode. If raw mode was never entered (no
             // saved termios — the non-TTY/piped case), this is a clean no-op.
             Some(orig) => {
@@ -543,7 +543,7 @@ mod tests {
             "a read error yields the EMPTY string (fresh buffer), not a panic: {out}"
         );
         assert!(
-            out.contains("THERMITE_EDITOR_FILE"),
+            out.contains("FLUFFY_EDITOR_FILE"),
             "the load source is the fixed env/`/tmp` path (v0.1 synthesizes no arg): {out}"
         );
     }

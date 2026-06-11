@@ -184,7 +184,7 @@ fn to_boundary_cases_classify_via_the_crossing() {
         // #17 asserts the CLASSIFICATION only — `assurance_scope` is SYNTACTIC and
         // orthogonal to the fn's verification level (cases.json note). We do NOT
         // assert the caller certifies: a pure caller verifying *through* a boundary
-        // fn's contract (the §9 composition rule) needs thermite-lower to emit the
+        // fn's contract (the §9 composition rule) needs fluffy-lower to emit the
         // boundary fn as a verus-assumable signature — tracked separately as #52.
         // Until #52, a boundary-caller is L0 but still classified to-the-boundary.
         let cert = find_cert(&certs, item);

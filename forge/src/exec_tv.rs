@@ -9,11 +9,11 @@
 //! phase closes that gap for PURE EXEC-POSITION EXPRESSIONS (step 2.1): for each
 //! such expr it computes
 //!
-//!   `P_production = thermite_lower::lower_exec_expr(expr)`             (the artifact under test)
-//!   `reference    = thermite_tv::exec_ref_value(expr, …)`             (the INDEPENDENT bounded reference)
+//!   `P_production = fluffy_lower::lower_exec_expr(expr)`             (the artifact under test)
+//!   `reference    = fluffy_tv::exec_ref_value(expr, …)`             (the INDEPENDENT bounded reference)
 //!
 //! wraps them as the EXEC-FN obligation `fn tv_exec_wrap(..) ensures result ==
-//! <reference> { <P_production> }` (`thermite_tv::exec_equivalence_obligation`), and
+//! <reference> { <P_production> }` (`fluffy_tv::exec_equivalence_obligation`), and
 //! discharges it through `verus`. VERIFIED ⟺ the exec lowering of that expr is
 //! FAITHFUL (it computes the bounded reference VALUE for all inputs); a
 //! `postcondition not satisfied` / type / parse error ⟺ a real exec-lowering
@@ -21,13 +21,13 @@
 //! as `forge exec-tv <file>` — a SEPARATE opt-in deeper audit (like `forge tv`), NOT
 //! folded into `forge check`.
 //!
-//! `thermite-tv` stays INDEPENDENT of `thermite-lower` (the N-version boundary,
+//! `fluffy-tv` stays INDEPENDENT of `fluffy-lower` (the N-version boundary,
 //! AC-6): this forge module is the ONLY place the two exec encoders meet.
 //!
 //! ## Two runs (both surfaced; the GENERATED run is primary)
 //!
 //! - **The generated run ([`run_generated`], PRIMARY):** over
-//!   `thermite_tv::gen_exec_exprs` — the off-corpus #122/#146 regression guard
+//!   `fluffy_tv::gen_exec_exprs` — the off-corpus #122/#146 regression guard
 //!   (REQ-3). Each generated `ExecClause` carries an ADEQUATE FRAME (every base
 //!   scalar `<= 1000`, an index `< xs.len()`), so the FAITHFUL lowerer makes ALL
 //!   `Faithful`; ANY `Divergent`/`Unverifiable` is a REAL off-corpus exec-lowering
@@ -46,15 +46,15 @@
 //!
 //! | REQ | Status | Evidence |
 //! |---|---|---|
-//! | REQ-5 (forge plug-in point) | SHIPPED | `pub fn run_generated` (the off-corpus exec run — PRIMARY) + `pub fn exec_tv_file` (the corpus body-expr check — best-effort) here; both compute `P_production` via `thermite_lower::lower_exec_expr`, build the obligation via `thermite_tv::exec_equivalence_obligation`, and discharge it through `verus` (the `discharge` helper, reusing `crate::check::ScratchDir`/#53 cleanup). Non-test consumer: `cli::run_exec_tv` (the `forge exec-tv <file>` subcommand). The four-way classification (Faithful / Divergent / Unverifiable / Skipped) is REPORTED DISTINCTLY (never masking infidelity, R-HONEST-3). **#192 (ref #189):** `discharge` now gates an `errors >= 1` rlimit-hit run to Unverifiable AHEAD of the Divergent arm — via the SHARED `crate::tv_signal::is_rlimit_signal` discriminator (the prior copy-drift root cause: exec_tv had NO rlimit gate, mapping every error run to Divergent unconditionally) — so a Verus/Z3 solver-budget timeout is never fabricated into an exec infidelity. Verified by `forge/tests/exec_tv_conformance.rs` (the 200-clause generated all-faithful + the corpus honest coverage) under real verus + the `divergent_teeth` rlimit gate. This closes the `lower_exec_expr` consumer loop (R-DEFER-1). |
+//! | REQ-5 (forge plug-in point) | SHIPPED | `pub fn run_generated` (the off-corpus exec run — PRIMARY) + `pub fn exec_tv_file` (the corpus body-expr check — best-effort) here; both compute `P_production` via `fluffy_lower::lower_exec_expr`, build the obligation via `fluffy_tv::exec_equivalence_obligation`, and discharge it through `verus` (the `discharge` helper, reusing `crate::check::ScratchDir`/#53 cleanup). Non-test consumer: `cli::run_exec_tv` (the `forge exec-tv <file>` subcommand). The four-way classification (Faithful / Divergent / Unverifiable / Skipped) is REPORTED DISTINCTLY (never masking infidelity, R-HONEST-3). **#192 (ref #189):** `discharge` now gates an `errors >= 1` rlimit-hit run to Unverifiable AHEAD of the Divergent arm — via the SHARED `crate::tv_signal::is_rlimit_signal` discriminator (the prior copy-drift root cause: exec_tv had NO rlimit gate, mapping every error run to Divergent unconditionally) — so a Verus/Z3 solver-budget timeout is never fabricated into an exec infidelity. Verified by `forge/tests/exec_tv_conformance.rs` (the 200-clause generated all-faithful + the corpus honest coverage) under real verus + the `divergent_teeth` rlimit gate. This closes the `lower_exec_expr` consumer loop (R-DEFER-1). |
 
 use std::path::Path;
 use std::process::Command;
 
-use thermite_syntax::ast::{Expr, FnItem, IndexArg, Item, PrimType, Stmt, Type};
+use fluffy_syntax::ast::{Expr, FnItem, IndexArg, Item, PrimType, Stmt, Type};
 
-use thermite_tv::gen_exec_exprs;
-use thermite_tv::obligation::{exec_equivalence_obligation, ExecObligationFrame, ExecParamDecl};
+use fluffy_tv::gen_exec_exprs;
+use fluffy_tv::obligation::{exec_equivalence_obligation, ExecObligationFrame, ExecParamDecl};
 
 use crate::check::{unique_scratch_dir, ScratchDir, DEFAULT_RLIMIT, DEFAULT_SOLVER_SEED};
 use crate::cli::ForgeError;
@@ -154,7 +154,7 @@ fn construct_coverage(exprs: &[&Expr]) -> ExecConstructCoverage {
 }
 
 fn tally_construct(e: &Expr, c: &mut ExecConstructCoverage) {
-    use thermite_syntax::ast::BinOp;
+    use fluffy_syntax::ast::BinOp;
     match e {
         Expr::Binary { op, lhs, rhs } => {
             if matches!(op, BinOp::Add | BinOp::Sub | BinOp::Mul) {
@@ -192,8 +192,8 @@ fn tally_construct(e: &Expr, c: &mut ExecConstructCoverage) {
 
 /// Run the OFF-CORPUS generated exec-TV run (REQ-3 / REQ-5; the PRIMARY value, the
 /// #122/#146 off-corpus regression guard). Generates `n` well-framed exec exprs
-/// deterministically from `seed` (`thermite_tv::gen_exec_exprs`), lowers each via
-/// `thermite_lower::lower_exec_expr`, builds + discharges the exec-fn obligation
+/// deterministically from `seed` (`fluffy_tv::gen_exec_exprs`), lowers each via
+/// `fluffy_lower::lower_exec_expr`, builds + discharges the exec-fn obligation
 /// against the carried ADEQUATE frame, and reports. The lowerer is faithful + the
 /// frames are adequate, so ALL should VERIFY; ANY `Divergent`/`Unverifiable` is a
 /// real off-corpus exec-lowering infidelity / framing hole (surfaced loudly).
@@ -209,7 +209,7 @@ pub fn run_generated(
         let label = format!("gen#{i}");
         // P_production — the REAL exec lowering of the generated expr (the artifact
         // under test, the eventual non-test consumer of `lower_exec_expr`).
-        let p_production = match thermite_lower::lower_exec_expr(&clause.expr) {
+        let p_production = match fluffy_lower::lower_exec_expr(&clause.expr) {
             Ok(p) => p,
             Err(e) => {
                 // A generated expr the EXEC lowering does not compile is a real
@@ -250,11 +250,11 @@ pub fn run_generated(
     Ok((report, coverage))
 }
 
-/// Build the [`ExecObligationFrame`] for a generated [`thermite_tv::ExecClause`] —
+/// Build the [`ExecObligationFrame`] for a generated [`fluffy_tv::ExecClause`] —
 /// the params (at their exec types), the return type, the adequate overflow/index
 /// `req`, and the slice-param set, all carried by the clause (REQ-3 — the frame is
 /// part of the generated unit).
-fn clause_frame(clause: &thermite_tv::ExecClause) -> ExecObligationFrame {
+fn clause_frame(clause: &fluffy_tv::ExecClause) -> ExecObligationFrame {
     ExecObligationFrame {
         spec_defs: Vec::new(),
         params: clause
@@ -283,7 +283,7 @@ pub fn exec_tv_file(path: &Path, seed: u64, rlimit: f64) -> Result<ExecTvReport,
         path: path.display().to_string(),
         source: e,
     })?;
-    let parsed = thermite_syntax::parse(&src);
+    let parsed = fluffy_syntax::parse(&src);
     if !parsed.is_clean() {
         return Err(ForgeError::Parse(parsed.errors));
     }
@@ -522,7 +522,7 @@ fn check_corpus_expr(
     // P_production — the REAL exec lowering. A construct the exec lowering does not
     // cover (a method call, a spec-only form) → honest Skip (out of the pure-exec
     // subset), NOT a faithfulness verdict.
-    let p_production = match thermite_lower::lower_exec_expr(e) {
+    let p_production = match fluffy_lower::lower_exec_expr(e) {
         Ok(p) => p,
         Err(err) => {
             report.results.push(ExecResult {
@@ -926,7 +926,7 @@ pub const EXEC_TV_GENERATED_DEFAULT_N: usize = 200;
 
 // ---- the forge-level Divergent teeth (REQ-5; blocker #157) -----------------
 //
-// The obligation-layer teeth (`thermite-tv/tests/exec_teeth.rs` E1-E4) prove a
+// The obligation-layer teeth (`fluffy-tv/tests/exec_teeth.rs` E1-E4) prove a
 // WRONG `P_production` -> a real verus error. They do NOT exercise the FORGE-level
 // step that MAPS that verus error to `ExecVerdict::Divergent`: `discharge`'s
 // four-way classification. Over the generated/corpus space the faithful lowerer
@@ -945,13 +945,13 @@ pub const EXEC_TV_GENERATED_DEFAULT_N: usize = 200;
 // reachable here via `super::` (a child mod sees the parent's private items), so
 // NO visibility tweak is needed either. The teeth are GENUINE: a real wrong
 // production -> a real verus error -> the real `discharge` mapping, never a mocked
-// verdict. Mirrors `thermite-tv/tests/exec_teeth.rs`'s skip-loudly verus gate --
+// verdict. Mirrors `fluffy-tv/tests/exec_teeth.rs`'s skip-loudly verus gate --
 // `discharge` spawns a bare `verus`, so the test gates on the same PATH-resolvable
 // binary and SKIPS LOUDLY when it is genuinely absent.
 #[cfg(test)]
 mod divergent_teeth {
     use super::*;
-    use thermite_syntax::ast::BinOp;
+    use fluffy_syntax::ast::BinOp;
 
     /// `true` iff a bare `verus` is spawnable (the SAME resolution `discharge`
     /// uses -- `Command::new("verus")`, i.e. PATH). SKIP LOUDLY otherwise so the

@@ -33,7 +33,7 @@
 //! R-CHAR-3: expected levels trace to `.design/basis/07-strings.md` REQ-13..16 (the
 //! GROUNDED forms: the predicate scans `14 verified, 0 errors`; a broken `starts_with`
 //! `13 verified, 1 errors`; `split` `7 verified, 0 errors`, a `split`-drop `6 verified,
-//! 1 errors`; `trim` `8 verified, 0 errors`) + `thermite-design.md` §6 ladder semantics
+//! 1 errors`; `trim` `8 verified, 0 errors`) + `fluffy-design.md` §6 ladder semantics
 //! (L3 == a fully-discharged real-verus proof), NEVER copied from the toolchain's own
 //! output.
 
@@ -117,18 +117,18 @@ fn cert_for<'a>(certs: &'a [Value], item: &str) -> &'a Value {
         .unwrap_or_else(|| panic!("no cert for `{item}` in {certs:?}"))
 }
 
-/// Lower a Thermite source program to its Verus source via the toolchain's `lower`,
+/// Lower a Fluffy source program to its Verus source via the toolchain's `lower`,
 /// write it to a temp `.rs`, run the real `verus` binary, and return
 /// `(success, combined_output)`. The temp file is removed before returning (#53).
 /// R-CODE-4: the subprocess status is checked + surfaced, never swallowed.
 fn verus_on_lowered(tag: &str, program: &str) -> (bool, String) {
-    let parsed = thermite_syntax::parse(program);
+    let parsed = fluffy_syntax::parse(program);
     assert!(
         parsed.is_clean(),
         "[{tag}] surface must parse cleanly: {:?}",
         parsed.errors
     );
-    let verus_src = thermite_lower::lower(&parsed.program)
+    let verus_src = fluffy_lower::lower(&parsed.program)
         .unwrap_or_else(|e| panic!("[{tag}] lower must succeed: {e:?}"));
     let rs = std::env::temp_dir().join(format!(
         "forge_strsearch_verus_{tag}_{}.rs",
@@ -157,7 +157,7 @@ fn verus_on_lowered(tag: &str, program: &str) -> (bool, String) {
 ///
 /// AUTHORITY: `.design/basis/07-strings.md` REQ-13 — the predicates lower to the byte
 /// scans, the contract names the seeded `occurs_at`/`contains_sub` spec fns inside the
-/// §4.2 cage. `thermite-design.md` §6: a fully-discharged verus proof is L3. GROUNDED
+/// §4.2 cage. `fluffy-design.md` §6: a fully-discharged verus proof is L3. GROUNDED
 /// `14 verified, 0 errors`.
 #[test]
 fn ac9_predicates_certify_l3_pure() {
@@ -223,7 +223,7 @@ fn ac9_true_case_pinned_certifies_l3() {
 /// AUTHORITY: `.design/basis/07-strings.md` REQ-14 — `s.find(p)` lowers to the
 /// occurrence scan, the `ens match result { Some(at) => occurs_at(..), None =>
 /// !contains_sub(..) }` (the C7 spec-`match`). A PINNED Some case (needle present)
-/// proves `result is Some`. GROUNDED. `thermite-design.md` §6: a discharged proof is L3.
+/// proves `result is Some`. GROUNDED. `fluffy-design.md` §6: a discharged proof is L3.
 #[test]
 fn ac10_find_certifies_l3_with_pinned_some() {
     if !verus_present() {
@@ -258,7 +258,7 @@ fn ac10_find_certifies_l3_with_pinned_some() {
 /// prefix does not match.
 ///
 /// AUTHORITY: `.design/basis/07-strings.md` REQ-13 — a broken `starts_with` FAILS
-/// (`13 verified, 1 errors`, the false case bites). `thermite-design.md` §7. The break
+/// (`13 verified, 1 errors`, the false case bites). `fluffy-design.md` §7. The break
 /// is injected into a STANDALONE verus probe (the surface cannot mutate the generated
 /// method body), confirming the predicate's contract is a real proof.
 #[test]
@@ -322,7 +322,7 @@ fn main() {}
 /// AUTHORITY: `.design/basis/07-strings.md` REQ-15 — `s.split(sep)` lowers to the scan
 /// loop pushing `TString` pieces into a `TVecTString` (reusing C6), `ens
 /// result.len() == 1 + count_sep(s@, sep) && forall|k| sep_free(..)`. GROUNDED `7
-/// verified, 0 errors`. `thermite-design.md` §6.
+/// verified, 0 errors`. `fluffy-design.md` §6.
 #[test]
 fn ac11_split_count_bound_verifies_under_real_verus() {
     if !verus_present() {
@@ -346,7 +346,7 @@ fn ac11_split_count_bound_verifies_under_real_verus() {
 /// `pieces.push` (always 1 piece) FAILS the count bound under real verus.
 ///
 /// AUTHORITY: `.design/basis/07-strings.md` REQ-15 — a broken `split` FAILS (`6
-/// verified, 1 errors`, the count bound bites). `thermite-design.md` §7.
+/// verified, 1 errors`, the count bound bites). `fluffy-design.md` §7.
 #[test]
 fn ac11_broken_split_fails_real_verus() {
     if !verus_present() {
@@ -444,7 +444,7 @@ fn ac12_trim_verifies_under_real_verus() {
 /// AUTHORITY: `.design/basis/07-strings.md` REQ-13 (the design-flagged name-clash) +
 /// `.design/basis/04-collections.md` REQ-12 (the Vec membership `contains`). Rust keys
 /// inherent-method resolution on the receiver type, so the shared surface NAME resolves
-/// to two distinct methods. `thermite-design.md` §6.
+/// to two distinct methods. `fluffy-design.md` §6.
 #[test]
 fn contains_name_clash_both_string_and_vec_certify() {
     if !verus_present() {

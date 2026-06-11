@@ -9,7 +9,7 @@
 //! false `L3`.
 //!
 //! THE HONESTY GATE (`goal.md` R-DEFER-9): `#[verifier::external_body]` is emitted
-//! ONLY for the declared `#[boundary]`/`#[slag]` fn. A regular Thermite fn is
+//! ONLY for the declared `#[boundary]`/`#[slag]` fn. A regular Fluffy fn is
 //! ALWAYS fully proved — a lying regular body is CAUGHT (the
 //! `lying_regular_fn_is_caught` test), never laundered to L3 by the composition
 //! path. The corpus (`sum`, `binary_search`) is UNAFFECTED: it references only
@@ -17,7 +17,7 @@
 //! END-TO-END (the `corpus_unaffected_*` tests).
 //!
 //! Expected values trace to the golden `conformance/composition/cases.json` and
-//! `thermite-design.md` §9 (R-CHAR-3), NEVER copied from forge's own output.
+//! `fluffy-design.md` §9 (R-CHAR-3), NEVER copied from forge's own output.
 //! These SKIP LOUDLY if verus is absent — the §9 composition proof is a real verus
 //! run (the boundary caller L3-proves against the assumed contract).
 

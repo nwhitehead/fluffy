@@ -1,0 +1,15 @@
+[package]
+name = "fluffy-lower"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+# REQ-2: depends on fluffy-syntax + fluffy-spec.
+[dependencies]
+fluffy-syntax = { path = "../fluffy-syntax" }
+fluffy-spec = { path = "../fluffy-spec" }
+# epic #60 (self-verification.md REQ-5): `effects::subsumes` delegates its
+# bit-level mask comparison to the Verus-verified `fluffy_verified::subsumes_masks`
+# (mechanism (c) — the plain-Rust mirror of the proved exec body), anchoring the
+# soundness-critical decision to the `verus` proof.
+fluffy-verified = { path = "../fluffy-verified" }

@@ -1,5 +1,5 @@
 //! The LIVE oracle test for forge's MUTATION SCORING (issue #12,
-//! `thermite-design.md` §7 step 4). It drives the BUILT `forge` binary (same as
+//! `fluffy-design.md` §7 step 4). It drives the BUILT `forge` binary (same as
 //! `solver_vacuity_conformance.rs`) and asserts the emitted certificate against
 //! the hand-derived oracle `conformance/mutation/cases.json` (R-CHAR-3 — expected
 //! outcomes trace to §7, never to forge's own output).

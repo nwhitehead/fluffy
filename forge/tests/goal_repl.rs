@@ -188,7 +188,7 @@ fn edit_splices_clause_and_rechecks() {
 
     // Replace inv#2 with a semantically-equivalent reformulation (keeps the proof
     // sound, exercises the splice + re-check). The replacement is well-formed
-    // Thermite inv-clause source text.
+    // Fluffy inv-clause source text.
     let run = run_forge(&[
         "edit",
         tmp.to_str().unwrap(),

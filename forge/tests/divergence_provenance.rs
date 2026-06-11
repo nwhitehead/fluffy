@@ -26,7 +26,7 @@
 //!
 //! Authority (`.design/basis/06-provenance-and-sinks.md`):
 //!   - REQ-8: a `#[sealed]` clean type "CANNOT be constructed by a `StructLit`
-//!     anywhere in Thermite code, so the ONLY way to obtain one is through its
+//!     anywhere in Fluffy code, so the ONLY way to obtain one is through its
 //!     `#[boundary]` door". `query(Sql { … })` is `SpecError::SealedConstruction`.
 //!   - REQ-2: "No mark-change exists outside a door … TRUE only because the clean
 //!     types are `#[sealed]` (REQ-8)." The StructLit launder is closed.

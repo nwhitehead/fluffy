@@ -2,7 +2,7 @@
 //! syscall-allowlist filter, DERIVED from a `forge build --entry`'s transitive
 //! `fx` row, installed (BEFORE the entry runs) into the generated `main`. A syscall
 //! outside the declared effects makes the kernel kill the process with `SIGSYS`.
-//! This discharges the `thermite-design.md` §4.1 promise that the `fx` row is a
+//! This discharges the `fluffy-design.md` §4.1 promise that the `fx` row is a
 //! RUNTIME contract, not only a compile-time one.
 //!
 //! Governing design: `.design/forge/runtime-sandbox.md`. Oracle:
@@ -29,7 +29,7 @@
 //! ## The fx → syscall table
 //!
 //! The baseline (always, incl. `pure`/`alloc`) is the set a trivial `std` Rust
-//! binary needs to start up, `println!`, run the L1 `thermite_check!` PANIC/abort
+//! binary needs to start up, `println!`, run the L1 `fluffy_check!` PANIC/abort
 //! path, and exit — empirically grounded (`.design/forge/runtime-sandbox.md`
 //! Verification). It pointedly EXCLUDES `openat`/`socket`/`getrandom`/`clock_gettime`
 //! so a `pure` filter denies file I/O, network, rand, and time. `read`/`write`/`net`/
@@ -59,17 +59,17 @@
 //! | REQ-4 (sandbox-on-by-default for `--entry`, `--no-sandbox` opt-out) | SHIPPED | `build::synthesize_entry_main` injects the prelude FIRST when `SandboxMode::On` (`build::SandboxConfig::default` = on); `--no-sandbox` → `SandboxMode::Off` (no prelude); a library build emits no `main` at all. Consumer: `cli::run_build` (the `--sandbox`/`--no-sandbox` flags). Verified by `sandbox_conformance::no_sandbox_omits_prelude` + `cli::tests::parses_build_sandbox_flags`. |
 //! | REQ-5 (reproducible prelude + manifest record) | SHIPPED | `emit_sandbox_prelude` is byte-deterministic (sorted allowlist); the `build::BuildManifest::sandbox` (`SandboxRecord`) field records the installed allowlist. Verified by unit `prelude_installs_and_is_deterministic` + `sandbox_conformance::pure_runs_clean` (the recorded allowlist excludes openat). |
 //! | REQ-6 (demonstrable enforcement — probe + clean pure run) | SHIPPED | `pub fn emit_probe` injects (under `--sandbox-self-test`, AFTER the filter) a raw `syscall(SYS_openat, ...)`. Consumer: `build::synthesize_entry_main`. Verified by `sandbox_conformance::probe_killed` (exit 159) vs `probe_allowed_when_fx_widens` (exit 0). |
-//! | REQ-7 (the `term` terminal-control atom + the `ioctl` grant, #106) | SHIPPED | `TERM_SYSCALLS = &[16 /* ioctl */]` + the `"term" => TERM_SYSCALLS` arm in `syscall_allowlist`; the §4.1 `Effect::Term` atom (`thermite_syntax::ast::Effect::Term`, parsed as `fx term`) flows through `manifest::effects_of` → `transitive_fx` → the allowlist, so a `term` program's allowlist INCLUDES `ioctl`:16 and a non-`term` one EXCLUDES it (scoped to the effect). The `examples/editor/editor.th` `run` entry now declares `fx term` (its `raw_mode_on`/`raw_mode_off` boundaries) and builds+runs FULLY sandboxed (NO `--no-sandbox`). Consumer: `syscall_allowlist` (via `build::synthesize_entry_main`). Verified by `tests::term_grants_ioctl_scoped_to_the_effect` + `verus_anchor` (the term bit is non-io, `widen(8)==0`, so the proved io_allow bitset is unaffected over all 512 masks) + `editor_runs.rs` (the editor sandboxed, exit 0). The grant is `ioctl`-BROAD (OQ-5). |
+//! | REQ-7 (the `term` terminal-control atom + the `ioctl` grant, #106) | SHIPPED | `TERM_SYSCALLS = &[16 /* ioctl */]` + the `"term" => TERM_SYSCALLS` arm in `syscall_allowlist`; the §4.1 `Effect::Term` atom (`fluffy_syntax::ast::Effect::Term`, parsed as `fx term`) flows through `manifest::effects_of` → `transitive_fx` → the allowlist, so a `term` program's allowlist INCLUDES `ioctl`:16 and a non-`term` one EXCLUDES it (scoped to the effect). The `examples/editor/editor.th` `run` entry now declares `fx term` (its `raw_mode_on`/`raw_mode_off` boundaries) and builds+runs FULLY sandboxed (NO `--no-sandbox`). Consumer: `syscall_allowlist` (via `build::synthesize_entry_main`). Verified by `tests::term_grants_ioctl_scoped_to_the_effect` + `verus_anchor` (the term bit is non-io, `widen(8)==0`, so the proved io_allow bitset is unaffected over all 512 masks) + `editor_runs.rs` (the editor sandboxed, exit 0). The grant is `ioctl`-BROAD (OQ-5). |
 
 use std::collections::BTreeSet;
 
-use thermite_syntax::Program;
+use fluffy_syntax::Program;
 
 use crate::closure::reachable_in_file_fns;
 use crate::manifest::effects_of;
 
 /// The x86_64 syscall numbers a trivial `std` Rust binary needs to start up,
-/// `println!`, run the always-active L1 `thermite_check!` PANIC/abort path, and
+/// `println!`, run the always-active L1 `fluffy_check!` PANIC/abort path, and
 /// exit (the `pure`/`alloc` baseline, `.design/forge/runtime-sandbox.md` Table).
 /// EXCLUDES `openat`/`socket`/`getrandom`/`clock_gettime` so a pure filter denies
 /// file I/O, network, rand, and time. Sorted ascending (deterministic).
@@ -180,7 +180,7 @@ pub fn transitive_fx(program: &Program, entry: &str) -> BTreeSet<String> {
 
     let mut tokens: BTreeSet<String> = BTreeSet::new();
     for item in &program.items {
-        if let thermite_syntax::Item::Fn(f) = item {
+        if let fluffy_syntax::Item::Fn(f) = item {
             if names.contains(&f.name) {
                 for tok in effects_of(&f.contract.fx) {
                     tokens.insert(tok);
@@ -270,7 +270,7 @@ pub fn emit_sandbox_prelude(allowlist: &[u32]) -> String {
 
     format!(
         r##"
-// ---- thermite #57 runtime effect sandbox (seccomp-bpf, fx-derived) ----------
+// ---- fluffy #57 runtime effect sandbox (seccomp-bpf, fx-derived) ----------
 // Installed as the FIRST statements of `main`, BEFORE the entry call, so the entry
 // (and any boundary/slag body it reaches) runs UNDER the filter. A syscall off the
 // fx-derived allowlist -> SECCOMP_RET_KILL_PROCESS -> SIGSYS -> process killed.
@@ -317,12 +317,12 @@ pub fn emit_sandbox_prelude(allowlist: &[u32]) -> String {
     // silently skipped).
     unsafe {{
         if prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) != 0 {{
-            eprintln!("thermite #57 sandbox: PR_SET_NO_NEW_PRIVS failed");
+            eprintln!("fluffy #57 sandbox: PR_SET_NO_NEW_PRIVS failed");
             std::process::abort();
         }}
         let prog = SockFprog {{ len: FILTER.len() as u16, filter: FILTER.as_ptr() }};
         if prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, (&prog as *const SockFprog) as u64, 0, 0) != 0 {{
-            eprintln!("thermite #57 sandbox: PR_SET_SECCOMP failed");
+            eprintln!("fluffy #57 sandbox: PR_SET_SECCOMP failed");
             std::process::abort();
         }}
     }}
@@ -336,12 +336,12 @@ pub fn emit_sandbox_prelude(allowlist: &[u32]) -> String {
 /// call, so the kill/allow is observable. Under a `pure` filter `openat` is
 /// non-allowlisted → `SIGSYS` (the process dies, exit 159); under a `read(_)` filter
 /// `openat` is allowlisted → the probe returns and the entry runs normally (exit 0).
-/// This is the v0.1 demonstrability device (pure Thermite never attempts a denied
+/// This is the v0.1 demonstrability device (pure Fluffy never attempts a denied
 /// syscall itself); a production runner has NO probe.
 pub fn emit_probe() -> String {
     format!(
         r##"
-// ---- thermite #57 sandbox self-test probe (--sandbox-self-test ONLY) --------
+// ---- fluffy #57 sandbox self-test probe (--sandbox-self-test ONLY) --------
 // A raw openat AFTER the filter install: under a pure filter it is non-allowlisted
 // -> SIGSYS -> the process is killed BEFORE the entry call (exit 159); under a
 // read(_) filter openat is allowlisted -> the probe returns and the entry runs.
@@ -366,7 +366,7 @@ mod tests {
     use super::*;
 
     fn parse(src: &str) -> Program {
-        let parsed = thermite_syntax::parse(src);
+        let parsed = fluffy_syntax::parse(src);
         assert!(parsed.is_clean(), "fixture must parse: {:?}", parsed.errors);
         parsed.program
     }
@@ -551,7 +551,7 @@ mod tests {
 // `forge/tests/sandbox_verified.rs` for this anchor, but `forge` is a binary-only
 // crate (no lib target), so an external test cannot reach the internal
 // `syscall_allowlist`/`BASELINE_SYSCALLS` symbols. This in-module `#[cfg(test)]`
-// block reaches them directly; `thermite-verified` is a forge DEV-dependency.
+// block reaches them directly; `fluffy-verified` is a forge DEV-dependency.
 // (Reported for the critic.)
 //
 // AC-8c — the 512-mask EXHAUSTIVE equivalence: enumerate ALL 2^9 fx-atom masks
@@ -559,7 +559,7 @@ mod tests {
 // set, run the PRODUCTION `syscall_allowlist`, and assert its membership over the
 // FIVE sensitive user-I/O syscalls
 // (openat/socket/connect/getrandom/clock_gettime) equals the VERUS-PROVED
-// `thermite_verified::io_allow(mask)` bits for every mask. Expected = the proved
+// `fluffy_verified::io_allow(mask)` bits for every mask. Expected = the proved
 // bitset spec (R-CHAR-3, never forge's own output) — so the production string-keyed
 // mapping computes exactly the relation Verus proved (pure-no-I/O + monotonicity +
 // deny-by-default).
@@ -574,7 +574,7 @@ mod tests {
 #[cfg(test)]
 mod verus_anchor {
     use super::*;
-    use thermite_verified::{
+    use fluffy_verified::{
         io_allow, SYS_CLOCK_GETTIME, SYS_CONNECT, SYS_GETRANDOM, SYS_OPENAT as IO_OPENAT,
         SYS_SOCKET,
     };
@@ -622,7 +622,7 @@ mod verus_anchor {
     }
 
     /// The production x86_64 syscall number for each of the five sensitive syscalls,
-    /// paired with its `thermite_verified::io_allow` bit (the proved bitset spec).
+    /// paired with its `fluffy_verified::io_allow` bit (the proved bitset spec).
     /// openat=257/bit0, socket=41/bit1, connect=42/bit2, getrandom=318/bit3,
     /// clock_gettime=228/bit4. These are the syscall numbers in the design's `fx`→
     /// syscall Table (R-CHAR-3 — the design constant, not forge output).

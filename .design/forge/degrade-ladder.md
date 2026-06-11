@@ -4,11 +4,11 @@ tier: 3-component
 status: draft
 governs: forge/src/degrade.rs
 thesis-refs:
-  - thermite-design.md §5.2
-  - thermite-design.md §5.1
-  - thermite-design.md §5.3
-  - thermite-design.md §6
-  - thermite-design.md §12
+  - fluffy-design.md §5.2
+  - fluffy-design.md §5.1
+  - fluffy-design.md §5.3
+  - fluffy-design.md §6
+  - fluffy-design.md §12
 -->
 
 ## Summary
@@ -31,9 +31,9 @@ This component COMPOSES three shipped pieces, it does not reinvent them:
 - #11's timeout-vs-counterexample-vs-success classification
   (`fn classify_verus_outcome in check.rs` → `enum VerusOutcome { Proved, Timeout,
   Counterexample }`) — the degrade TRIGGER.
-- #9's L2 path (`thermite_lower::lower_l2` + `pub fn run_kani in kani.rs` +
+- #9's L2 path (`fluffy_lower::lower_l2` + `pub fn run_kani in kani.rs` +
   `pub fn check_l2_file in check.rs`) — the L2 rung.
-- L1 (`thermite_lower::lower_l1`) — the always-existing runtime-check rung (§4.2:
+- L1 (`fluffy_lower::lower_l1`) — the always-existing runtime-check rung (§4.2:
   every `spec fn` is executable, so an L1 fallback always exists).
 
 **THE CRITICAL ANTI-CHEAT INVARIANT (§5.2, R-DEFER-9, R-CODE-4).** The ladder
@@ -85,7 +85,7 @@ auto-degrade ladder + the assurance aggregate, nothing more.
   (Counterexample). Derived from §5.2, §12, `goal.md` R-DEFER-9 / R-CODE-4.
 
 - **REQ-3 (L1 fallback rung)**: when L2 also times out / cannot bound-verify, the
-  obligation drops to L1: `thermite_lower::lower_l1` compiles the SpecTherm
+  obligation drops to L1: `fluffy_lower::lower_l1` compiles the SpecTherm
   contract to always-active runtime checks (§4.2 — every `spec fn` is executable,
   so L1 ALWAYS exists for every contract). The item certifies `Level::L1` with the
   `lowered-assurance` flag. Whether L1 certification must drive `l1.rs`'s
@@ -302,13 +302,13 @@ counterexample-vs-under-bound split at this rung).
 - `fn run_verus` / `fn invoke_verus in check.rs` — the verus driver (already passes
   `--profile` + the pinned `--rlimit`; the rlimit is the timeout-forcing lever).
 - `pub fn check_l2_file in check.rs` and `pub fn run_kani in kani.rs` +
-  `thermite_lower::lower_l2` + `thermite_lower::bound_string` — the L2 rung. The
+  `fluffy_lower::lower_l2` + `fluffy_lower::bound_string` — the L2 rung. The
   EXPLICIT `--level l2` path (from #9, `enum CheckLevel in cli.rs`) still forces L2
   directly and is UNCHANGED; the default path is now the laddered auto-degrade.
 - `struct L2Result in kani.rs` (`level`, `obligations`) and `fn parse_kani_output
   in kani.rs` — the L2 verdict the ladder reads (`Level::L2` success vs the
   counterexample/under-bound `Level::L0`).
-- `thermite_lower::lower_l1` (`pub fn lower_l1 in l1.rs`) — the L1 fallback rung
+- `fluffy_lower::lower_l1` (`pub fn lower_l1 in l1.rs`) — the L1 fallback rung
   (§4.2 always-exists guarantee).
 - `profile::SolverProfile` / `pub fn suggested_move in profile.rs` — the degrade
   REASON + strengthening prompt reused on a degraded cert (REQ-4).
@@ -434,7 +434,7 @@ error: aborting due to 1 previous error
 `Counterexample`. This is the edge that, under #10, degrades to L2.
 
 **L2 SUCCESS on the SAME item (the degrade target, REQ-1 / AC-2).** The real
-`thermite_lower::lower_l2` harness for `sum` (bound `slice <= 4, unwind 5`),
+`fluffy_lower::lower_l2` harness for `sum` (bound `slice <= 4, unwind 5`),
 written into a temp cargo crate exactly as `kani.rs::write_kani_crate` does and
 run under `cargo kani --output-format terse`:
 
@@ -491,7 +491,7 @@ composition and the min-over-functions aggregate do not. Open prereq blocker:
 |---|---|---|
 | REQ-1 (degrade state machine L3→L2→L1) | NOT-STARTED | open prereq blocker #50. No `degrade.rs`; `check_file_with_options in check.rs` on a `VerusOutcome::Timeout` calls `Certificate::timeout` (`Level::L0` + `VerusTimeout`) and STOPS — documented in `check.rs`'s `solver-profiles REQ-7` row ("v0.1 does not auto-degrade (#10)") and `Certificate::timeout`'s doc; `check_l2_file`'s doc states "#9 does NOT wire L2 as an automatic fallback … that is #10". |
 | REQ-2 (anti-cheat: a counterexample NEVER degrades) | NOT-STARTED | open prereq blocker #50. The classification that distinguishes the two (`VerusOutcome::{Timeout,Counterexample}` in `check.rs`) ships and is grounded (profile present = Timeout; absent = Counterexample), but no consumer routes a `Timeout` into L2 / a `Counterexample` into a hard fail vs degrade — there is no auto-degrade to make the distinction load-bearing yet. |
-| REQ-3 (L1 fallback rung) | NOT-STARTED | open prereq blocker #50. `thermite_lower::lower_l1` (`pub fn lower_l1 in l1.rs`) ships and emits always-active runtime checks, but no degrade path invokes it as an L2-timeout fallback (it is wired only as build-time codegen, per `check.rs`'s slag-L1 comment "the L1 runtime-check codegen is thermite-lower's `l1.rs` job at build time, not here"). |
+| REQ-3 (L1 fallback rung) | NOT-STARTED | open prereq blocker #50. `fluffy_lower::lower_l1` (`pub fn lower_l1 in l1.rs`) ships and emits always-active runtime checks, but no degrade path invokes it as an L2-timeout fallback (it is wired only as build-time codegen, per `check.rs`'s slag-L1 comment "the L1 runtime-check codegen is fluffy-lower's `l1.rs` job at build time, not here"). |
 | REQ-4 (lowered-assurance flag + degrade reason on the cert) | NOT-STARTED | open prereq blocker #50. `Certificate` (`manifest.rs`) carries `solver_profile` + `suggested_move` (the reason material, #11) but NO `lowered-assurance` flag field; no producer sets a degrade flag because no degrade occurs. |
 | REQ-5 (assurance manifest — per-fn aggregate) | NOT-STARTED | open prereq blocker #50. `check_file` returns `Vec<Certificate>` (the raw per-fn certs) and `cli::run_check` renders them individually, but there is no aggregate `struct` / `pub fn` computing a project-level view over the collection. |
 | REQ-6 (min-over-functions project assurance) | NOT-STARTED | open prereq blocker #50. `enum Level { L0, L1, L2, L3 }` (`manifest.rs`) gives the ordering, but nothing computes the min over a cert collection or displays a project headline. |
@@ -536,11 +536,11 @@ composition and the min-over-functions aggregate do not. Open prereq blocker:
 
 - **OQ-3 (does L1 certification emit the runtime checks, or just record the level?).**
   REQ-3 drops a doubly-timed-out item to L1. Two readings: (a) the degrade must
-  invoke `thermite_lower::lower_l1` to EMIT the always-active runtime checks at
+  invoke `fluffy_lower::lower_l1` to EMIT the always-active runtime checks at
   degrade time (so the shipped artifact actually carries them); or (b) the degrade
   merely RECORDS `Level::L1` + `lowered-assurance` on the cert, and the L1
   runtime-check EMISSION is `l1.rs`'s separate build-time job (the `check.rs`
-  slag-L1 precedent: "the L1 runtime-check codegen is thermite-lower's `l1.rs` job
+  slag-L1 precedent: "the L1 runtime-check codegen is fluffy-lower's `l1.rs` job
   at build time, not here"). Reading (b) matches the existing slag-L1 cert
   (`Certificate::slag_l1` records `Level::L1` WITHOUT running `lower_l1`), and keeps
   the ladder a pure verdict-aggregator. RECOMMENDATION: (b) — the degrade RECORDS

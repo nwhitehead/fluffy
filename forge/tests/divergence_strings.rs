@@ -4,7 +4,7 @@
 //! Each test pins a divergence (or CONFIRMS a genuine guarantee) between the LIVE
 //! per-item `forge check` certificate and the authority chain
 //! (`.design/basis/07-strings.md`, the hand-derived oracle
-//! `conformance/string/cases.json`, `thermite-design.md` §6/§7). Expected values
+//! `conformance/string/cases.json`, `fluffy-design.md` §6/§7). Expected values
 //! trace to the oracle / design, NEVER to forge's own output (`goal.md` R-CHAR-3).
 //!
 //! These run the BUILT `forge` binary end-to-end (verus-backed). If verus is
@@ -12,7 +12,7 @@
 //! `divergence_collections.rs` / `divergence_forge.rs`.
 //!
 //! ROOT CAUSE (the headline pinned below): the builder's `string_conformance.rs`
-//! tests exercise only WHOLE-PROGRAM `thermite_lower::lower` + a direct `verus`
+//! tests exercise only WHOLE-PROGRAM `fluffy_lower::lower` + a direct `verus`
 //! run plus the raw `cases.json` text — they NEVER run the per-item
 //! `forge::check::check_file` ladder. On that real path `join` (a `String` return)
 //! PROVES at verus (the golden `tests/golden/lower/string_demo.verus.rs` is

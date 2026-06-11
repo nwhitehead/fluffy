@@ -1,6 +1,6 @@
-# Thermite example programs
+# Fluffy example programs
 
-Four runnable Thermite programs that prove the verified-primitive basis (C1–C9)
+Four runnable Fluffy programs that prove the verified-primitive basis (C1–C9)
 **composes into real programs that run** — each `forge check`s at **L3** (its
 bug-prone logic proven for all inputs by real Verus) *and* `forge build`s into a
 native binary you run directly. Only the raw syscalls at the I/O seam are trusted.
@@ -24,7 +24,7 @@ out to `rustc`; `--out` names the artifact so no wrapper script is needed.)
 cargo run -q -p forge -- build examples/editor/editor.th --entry run --out ./nano
 
 # run it directly — it self-sets raw mode (extern-C termios; no stty, no script):
-THERMITE_EDITOR_FILE=mydoc.txt ./nano
+FLUFFY_EDITOR_FILE=mydoc.txt ./nano
 ```
 
 Keys: type to insert · **Enter** newline · **↑↓** move between lines · **←→** within

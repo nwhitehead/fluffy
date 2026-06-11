@@ -5,7 +5,7 @@
 //!
 //! THE GENERATED run (PRIMARY — the off-corpus #122/#146 regression guard):
 //! `forge exec-tv sum.th --generated 200 --json` lowers each generated, WELL-FRAMED
-//! exec expr via `thermite_lower::lower_exec_expr` and discharges the exec-fn
+//! exec expr via `fluffy_lower::lower_exec_expr` and discharges the exec-fn
 //! obligation `result == <bounded exec reference>`. The faithful lowerer + the
 //! adequate carried frames make EVERY checked expr `faithful` (0 divergent, 0
 //! unverifiable, 0 skipped). ANY `divergent` is a REAL off-corpus exec-lowering

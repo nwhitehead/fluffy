@@ -5,17 +5,17 @@ tier: 3-component
 status: draft
 governs: forge/src/mutation.rs
 thesis-refs:
-  - thermite-design.md §7
-  - thermite-design.md §5.1
-  - thermite-design.md §5.3
-  - thermite-design.md §6
+  - fluffy-design.md §7
+  - fluffy-design.md §5.1
+  - fluffy-design.md §5.3
+  - fluffy-design.md §6
 -->
 
 ## Summary
 
 `forge/src/mutation.rs` is **§7 step 4** of the vacuity battery: it generates a
 FROZEN, DETERMINISTIC set of mutants of a verifying `fn`'s BODY (operator flips,
-off-by-ones, early returns, branch swaps — `thermite-design.md` §7 line 224), re-
+off-by-ones, early returns, branch swaps — `fluffy-design.md` §7 line 224), re-
 lowers and re-verifies each against that `fn`'s OWN (unchanged) contract, and
 records the **kill ratio** in the certificate (`contract_quality.mutants_killed`,
 Appendix A's `"17/18"`). A mutant verus REJECTS is **killed** (the contract
@@ -77,8 +77,8 @@ the structural triage gate (#6, `vacuity::triage`), the SOLVER vacuity gate (#13
     logical-not — encoded as the `==`↔`!=`/`<`↔`>=` flip already in the operator
     set when the condition is a comparison, else swap the `then`/`else_` arms).
   The mutator set is a `const`/`enum`-fixed table (R-CODE-5 determinism) — no
-  config, no plugin surface (`thermite-design.md` pillar §2.3 "one way"). Source:
-  `thermite-design.md` §7 line 224 ("operator flips, off-by-ones, early returns,
+  config, no plugin surface (`fluffy-design.md` pillar §2.3 "one way"). Source:
+  `fluffy-design.md` §7 line 224 ("operator flips, off-by-ones, early returns,
   branch swaps — fixed deterministic mutator set").
 
 - **REQ-2 (deterministic enumeration order + seed + budget):** mutants are
@@ -91,18 +91,18 @@ the structural triage gate (#6, `vacuity::triage`), the SOLVER vacuity gate (#13
   v0.3 sources `check::DEFAULT_SOLVER_SEED == 0` via `check::resolve_seed`, the
   same seam the L3 path uses — documented, not a new parameter). Same `fn` + same
   mutator set + same seed ⇒ the same ordered mutant list, every run. Source:
-  `thermite-design.md` §7 line 224 ("seeded from the lockfile"), §5.3
+  `fluffy-design.md` §7 line 224 ("seeded from the lockfile"), §5.3
   (determinism); `goal.md` R-CODE-5.
 
 - **REQ-3 (re-lower + re-verify each mutant against the SAME contract):** each
   mutant `FnItem` is woven into the same per-item sub-program shape
   `check::item_subprogram` builds (the file's `spec fn`s + this `fn`), lowered via
-  the EXISTING `thermite_lower::lower`, and run through the existing verus driver
+  the EXISTING `fluffy_lower::lower`, and run through the existing verus driver
   (`check::run_verus`-class invocation) under the SAME pinned `seed` + `rlimit`
   and against the mutant's `requires`/`ensures`/`invariant`/`decreases` — which
   are the ORIGINAL contract's, unchanged, because only the body was mutated. The
   contract lowering is byte-identical to the real proof's (the same reuse
-  `vacuity_solver::extract_lowered_fn` relies on). Source: `thermite-design.md`
+  `vacuity_solver::extract_lowered_fn` relies on). Source: `fluffy-design.md`
   §7 line 224 ("re-verifies each against the contract"); §5.3 (per-item
   isolation).
 
@@ -123,7 +123,7 @@ the structural triage gate (#6, `vacuity::triage`), the SOLVER vacuity gate (#13
     from the denominator (not a mutant, not scored — OQ-5), never an `Err` that
     fails the whole gate. An ENVIRONMENT/internal verus failure (absent /
     unparseable / VIR) on a mutant run surfaces a `ForgeError` (R-CODE-4), never a
-    silent kill or survive. Source: `thermite-design.md` §7 line 224; `goal.md`
+    silent kill or survive. Source: `fluffy-design.md` §7 line 224; `goal.md`
     R-CODE-4, R-DEFER-9.
 
 - **REQ-5 (kill ratio + floor gate — §7, default 60%):** `kill_ratio = killed /
@@ -142,7 +142,7 @@ the structural triage gate (#6, `vacuity::triage`), the SOLVER vacuity gate (#13
   The floor surface is a `const MUTATION_FLOOR: f64 = 0.60` (and the `cli`
   `--mutation-floor <FLOAT>` lever, mirroring the existing `--rlimit` lever in
   `cli.rs`); a non-default floor is a deliberate choice, documented. Source:
-  `thermite-design.md` §7 line 224, §6 (the certificate is the trust statement),
+  `fluffy-design.md` §7 line 224, §6 (the certificate is the trust statement),
   §12 ("mutation kill-ratio floor").
 
 - **REQ-6 (graduate `contract_quality.mutants_killed` / `survivor` from forward-
@@ -153,7 +153,7 @@ the structural triage gate (#6, `vacuity::triage`), the SOLVER vacuity gate (#13
   (or `None`). A new `Certificate` constructor (`with_mutation_score` / a
   `rejected_weak_contract`, mirroring #13's `Certificate::rejected_vacuity`) sets
   these two EXISTING Appendix A fields — NO frozen schema field is added or
-  renamed (R-SPEC-2). Source: `thermite-design.md` Appendix A
+  renamed (R-SPEC-2). Source: `fluffy-design.md` Appendix A
   (`contract_quality.mutants_killed`/`survivor`);
   `.design/forge/certificate-manifest.md` REQ-3.
 
@@ -162,16 +162,16 @@ the structural triage gate (#6, `vacuity::triage`), the SOLVER vacuity gate (#13
   L3 (`VerusOutcome::Proved`) and AFTER #6 + #13 passed. A body that does not
   itself verify is never mutation-scored (you mutate a KNOWN-GOOD body — §7's
   premise). Each mutant's re-verify is content-addressed by its LOWERED source
-  (`cache::cache_key(&mutant_lowered, seed, &verus_version, &thermite_version)`)
+  (`cache::cache_key(&mutant_lowered, seed, &verus_version, &fluffy_version)`)
   and consults `cache::load` before spawning verus, exactly as the L3 path does
   (#8 makes re-runs cheap — a re-`forge check` of an unchanged file re-scores from
   the cache). A mutant cert is NOT itself surfaced to the user (it is an internal
   scoring run); only the parent item's `mutants_killed`/`survivor` is recorded.
-  Source: `thermite-design.md` §7 (the battery runs inside the gate), §5.3
+  Source: `fluffy-design.md` §7 (the battery runs inside the gate), §5.3
   (content-addressed per-item cache); `.design/forge/proof-cache.md`.
 
 - **REQ-8 (determinism of the kill ratio — R-CODE-5, oracle-eligibility):** given
-  the FROZEN mutator set + the pinned seed + a fixed toolchain (verus + thermite
+  the FROZEN mutator set + the pinned seed + a fixed toolchain (verus + fluffy
   version), the ordered mutant list is deterministic (REQ-2), each mutant's verus
   verdict is deterministic (the same property the L3 proof and #13 rely on,
   `cache.rs`'s soundness invariant), so `kill_ratio` and `mutants_killed` are
@@ -185,7 +185,7 @@ the structural triage gate (#6, `vacuity::triage`), the SOLVER vacuity gate (#13
   brittle across verus upgrades. The deterministic claim is verified by a
   same-input-twice AC instead (AC-4). Promoting `mutants_killed` into the oracle
   subset is a `certificate-manifest.md` amendment, made when the corpus pins a
-  verus version. Source: `thermite-design.md` §5.3; `goal.md` R-CODE-5, R-CHAR-3;
+  verus version. Source: `fluffy-design.md` §5.3; `goal.md` R-CODE-5, R-CHAR-3;
   `conformance/README.md` ("forward-declared fields ... becomes a LIVE assertion
   when its producing component lands").
 
@@ -211,7 +211,7 @@ are GROUNDED (the real verus outputs are pasted in *Ground the mutants*).
 - **AC-2 (a WEAK-but-non-vacuous contract → low kill ratio → gated, survivor
   reported):** the fixture
   `conformance/mutation/weak_sum.th` (PARSE-VERIFIED, the exact program below):
-  ```thermite
+  ```fluffy
   fn sum(xs: &[u32]) -> u64
     req xs.len() <= 1_000_000
     ens result <= 1_000_000 * u32::MAX as u64
@@ -274,9 +274,9 @@ are GROUNDED (the real verus outputs are pasted in *Ground the mutants*).
 ## Architecture
 
 `mutation.rs` is a new `mod mutation;` in `forge/src/lib.rs`, consumed by
-`check.rs` in the per-item L3 path. It depends on `thermite_syntax::ast`
+`check.rs` in the per-item L3 path. It depends on `fluffy_syntax::ast`
 (`FnItem`, `Block`, `Stmt`, `Expr`, `BinOp`, `IntLit`) for the AST it mutates,
-`thermite_lower::lower` (re-lowering each mutant, reused unchanged), the existing
+`fluffy_lower::lower` (re-lowering each mutant, reused unchanged), the existing
 verus driver in `check.rs` (the same `run_verus` + `classify_verus_outcome` the
 L3 path uses), and `cache.rs` (content-addressing each mutant's re-verify). It
 owns NO new schema: it sets the two EXISTING `manifest::ContractQuality` fields
@@ -299,7 +299,7 @@ check::check_file per-item L3 path, on VerusOutcome::Proved (real body verifies)
 
 The mutated unit is the `FnItem`'s body ONLY (REQ-1); the lowered mutant's
 `requires`/`ensures`/`invariant`/`decreases` are the original contract's
-(`thermite-design.md` §7 — "re-verifies each against the contract"). The mutant
+(`fluffy-design.md` §7 — "re-verifies each against the contract"). The mutant
 re-uses `check::item_subprogram`'s weaving (`spec fn`s + combinator defs) so a
 mutant of `sum` still resolves `spec_sum`.
 
@@ -357,7 +357,7 @@ reference = ["conformance/mutation"]
 ## Ground the mutants (real verus, `0.2026.05.24.ecee80a`)
 
 These are the MANDATORY grounding runs: `sum`'s body was lowered via the real
-`thermite_lower::lower`, mutated BY HAND in the lowered exec body (the contract /
+`fluffy_lower::lower`, mutated BY HAND in the lowered exec body (the contract /
 invariants left intact), and re-run through the real `verus` binary. They confirm
 the KILLED / SURVIVED polarity and the strong-vs-weak value-add.
 
@@ -455,7 +455,7 @@ precise value-add the floor catches.
 |---|---|---|
 | REQ-1 (frozen mutator set) | SHIPPED | `mutation::generate` in `forge/src/mutation.rs` walks a `FnItem.body` and applies the frozen families: operator flips (`flip_binop`: `Add`↔`Sub`/`Mul`↔`Div`/`Lt`↔`Le`/`Gt`↔`Ge`/`Eq`↔`Ne`/`And`↔`Or`), off-by-ones (`Expr::IntLit n`→`n+1`/`n-1`, `n-1` skipped at 0), early returns (`zero_value_for` → `Stmt::Return` at body head; `Option`→`None`/int→`0`/bool→`false`), branch swaps (`negate_comparison` / arm swap). Consumer: `check::mutation_score` in `check.rs`. |
 | REQ-2 (deterministic order + seed + cap) | SHIPPED | `mutation::generate` enumerates in a fixed pre-order family sequence (`MutantSink`/`Applier` with per-kind `Counters`), capped by `pub const MUTANT_CAP = 64`; the seam takes `check::DEFAULT_SOLVER_SEED`. Verified by `mutation::tests::frozen_set_and_order_for_small_fn` + `generate_is_deterministic` + `capped_at_mutant_cap`. |
-| REQ-3 (re-lower + re-verify vs same contract) | SHIPPED | `check::mutation_score` weaves each `Mutant.item` via `check::item_subprogram` + `thermite_lower::lower` and runs `check::run_verus`; the contract is the original's (only `body` mutated — `mutation::tests::mutant_keeps_contract_changes_only_body`). |
+| REQ-3 (re-lower + re-verify vs same contract) | SHIPPED | `check::mutation_score` weaves each `Mutant.item` via `check::item_subprogram` + `fluffy_lower::lower` and runs `check::run_verus`; the contract is the original's (only `body` mutated — `mutation::tests::mutant_keeps_contract_changes_only_body`). |
 | REQ-4 (KILLED vs SURVIVED) | SHIPPED | `mutation::classify_mutant` + `check::mutant_outcome_is_survivor`/`mutant_cert_is_survivor`: a `Proved` mutant SURVIVED, a counterexample/timeout is KILLED. Verified by `mutation::tests::classify_polarity_is_inverted` + `mutation_conformance.rs`. |
 | REQ-5 (kill ratio + 60% floor gate) | SHIPPED | `mutation::MutationScore::{kill_ratio,meets_floor,mutants_killed_string}` + `pub const MUTATION_FLOOR = 0.60`; the gate in `check::check_file_with_options` certifies `>= floor` and produces `Certificate::rejected_weak_contract` (`RejectReason { cause: "WeakContract" }`) below it. The `cli` `--mutation-floor <FLOAT>` lever threads a non-default floor. Verified by `mutation_conformance.rs` (AC-2/AC-3, GROUNDED: `weak_loose_bound` scores 1/2 < floor; gated). |
 | REQ-6 (graduate `mutants_killed`/`survivor`) | SHIPPED | `Certificate::with_mutation_score` (certified path) + `Certificate::rejected_weak_contract` (reject path) set the two EXISTING Appendix A fields; no schema change (R-SPEC-2). Verified by `manifest::tests::with_mutation_score_graduates_fields_and_stays_oracle_excluded` + `rejected_weak_contract_carries_cause_ratio_and_survivor`. |

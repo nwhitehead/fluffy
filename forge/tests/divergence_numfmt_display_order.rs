@@ -47,7 +47,7 @@ fn forge_bin() -> PathBuf {
 /// Builds + RUNS a formatter on `n == 42` and asserts the produced byte sequence is
 /// the MSB-first decimal of 42 (`[52, 50]`). FAILS against `a6b598c` (the L1
 /// `u64_to_string` pushes `(m%10)+48` then `m/=10` and returns `data` un-reversed,
-/// `thermite-lower/src/l1.rs` `emit_string_runtime_l1`).
+/// `fluffy-lower/src/l1.rs` `emit_string_runtime_l1`).
 ///
 /// AUTHORITY: `.design/basis/07-strings.md` REQ-8 — "The surface emits the
 /// human-readable MSB-first decimal". MSB-first 42 == `[52, 50]`; ASCII `'4'`==52,

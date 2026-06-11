@@ -5,18 +5,18 @@ tier: 3-component
 status: draft
 governs: forge/src/slag.rs
 thesis-refs:
-  - thermite-design.md §8
-  - thermite-design.md §6
-  - thermite-design.md §7
-  - thermite-design.md §4.1
-  - thermite-design.md Appendix A
+  - fluffy-design.md §8
+  - fluffy-design.md §6
+  - fluffy-design.md §7
+  - fluffy-design.md §4.1
+  - fluffy-design.md Appendix A
 -->
 
 ## Summary
 
 `forge/src/slag.rs` implements the §8 escape hatch: the only sanctioned way to
 ship a function whose body is NOT machine-proved. The parser already builds the
-attribute node (`thermite_syntax::FnItem.slag: Option<SlagAttr { reason, owner,
+attribute node (`fluffy_syntax::FnItem.slag: Option<SlagAttr { reason, owner,
 review, span }>`, `ast.rs`); this component supplies the FORGE-side semantics
 the parser deferred "downstream/forge":
 (1) **validate** the three mandatory fields are present AND non-empty;
@@ -45,7 +45,7 @@ hatch", milestone #1).
   parses to `None`, `reason = ""` parses to `Some("")`). A missing field
   (`None`) or an empty/whitespace-only field → reject with a structured cause
   naming the offending field. No panic, no `unwrap` (`goal.md` R-CODE-2).
-  Source: `thermite-design.md` §8 ("`reason`, `owner`, and `review` fields are
+  Source: `fluffy-design.md` §8 ("`reason`, `owner`, and `review` fields are
   mandatory and non-empty (checked)").
 - **REQ-2 (slag semantics — L3-exempt, L1-enforced, `slag: true`):** a VALID
   `#[slag]` item is exempt from the L3 proof obligation: `forge check` does NOT
@@ -55,7 +55,7 @@ hatch", milestone #1).
   checking*"). The certificate level is `Level::L1` (NOT `L3`, NOT skipped) with
   `slag: true`. This is the ONE place a v0.1 certificate carries `L1`: it is a
   deliberate down-rung, not a degrade (the L3→L2→L1 degrade ladder is #10).
-  Source: `thermite-design.md` §8, §6.
+  Source: `fluffy-design.md` §8, §6.
 - **REQ-3 (slag justifies a maximal `fx` row — the §7.1 (d) interaction):** slag
   is the ONLY thing that justifies a maximal effect row. The structural triage
   rule (d) (`.design/forge/vacuity-triage.md` REQ-4) rejects a maximal
@@ -65,7 +65,7 @@ hatch", milestone #1).
   `FnItem.slag.is_some()` for it. A slag item is STILL subject to triage rules
   (a)/(b)/(c) — slag does not excuse a vacuous, result-omitting, or req-implied
   contract (§8; `goal.md` R-DEFER-9).
-  Source: `thermite-design.md` §7.1 ("Effect row is maximal ... without
+  Source: `fluffy-design.md` §7.1 ("Effect row is maximal ... without
   `#[slag]` justification → reject"), §8.
 - **REQ-4 (audit visibility — cert carries `slag: true` + metadata):** a slag
   item is visible in the certificate (the trust statement, §6): the existing
@@ -79,7 +79,7 @@ hatch", milestone #1).
   the codebase remains the complete inventory (§8); the full `forge audit`
   inventory (Appendix B) is a SEPARATE issue (#15 audit manifest v1) — OUT of
   scope here, noted as a boundary.
-  Source: `thermite-design.md` §8 ("Every slag block appears in the build
+  Source: `fluffy-design.md` §8 ("Every slag block appears in the build
   manifest ... `grep slag` over a codebase is the complete inventory"), §6;
   `.design/forge/certificate-manifest.md` (additive-schema convention).
 - **REQ-5 (typed verdict; forge-check integration):** validation returns a
@@ -91,7 +91,7 @@ hatch", milestone #1).
   proof and emit an `L1` `slag: true` certificate (REQ-2/REQ-4). A non-slag item
   (`slag.is_none()`) is untouched by this component and proceeds to the normal L3
   path. No panic; errors are structured `ForgeError`/verdict values.
-  Source: `thermite-design.md` §8, §7; `.design/forge/check.md` (the
+  Source: `fluffy-design.md` §8, §7; `.design/forge/check.md` (the
   `check_file` pipeline this slots into).
 
 ## Acceptance criteria
@@ -130,7 +130,7 @@ literals.
 ## Architecture
 
 `slag.rs` is a new `mod slag;` in `forge/src/main.rs`/`lib.rs`, consumed by
-`check.rs`. It imports `thermite_syntax::{FnItem, SlagAttr}` and the
+`check.rs`. It imports `fluffy_syntax::{FnItem, SlagAttr}` and the
 `manifest::{Certificate, Level}` schema.
 
 - `pub fn validate(slag: &SlagAttr) -> Result<SlagMeta, SlagError>` (REQ-1):
@@ -143,7 +143,7 @@ literals.
   (`manifest::effects_of`), `slag: true`, the metadata, and a single discharged
   obligation noting "contract enforced at L1 (slag); proof exempt by fiat" — NOT
   a `verus` obligation (no proof was run). The L1 RUNTIME-CHECK compilation of
-  the contract is `thermite-lower`'s `l1.rs` job (`.design/lower/l1-runtime-checks.md`);
+  the contract is `fluffy-lower`'s `l1.rs` job (`.design/lower/l1-runtime-checks.md`);
   this component records that the item's assurance IS L1, it does not generate
   the runtime checks.
 
@@ -182,7 +182,7 @@ mandating `Level::L0`.
 slag ∪ boundary contracts ∪ assurance) is issue **#15** (audit manifest v1) —
 OUT of scope; this component only sets the per-item certificate's `slag: true` +
 metadata, which IS the `grep slag`-equivalent inventory at the cert level (§8).
-The L1 runtime-check CODE generation is `thermite-lower` (`l1.rs`); CI policy
+The L1 runtime-check CODE generation is `fluffy-lower` (`l1.rs`); CI policy
 hooks that cap slag count / require second-party sign-off (§8) are a later
 policy layer, not v0.1.
 
@@ -191,7 +191,7 @@ policy layer, not v0.1.
 - `cargo test -p forge` — unit tests over `slag::validate` (AC-5: present /
   missing / empty / whitespace per field) and the slag-certificate helper
   (AC-1/AC-4 cert shape: `Level::L1`, `slag == true`, metadata present).
-  Expected verdicts/levels trace to `thermite-design.md` §8 and the
+  Expected verdicts/levels trace to `fluffy-design.md` §8 and the
   `conformance/slag/` fixtures (R-CHAR-3), never to `forge`'s output.
 - Conformance integration (`goal.md` model (B); the `conformance/slag` route
   reference): `forge check conformance/slag/simd_sum.th` → `L1`, `slag: true`
@@ -204,7 +204,7 @@ policy layer, not v0.1.
 
 ## Exact `conformance/slag/` fixture programs (PARSE-VERIFIED)
 
-All parse clean under `thermite_syntax::parse` today (verified by direct probe);
+All parse clean under `fluffy_syntax::parse` today (verified by direct probe);
 grounded AST noted. The `simd_sum` body uses `0` as a placeholder (the body is
 proof-exempt, so its content is irrelevant to slag certification); a real
 `spec_sum` reference parses (it is an ordinary `Expr::Call`).
@@ -212,7 +212,7 @@ proof-exempt, so its content is irrelevant to slag certification); a real
 **`simd_sum.th`** — valid slag → L1 (AC-1). §8's example, adapted to the v0.1
 grammar (the design comments are dropped; `u32::MAX as usize` parses as a
 `Path`+`Cast`):
-```thermite
+```fluffy
 #[slag(reason = "vendored SIMD intrinsics; contract checked at boundary by L1 wrapper",
        owner  = "agent:forge-7/session-2026-06-04",
        review = "required")]
@@ -230,7 +230,7 @@ also parses — digit separators are lexed — but `1000000` is used to avoid th
 observation #37 separator caveat.)
 
 **`empty_reason.th`** — invalid (empty `reason`) → reject (AC-2):
-```thermite
+```fluffy
 #[slag(reason = "", owner = "agent:forge-7", review = "required")]
 fn f(xs: &[u32]) -> u64
   req true
@@ -243,7 +243,7 @@ review: Some("required") })` → `reason` present but empty → `SlagError::Empt
 { field: "reason" }`.
 
 **`missing_owner.th`** — invalid (omitted `owner`) → reject (AC-2):
-```thermite
+```fluffy
 #[slag(reason = "x", review = "required")]
 fn f(xs: &[u32]) -> u64
   req true
@@ -257,7 +257,7 @@ Some("required") })` → `owner` is `None` → `SlagError::MissingField
 
 **`slag_vacuous.th`** — valid fields but vacuous contract → reject by triage (a)
 (AC-3):
-```thermite
+```fluffy
 #[slag(reason = "x", owner = "y", review = "required")]
 fn f(xs: &[u32]) -> u64
   req true
@@ -270,7 +270,7 @@ slag validation, then triage rule (a) rejects (`.design/forge/vacuity-triage.md`
 REQ-1). Demonstrates slag exempts proving, not stating (§8).
 
 **`maximal_fx.th`** — valid slag justifying a maximal row → L1 (AC-4):
-```thermite
+```fluffy
 #[slag(reason = "vendored hardware path", owner = "agent:forge-7", review = "required")]
 fn f(x: u32) -> u32
   req true
@@ -303,9 +303,9 @@ Path(["result"]), Path(["x"])}`. Passes slag validation, triage (a)/(b)/(c), and
   item, that is a thesis-level ambiguity (escalate per R-SPEC-4); the DECIDED
   scope here (slag certifies L1, not skipped, not L3) is the binding
   interpretation pending that escalation.
-- **OQ-3 (does L1 certification need `thermite-lower`'s `l1.rs`?):** REQ-2 says
+- **OQ-3 (does L1 certification need `fluffy-lower`'s `l1.rs`?):** REQ-2 says
   a slag item's assurance IS L1 because its contract is runtime-enforced. Whether
-  `forge check` must invoke `thermite-lower`'s L1 runtime-check generation
+  `forge check` must invoke `fluffy-lower`'s L1 runtime-check generation
   (`l1.rs`) to EMIT those checks as part of slag certification, or whether #6
   only records the L1 LEVEL (with `l1.rs` generation wired later), is a
   sequencing question. Leaning: #6 records `Level::L1` + `slag: true` (the

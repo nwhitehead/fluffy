@@ -1,9 +1,9 @@
-# Formal-methods state of the art — context for Thermite's lowering-soundness architecture
+# Formal-methods state of the art — context for Fluffy's lowering-soundness architecture
 
 <!--
 tier: research
 status: survey (deep-research, 2026-06-09)
-purpose: contextualize Thermite's step-3 ("lowering faithfulness") architecture in the
+purpose: contextualize Fluffy's step-3 ("lowering faithfulness") architecture in the
          formal-methods SOTA, and correct lexical drift before committing the design.
 method: fan-out web search (5 angles) -> 26 primary sources -> 120 claims ->
         25 verified by 3-vote adversarial verification (2/3 refutes to kill) ->
@@ -12,7 +12,7 @@ method: fan-out web search (5 angles) -> 26 primary sources -> 120 claims ->
 
 ## Headline
 
-The technique Thermite needs for "lowering faithfulness" is **well-established**, and the
+The technique Fluffy needs for "lowering faithfulness" is **well-established**, and the
 field gives it two precise framings. We are not reinventing — we have been *naming it
 wrong*. The corrective: state the work in the field's vocabulary (**semantic
 preservation**, **forward simulation**, `S ≈ C`), and be explicit that an L3 proof
@@ -28,7 +28,7 @@ primary sources.
    theorem, CompCert) vs *translation validation* (a per-run check, Pnueli/Siegel/Singerman
    1998; Necula's GCC validator 2000; Alive2 for LLVM). Leroy proves a **verified validator
    composed with an unverified compiler is as strong as a verified compiler — "provided the
-   validator is smaller and simpler than the compiler."** This is exactly Thermite's
+   validator is smaller and simpler than the compiler."** This is exactly Fluffy's
    "existential→universal" axis: a per-run validator is the local/existential guarantee; a
    once-for-all metatheorem (or a *verified* validator) is the universal one. **Critical
    nuance: only a *verified* (proven-sound) validator gives the strong guarantee** — an
@@ -44,8 +44,8 @@ primary sources.
    The proof is the **simulation diagram**: each source transition corresponds to target
    transitions with the same observable effects, preserving a binary relation `∼` between
    states; backward simulation is the converse (derivable when the target is deterministic).
-   **For Thermite: the source→Verus theorem should be a forward simulation over a relation
-   between Thermite states and the (Verus-annotated) Rust states, preserving observable
+   **For Fluffy: the source→Verus theorem should be a forward simulation over a relation
+   between Fluffy states and the (Verus-annotated) Rust states, preserving observable
    effects — and the caged quantifier fragment + the effect rows define exactly what
    "observable" means.**
    — Leroy CACM.
@@ -56,11 +56,11 @@ primary sources.
    (1) the formal semantics of source + target; (2) the unverified passes (parser, assembler,
    linker); (3) the extraction + OCaml runtime; (4) Coq itself. **He flags item (1) — the
    formal semantics — as the most delicate ("how can we make sure a formal semantics agrees
-   with language standards and common practice?").** Thermite's analogous list: the Thermite
+   with language standards and common practice?").** Fluffy's analogous list: the Fluffy
    operational semantics + the Verus/Rust target semantics, the unverified lowering passes,
    Z3 (unless reconstructed), Verus, rustc/build chain. **The mechanized operational
    semantics we plan to write is the single most delicate item — its agreement with the
-   *intended* meaning of Thermite is itself an unprovable-from-within assumption.**
+   *intended* meaning of Fluffy is itself an unprovable-from-within assumption.**
    — Leroy CACM.
 
 4. **Translation validation is cheap to build (≈ one compiler pass of effort), needs no
@@ -69,7 +69,7 @@ primary sources.
    "about the effort... of one compiler pass." Alive2 is "fully automatic through an SMT
    solver... no changes to LLVM"; its boundedness (loop unrolling to a bound, "misses bugs"
    in some cases) is deliberate — "designed to avoid false alarms" (sound-for-reported-
-   violations, incomplete). **This is exactly Thermite's L2 tier (Kani/CBMC bounded model
+   violations, incomplete). **This is exactly Fluffy's L2 tier (Kani/CBMC bounded model
    check). Caveat: Necula's prototype had ~10% false-alarm rates and was not production —
    "cheap to build" ≠ "cheap to make sound and usable."**
    — Necula PLDI'00 (349299.349314); Alive2 PLDI'21 (3453483.3454030).
@@ -78,14 +78,14 @@ primary sources.
    (CakeML, in HOL4) — but only over a *fixed subset*,** with one machine-checked theorem
    from source string to executing machine code. This is the existence proof that **a small,
    frozen source language can be carried to a universal correctness theorem — it endorses
-   Thermite's decision to keep the language small and freeze the subset.**
+   Fluffy's decision to keep the language small and freeze the subset.**
    — CakeML POPL'14 (2535838.2535841).
 
 6. **Standard toolchain: Ott/Sail author the *definitions*; a foundational proof assistant
    (Coq/Isabelle/HOL4) carries the *metatheory*.** Ott compiles one definition to LaTeX +
    Coq/HOL/Isabelle + OCaml, **but "is not itself a proof tool."** Sail emits emulators + Coq/
    Isabelle/HOL4 definitions; its models boot Linux/FreeBSD/seL4. **Implication: a tool can
-   author the Thermite semantics and emit prover definitions, but the semantics-preservation
+   author the Fluffy semantics and emit prover definitions, but the semantics-preservation
    proof itself must be done in Coq/Lean/Isabelle. This is a concrete buy-vs-build decision.**
    — Ott JFP (ott-jfp.pdf); Sail POPL'19 (sail-popl2019.pdf).
 
@@ -94,7 +94,7 @@ primary sources.
    real-language metatheory and effect/aliasing reasoning. Stacked Borrows is "an operational
    semantics for memory accesses in Rust [defining] an aliasing discipline," soundness
    mechanized in Coq; RustBelt is built on Iris, "a generic higher-order concurrent
-   separation logic... in Coq." **Two load-bearing consequences for Thermite: (a) since we
+   separation logic... in Coq." **Two load-bearing consequences for Fluffy: (a) since we
    lower to *Rust*, our target semantics inherits Rust's aliasing/UB model — Stacked Borrows
    is the reference our "Verus-annotated Rust" target must be reconciled against; (b) the
    field's effect-reasoning tool is separation logic (Iris), which contrasts with — and does
@@ -106,7 +106,7 @@ primary sources.
    solver is *not trusted*. Lean-SMT dispatches to cvc5 and "reconstructs SMT proofs into
    native Lean proofs... submitted to the Lean kernel" (coverage partial: ~30% of cvc5's
    proof rules today); cf. SMTCoq, Isabelle's Metis replay of Sledgehammer. **This is the
-   missing piece between Thermite's L3 (which trusts Z3) and a foundational certificate.
+   missing piece between Fluffy's L3 (which trusts Z3) and a foundational certificate.
    Verus/Z3 do NOT produce reconstructable proofs by default — so *today* an L3 certificate
    must enumerate Z3 (and Verus) in its trusted base.** The path to demote Z3 from *trusted*
    to *checked* exists, but is not free.
@@ -114,7 +114,7 @@ primary sources.
 
 ## Terminology map (drift / duplication / genuine extension)
 
-| Thermite term | Field term | Verdict |
+| Fluffy term | Field term | Verdict |
 |---|---|---|
 | "lowering faithfulness" | **semantic preservation** (`S ≈ C`), via **forward simulation** | DUPLICATES — restate in this vocabulary; cite CompCert/Leroy |
 | L3 (SMT total-correctness over the caged fragment) | SMT-discharged verification; the cage = a decidability/automation lever | mostly standard; the *cage* is a genuine lever (below) |
@@ -130,7 +130,7 @@ primary sources.
 ## Architecture implications (for step 3, epic #169)
 
 - **Adopt the vocabulary.** Rename/relate "lowering faithfulness" → *semantic preservation*;
-  state the theorem as a **forward simulation** over a relation `∼` between Thermite states
+  state the theorem as a **forward simulation** over a relation `∼` between Fluffy states
   and Verus-Rust states, preserving observable effects. Cite Leroy for the trusted-base
   framing. This is the direct fix for the lexical-drift concern.
 - **A verified *bounded validator* may suffice — and is far cheaper than a full universal
@@ -141,7 +141,7 @@ primary sources.
   missing piece is *proving the validator (our reference encoder) sound* (T1) — which is the
   cheaper crux either way.
 - **The source semantics is the delicate item** (finding 3). Its agreement with the
-  *intended* meaning of Thermite is an unprovable-from-within assumption — this is the
+  *intended* meaning of Fluffy is an unprovable-from-within assumption — this is the
   irreducible residue (Gödel), and it should be stated, not hidden.
 - **The target inherits Rust's UB/aliasing model** (Stacked Borrows). The "Verus-annotated
   Rust" target semantics must be reconciled against it (Verus's own model already does much
@@ -163,12 +163,12 @@ field *uses for this kind of work*:
 - **HOL4** — CakeML (end-to-end verified compiler over a frozen subset). Closest precedent
   for our "small frozen language → universal theorem."
 - **Lean 4** — Mathlib + Lean-SMT (the cvc5 proof-reconstruction path). The modern choice and
-  the one with the live route to *demoting Z3* — directly relevant to shrinking Thermite's
+  the one with the live route to *demoting Z3* — directly relevant to shrinking Fluffy's
   trusted base.
 
 ## Honest gaps + open questions (the research could NOT confirm these)
 
-1. **Thermite's central economic thesis — that AI agents make the historically-prohibitive
+1. **Fluffy's central economic thesis — that AI agents make the historically-prohibitive
    annotation/proof burden affordable by paying it in compute — is UNVERIFIED by this
    evidence set** (the autoformalization angle, Lean Copilot/AlphaProof/Baldur/LLM-generated
    Verus, did not survive into confirmed claims). **It must be treated as an open, load-

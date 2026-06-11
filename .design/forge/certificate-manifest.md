@@ -5,17 +5,17 @@ tier: 3-component
 status: draft
 governs: forge/src/manifest.rs
 thesis-refs:
-  - thermite-design.md §5.1
-  - thermite-design.md §5.3
-  - thermite-design.md §6
-  - thermite-design.md §7
-  - thermite-design.md Appendix A
+  - fluffy-design.md §5.1
+  - fluffy-design.md §5.3
+  - fluffy-design.md §6
+  - fluffy-design.md §7
+  - fluffy-design.md Appendix A
 -->
 
 ## Summary
 
 `forge/src/manifest.rs` defines the certificate schema — the STABLE, versioned
-data contract that `forge check` emits (`thermite-design.md` §5.1, Appendix A).
+data contract that `forge check` emits (`fluffy-design.md` §5.1, Appendix A).
 It is the deliverable's trust statement (§6). This component owns the
 `Certificate` struct, its serde serialization (`serde_json`), the per-obligation
 result type, and the FULL field set from Appendix A — including the fields #5
@@ -35,7 +35,7 @@ GREENFIELD — no `manifest.rs` exists. All REQs NOT-STARTED, blocked on #5.
   `effects: Vec<String>`, `slag: bool`. Field names and JSON shape match
   Appendix A's excerpt byte-for-byte where present. This is a CONTRACT: a field
   add/rename/remove is a design amendment.
-  Source: `thermite-design.md` Appendix A; `goal.md` R-SPEC-2 ("certificate
+  Source: `fluffy-design.md` Appendix A; `goal.md` R-SPEC-2 ("certificate
   fields ... match the design (§6, §7, §8, Appendix A). The certificate IS the
   deliverable; its shape is a contract").
 - REQ-2 (which fields #5 produces NOW): in #5 the certificate carries real,
@@ -57,7 +57,7 @@ GREENFIELD — no `manifest.rs` exists. All REQs NOT-STARTED, blocked on #5.
   producing component lands. The schema reserves the slot; the value is filled
   later, never fabricated.
   Source: `conformance/README.md` ("Forward-declared fields ... compares only
-  the fields the toolchain actually emits"); `thermite-design.md` §7 (battery
+  the fields the toolchain actually emits"); `fluffy-design.md` §7 (battery
   produces these); `goal.md` scope (battery fields are #6/#12/#13).
 - REQ-4 (`suggested_move` slot reserved, not stubbed): §5.1 reserves a
   `suggested_move` slot "populated by deterministic heuristics." In #5 it is
@@ -66,7 +66,7 @@ GREENFIELD — no `manifest.rs` exists. All REQs NOT-STARTED, blocked on #5.
   The heuristic population (missing-invariant patterns, overflow-guard
   templates, trigger hints) is later work; the schema slot exists now so adding
   it is not a breaking change.
-  Source: `thermite-design.md` §5.1 ("reserves a `suggested_move` slot").
+  Source: `fluffy-design.md` §5.1 ("reserves a `suggested_move` slot").
 - REQ-5 (per-obligation results, counterexamples): the certificate carries the
   per-obligation results that `check.rs` parses from verus (§5.1
   "per-obligation results"; "counterexamples, not adjectives"). Each result
@@ -76,14 +76,14 @@ GREENFIELD — no `manifest.rs` exists. All REQs NOT-STARTED, blocked on #5.
   are pinned here as the stable schema (see OQ-2 — `sum.cert.json` does not
   enumerate a per-obligation array, so this list's JSON key is a #5 schema
   decision recorded here).
-  Source: `thermite-design.md` §5.1.
+  Source: `fluffy-design.md` §5.1.
 - REQ-6 (`solver_time_ms` excluded from the oracle): `solver_time_ms` is a
   schema field (Appendix A) but is NON-DETERMINISTIC (wall-clock solver timing,
   §5.3) and is EXCLUDED from the cert-oracle comparison. It is present in the
   emitted certificate but never asserted against a golden cert; the determinism
   contract (R-CODE-5) applies to every OTHER field.
   Source: `conformance/README.md` ("Deterministic subset only ...
-  `solver_time_ms` ... is not asserted"); `thermite-design.md` §5.3.
+  `solver_time_ms` ... is not asserted"); `fluffy-design.md` §5.3.
 - REQ-7 (serialization — serde_json, deterministic): `Certificate` derives
   `serde::Serialize`/`Deserialize`; `serde_json` is the serializer. Field
   ordering and formatting are stable/deterministic (R-CODE-5) so the JSON is
@@ -97,7 +97,7 @@ GREENFIELD — no `manifest.rs` exists. All REQs NOT-STARTED, blocked on #5.
 - AC-1 (schema matches Appendix A): a `cargo test -p forge` unit serializes a
   hand-built `Certificate` and asserts every Appendix A key is present with the
   documented type, and `Level::L3` serializes to the string `"L3"`. Expected
-  keys/values trace to `thermite-design.md` Appendix A (R-CHAR-3), not to
+  keys/values trace to `fluffy-design.md` Appendix A (R-CHAR-3), not to
   `forge`'s own output.
 - AC-2 (deterministic subset round-trips the golden cert): the present,
   deterministic fields of `conformance/sum.cert.json`
@@ -184,7 +184,7 @@ component's job in #5. The SCHEMA carries the slots; the VALUES come later.
 - `cargo clippy -p forge --all-targets -- -D warnings`, `cargo fmt --check`,
   anti-pattern gate (no `todo!`/placeholder in the reserved slots).
 
-Expected JSON keys/values trace to `thermite-design.md` Appendix A and
+Expected JSON keys/values trace to `fluffy-design.md` Appendix A and
 `conformance/sum.cert.json` — NEVER copied from `forge`'s own output
 (R-CHAR-3).
 

@@ -1,5 +1,5 @@
 //! `forge/src/strengthen.rs` — §7 step 5 of the vacuity battery: STRENGTHENING
-//! PROBES (`thermite-design.md` §7 "template-based tightenings of `ens` … if a
+//! PROBES (`fluffy-design.md` §7 "template-based tightenings of `ens` … if a
 //! strictly stronger contract proves with no body change, Forge suggests it").
 //! Given a `fn` whose REAL body already proved **L3** but whose contract is WEAK
 //! (#12 mutation scoring found one or more SURVIVORS — behavior the `ens` does
@@ -39,7 +39,7 @@
 //! |---|---|---|
 //! | REQ-3/REQ-4 (NO strengthen change needed) | SHIPPED | `render_expr` is a frozen-template `ens`-shape renderer over the strengthenable family (binary/method/call/tuple/projection) with a safe non-panic `_` placeholder for any other shape — it does not match `Pattern` and never renders a `match` arm, so neither the `MatchArm.guard` field nor the `Pattern::Or` variant ripples here (the template never emits a guard/or-pattern). Consumer: `generate_candidates`. |
 
-use thermite_syntax::{BinOp, Clause, Expr, FnItem, Item, PrimType, Span, Type};
+use fluffy_syntax::{BinOp, Clause, Expr, FnItem, Item, PrimType, Span, Type};
 
 use crate::cli::ForgeError;
 use crate::mutation::MutationScore;
@@ -56,7 +56,7 @@ use crate::mutation::MutationScore;
 pub const CANDIDATE_CAP: usize = 16;
 
 /// One generated candidate stronger `ens` clause (REQ-1). The `ens` is a real
-/// SpecTherm `Clause` (built from `thermite_syntax::{Expr, Clause}` — the same
+/// SpecTherm `Clause` (built from `fluffy_syntax::{Expr, Clause}` — the same
 /// nodes the parser produces, so it round-trips through the lowerer unchanged).
 /// `kills_survivor` carries the #12 survivor description this candidate would
 /// kill, when the candidate is the survivor-derived family-3 tightening; it is
@@ -428,7 +428,7 @@ fn is_slice_param(ty: &Type) -> bool {
 /// matches `ret` (the family-1 spec-fn-equality signature check). A `spec fn`
 /// whose signature matches `f`'s can be applied to `f`'s parameters to pin the
 /// result (`result == s(<f's params>)`).
-fn spec_fn_signature_matches(f: &FnItem, params: &[thermite_syntax::Param], ret: &Type) -> bool {
+fn spec_fn_signature_matches(f: &FnItem, params: &[fluffy_syntax::Param], ret: &Type) -> bool {
     if &f.ret != ret {
         return false;
     }
@@ -507,7 +507,7 @@ mod tests {
     use super::*;
 
     fn parse_fn(src: &str) -> FnItem {
-        let parsed = thermite_syntax::parse(src);
+        let parsed = fluffy_syntax::parse(src);
         assert!(parsed.is_clean(), "fixture must parse: {:?}", parsed.errors);
         parsed
             .program
@@ -521,7 +521,7 @@ mod tests {
     }
 
     fn parse_program_items(src: &str) -> Vec<Item> {
-        let parsed = thermite_syntax::parse(src);
+        let parsed = fluffy_syntax::parse(src);
         assert!(parsed.is_clean(), "fixture must parse: {:?}", parsed.errors);
         parsed.program.items
     }

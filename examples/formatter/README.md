@@ -7,7 +7,7 @@ No new toolchain feature — this is C4 composed into a real program.
 
 ## What is proven
 
-```thermite
+```fluffy
 fn format(n: u64) -> String
   req true
   ens parse_be(result) == n        // THE ROUND-TRIP: the decimal bytes parse back to n

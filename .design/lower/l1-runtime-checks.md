@@ -1,20 +1,20 @@
-# Thermite Contracts → Executable L1 Runtime Checks (the L1 rung)
+# Fluffy Contracts → Executable L1 Runtime Checks (the L1 rung)
 <!--
 tier: 3-component
 status: draft
-governs: thermite-lower/src/l1.rs
+governs: fluffy-lower/src/l1.rs
 thesis-refs:
-  - thermite-design.md §4.2
-  - thermite-design.md §6
-  - thermite-design.md §8
-  - thermite-design.md §5.3
-  - thermite-design.md Appendix A
+  - fluffy-design.md §4.2
+  - fluffy-design.md §6
+  - fluffy-design.md §8
+  - fluffy-design.md §5.3
+  - fluffy-design.md Appendix A
 -->
 
 ## Summary
 
-`thermite-lower::l1` compiles a SpecTherm contract into **executable runtime
-checks** — the L1 rung of the ladder (`thermite-design.md §6`). Where
+`fluffy-lower::l1` compiles a SpecTherm contract into **executable runtime
+checks** — the L1 rung of the ladder (`fluffy-design.md §6`). Where
 `lower.rs` emits Verus annotations for an SMT *proof* (L3), `l1.rs` emits Rust
 that *executes* the contract: each `req`/`ens`/`inv`/`dec` clause and each
 combinator becomes a runnable `bool` expression, and a violation is detected at
@@ -25,11 +25,11 @@ compilable to a runtime check … the L1 fallback rung always exists for every
 contract"). It is also what `#[slag]` blocks fall back to (§8: "The contract is
 still mandatory and is enforced at L1").
 
-This component is SHIPPED (issue **#4** L1 stage): `thermite-lower/src/l1.rs`
+This component is SHIPPED (issue **#4** L1 stage): `fluffy-lower/src/l1.rs`
 implements `lower_l1` and every REQ is **SHIPPED** (REQ-status table below).
 The golden reference lives at `tests/golden/l1/sum.l1.rs`; the emitter is
 verified by EXECUTION (compile + run via `rustc`, checks fire on violation) in
-`thermite-lower/tests/l1_conformance.rs`, not by strict byte-match.
+`fluffy-lower/tests/l1_conformance.rs`, not by strict byte-match.
 
 ## Requirements
 
@@ -43,19 +43,19 @@ verified by EXECUTION (compile + run via `rustc`, checks fire on violation) in
   rung) + §8 (slag enforces at L1).
 
 - **REQ-2 (the always-active check primitive):** Each clause compiles to a check
-  of the form `if !(COND) { thermite_contract_violation("<clause kind>",
+  of the form `if !(COND) { fluffy_contract_violation("<clause kind>",
   "<verbatim clause text>", <span/addr>); }` — an always-active check (NOT
   `debug_assert!`, which is stripped in release; §6 demands every profile). The
   violation handler is structured and deterministic (R-CODE-5): it reports the
   clause kind (`req`/`ens`/`inv`/`dec`), the verbatim clause text (the AST
   `Clause.text` the parser preserved — `ast.rs` `struct Clause { text }`), and
   the semantic address. It does NOT use `panic!`/`unwrap` in the toolchain's own
-  production code (R-CODE-2); the EMITTED check at the Thermite program's runtime
+  production code (R-CODE-2); the EMITTED check at the Fluffy program's runtime
   is a defined abort/diagnostic, which is the contract-violation behavior, not a
   toolchain panic. Derived from §2.4 (crisp structured feedback), §6, R-CODE-2.
 
 - **REQ-3 (combinator L1 executable forms):** For each of the 8 frozen registry
-  combinators (`thermite-spec/src/combinators.rs` `static REGISTRY`) the L1 stage
+  combinators (`fluffy-spec/src/combinators.rs` `static REGISTRY`) the L1 stage
   supplies a **runnable `bool`/`usize` fn over real slices** — the executable
   counterpart of the Verus(L3) `spec fn` in `.design/lower/verus-lowering.md`
   REQ-6. These are ordinary Rust loops (no `vstd`, no `Seq`): a combinator call
@@ -140,11 +140,11 @@ verified by EXECUTION (compile + run via `rustc`, checks fire on violation) in
 
 ## Architecture
 
-`thermite-lower/src/l1.rs`: a recursive emitter over the `thermite-syntax` AST,
+`fluffy-lower/src/l1.rs`: a recursive emitter over the `fluffy-syntax` AST,
 sibling to `lower.rs`, sharing the `LowerError` enum. Symbol anchors:
 `struct FnItem` / `struct SpecFnItem` / `struct Contract` / `struct Clause`
-(`.text`) / `struct LoopNode` in `thermite-syntax/src/ast.rs`; `static REGISTRY`
-/ `fn lookup` in `thermite-spec/src/combinators.rs`.
+(`.text`) / `struct LoopNode` in `fluffy-syntax/src/ast.rs`; `static REGISTRY`
+/ `fn lookup` in `fluffy-spec/src/combinators.rs`.
 
 ### Exec semantics, not spec semantics
 
@@ -157,19 +157,19 @@ carried into the violation message for legibility (§2.4).
 ### The always-active check primitive (REQ-2)
 
 ```rust
-macro_rules! thermite_check {  // always-active (NOT debug_assert)
+macro_rules! fluffy_check {  // always-active (NOT debug_assert)
     ($kind:literal, $text:literal, $cond:expr) => {
-        if !($cond) { thermite_contract_violation($kind, $text); }
+        if !($cond) { fluffy_contract_violation($kind, $text); }
     };
 }
 ```
 
-A `req` becomes `thermite_check!("req", "<text>", <lowered cond>)` on entry; each
+A `req` becomes `fluffy_check!("req", "<text>", <lowered cond>)` on entry; each
 `ens` becomes the same on exit (after `result` is bound); each loop `inv` becomes
-the same at the top of each iteration. `thermite_contract_violation` is the
+the same at the top of each iteration. `fluffy_contract_violation` is the
 defined contract-failure behavior of the *generated* program (a structured abort
 / diagnostic) — this is the intended L1 runtime behavior, distinct from a
-toolchain panic, which R-CODE-2 forbids in `thermite-lower` itself.
+toolchain panic, which R-CODE-2 forbids in `fluffy-lower` itself.
 
 ### Combinator L1 executable forms (REQ-3)
 
@@ -235,22 +235,22 @@ fn spec_sum(xs: &[u32]) -> u64 {        // executable spec fn (REQ-4)
 }
 
 fn sum(xs: &[u32]) -> u64 {
-    thermite_check!("req", "xs.len() <= 1_000_000", xs.len() <= 1000000);
+    fluffy_check!("req", "xs.len() <= 1_000_000", xs.len() <= 1000000);
     let result = {
         let mut acc: u64 = 0;
         let mut i: usize = 0;
         while i < xs.len() {
-            thermite_check!("inv", "i <= xs.len()", i <= xs.len());
-            thermite_check!("inv", "acc == spec_sum(&xs[..i])", acc == spec_sum(&xs[..i]));
-            thermite_check!("inv", "acc <= i as u64 * u32::MAX as u64",
+            fluffy_check!("inv", "i <= xs.len()", i <= xs.len());
+            fluffy_check!("inv", "acc == spec_sum(&xs[..i])", acc == spec_sum(&xs[..i]));
+            fluffy_check!("inv", "acc <= i as u64 * u32::MAX as u64",
                 acc <= i as u64 * u32::MAX as u64);
             acc = acc + xs[i] as u64;
             i = i + 1;
         }
         acc
     };
-    thermite_check!("ens", "result == spec_sum(xs)", result == spec_sum(xs));
-    thermite_check!("ens", "result <= xs.len() as u64 * u32::MAX as u64",
+    fluffy_check!("ens", "result == spec_sum(xs)", result == spec_sum(xs));
+    fluffy_check!("ens", "result <= xs.len() as u64 * u32::MAX as u64",
         result <= xs.len() as u64 * u32::MAX as u64);
     result
 }
@@ -270,7 +270,7 @@ multiset to avoid iteration-order non-determinism (R-CODE-5).
 
 ## Verification
 
-`cargo test -p thermite-lower` over `tests/golden/l1/`:
+`cargo test -p fluffy-lower` over `tests/golden/l1/`:
 
 - **AC-1:** lower `conformance/sum.th`, `assert_eq!` against
   `tests/golden/l1/sum.l1.rs` (R-CHAR-3); compile + run the golden — `sum(&[1,2,3])
@@ -285,8 +285,8 @@ multiset to avoid iteration-order non-determinism (R-CODE-5).
 - **AC-6:** un-lowerable-construct fixture asserts `Err(LowerError)`, no toolchain
   panic.
 
-Gauntlet (R-DEFER-6): `cargo test -p thermite-lower`,
-`cargo clippy -p thermite-lower --all-targets -- -D warnings`,
+Gauntlet (R-DEFER-6): `cargo test -p fluffy-lower`,
+`cargo clippy -p fluffy-lower --all-targets -- -D warnings`,
 `cargo fmt --check`.
 
 **`tests/golden/l1/` does NOT exist yet** (GREENFIELD). The `sum.l1.rs` shape
@@ -297,17 +297,17 @@ must compile and run under `rustc`.
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (L1 check-emission entry point) | SHIPPED | `pub fn lower_l1` in `thermite-lower/src/l1.rs` emits each `FnItem` with `req` on entry, loop `inv` per iteration, `ens` against the bound `result` on exit; verified by `sum_l1_compiles_and_runs` in `thermite-lower/tests/l1_conformance.rs` (compile+run via `rustc`). |
-| REQ-2 (always-active check primitive) | SHIPPED | `emit_check_macro` writes the `thermite_check!` macro (a plain `if !(cond)`, NOT `debug_assert!`) + `thermite_contract_violation` handler; asserted by `no_debug_assert_in_emission` (AC-2) + `negative_fixture_fires_violation`. |
-| REQ-3 (combinator L1 executable forms) | SHIPPED | `emit_combinator_l1_defs` reads `thermite_spec::CombinatorSig.l1` (the 8 frozen runnable forms); a combinator call lowers via `lower_expr_exec`; all 8 unit-tested over concrete slices by `combinator_l1_forms_run` (AC-3). |
+| REQ-1 (L1 check-emission entry point) | SHIPPED | `pub fn lower_l1` in `fluffy-lower/src/l1.rs` emits each `FnItem` with `req` on entry, loop `inv` per iteration, `ens` against the bound `result` on exit; verified by `sum_l1_compiles_and_runs` in `fluffy-lower/tests/l1_conformance.rs` (compile+run via `rustc`). |
+| REQ-2 (always-active check primitive) | SHIPPED | `emit_check_macro` writes the `fluffy_check!` macro (a plain `if !(cond)`, NOT `debug_assert!`) + `fluffy_contract_violation` handler; asserted by `no_debug_assert_in_emission` (AC-2) + `negative_fixture_fires_violation`. |
+| REQ-3 (combinator L1 executable forms) | SHIPPED | `emit_combinator_l1_defs` reads `fluffy_spec::CombinatorSig.l1` (the 8 frozen runnable forms); a combinator call lowers via `lower_expr_exec`; all 8 unit-tested over concrete slices by `combinator_l1_forms_run` (AC-3). |
 | REQ-4 (`spec fn` → executable fn) | SHIPPED | `lower_spec_fn_l1`/`slice_fold_body_l1` emit the slice-length-branch recursion over `&[u32]`; `spec_sum(&[1,2,3]) == 6` exercised in the `sum_l1_compiles_and_runs` positive harness (AC-4). |
-| REQ-5 (`dec`/termination L1 scope) | SHIPPED | `lower_loop_l1` emits `inv` checks only, no `dec` runtime check (OQ-3); `no_syscall_sandbox_and_no_dec_guarantee` confirms no `thermite_check!("dec",..)` (AC-5). |
+| REQ-5 (`dec`/termination L1 scope) | SHIPPED | `lower_loop_l1` emits `inv` checks only, no `dec` runtime check (OQ-3); `no_syscall_sandbox_and_no_dec_guarantee` confirms no `fluffy_check!("dec",..)` (AC-5). |
 | REQ-6 (golden L1 contract) | SHIPPED | `tests/golden/l1/sum.l1.rs` compiles+runs under `rustc`; the emitter's output is execution-equivalent (compiles, runs, `sum(&[1,2,3])==6`, checks fire) — verified by `sum_l1_compiles_and_runs` (verify-by-execution, AC-1). |
 | REQ-7 (`fx`/effect at L1 deferred to #21) | SHIPPED | no `fx` runtime check emitted; `no_syscall_sandbox_and_no_dec_guarantee` confirms no syscall-sandbox scaffolding (REQ-7/AC-5; sandbox itself remains on #21). |
 
 ## Open questions (for the orchestrator before the builder runs)
 
-- **OQ-1 (violation handler shape):** REQ-2's `thermite_contract_violation` needs
+- **OQ-1 (violation handler shape):** REQ-2's `fluffy_contract_violation` needs
   a defined behavior — abort with a structured message, or unwind, or set a
   global "L1 violation" flag forge reads back. The design's §2.4 ("crisp,
   machine-readable, actionable") and §6 (detected at the call site) point at a
@@ -316,7 +316,7 @@ must compile and run under `rustc`.
 
 - **OQ-2 (where L1 `spec_sum` / combinator fns live):** The L1 combinator fns and
   the executable `spec_sum` could be emitted INLINE into each lowered file or
-  pulled from a shared `thermite-rt` runtime crate the lowered program depends on.
+  pulled from a shared `fluffy-rt` runtime crate the lowered program depends on.
   Inlining keeps the golden self-contained (the chosen pin); a runtime crate
   scales better. This doc pins the inline shape for the golden; the mechanism is a
   builder call. Recorded; not a blocker.

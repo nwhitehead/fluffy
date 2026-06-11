@@ -5,8 +5,8 @@ tier: 3-component
 status: draft
 governs: forge/src/mutation.rs
 thesis-refs:
-  - thermite-design.md §7
-  - thermite-design.md §6
+  - fluffy-design.md §7
+  - fluffy-design.md §6
 -->
 
 ## Summary
@@ -62,7 +62,7 @@ This doc governs the per-survivor equivalence check + the denominator drop in
   Verus driver (`check::run_verus`-class invocation): the equivalence obligation
   is `ensures mutant_result == real_result`, discharged under `requires <the
   fn's req>` (and the fn's parameter types). It is a new CALLER of the existing
-  prover path, not a new prover. Source: `thermite-design.md` §7 ("re-verifies
+  prover path, not a new prover. Source: `fluffy-design.md` §7 ("re-verifies
   each against the contract" — this is the dual: re-verify the survivor against
   the real body); `goal.md` R-CODE-4 (an environment/VIR failure surfaces a
   `ForgeError`, never a silent equivalence).
@@ -77,7 +77,7 @@ This doc governs the per-survivor equivalence check + the denominator drop in
   (the conservative, sound reading: exclude ONLY on a proof). This mirrors the
   existing OQ-5 / OQ-4 polarity in `mutation-scoring.md` (an un-lowerable mutant
   is already dropped from the denominator; an un-proved mutant is already
-  conservatively the strict reading). Source: `thermite-design.md` §7; `goal.md`
+  conservatively the strict reading). Source: `fluffy-design.md` §7; `goal.md`
   R-DEFER-9.
 
 - **REQ-3 (the soundness line — a distinguishing mutant is NEVER excluded):** the
@@ -88,7 +88,7 @@ This doc governs the per-survivor equivalence check + the denominator drop in
   contract is therefore unchanged by this component; a weak contract still gates
   `WeakContract`. The exclusion narrows the denominator ONLY by mutants the
   prover certifies are indistinguishable from the truth. Source: `goal.md`
-  R-DEFER-9 ("never discharge an obligation by weakening it"); `thermite-design.md`
+  R-DEFER-9 ("never discharge an obligation by weakening it"); `fluffy-design.md`
   §7 (the battery's anti-Goodhart purpose).
 
 - **REQ-4 (the `MutationScore` denominator change + the `K/N` cert):**
@@ -101,7 +101,7 @@ This doc governs the per-survivor equivalence check + the denominator drop in
   proved-equivalent, leaving a non-empty killed set, the ratio certifies; if
   exclusion empties the denominator entirely (every mutant proved equivalent and
   none killed), the `0/0` backstop STILL gates (a contract that cannot be
-  mutation-validated has not met the §7 bar). Source: `thermite-design.md`
+  mutation-validated has not met the §7 bar). Source: `fluffy-design.md`
   Appendix A (`contract_quality.mutants_killed`); `mutation-scoring.md` REQ-5/REQ-6.
 
 - **REQ-5 (`CHECK_SCHEMA_VERSION` bump — cache invalidation):** because the gate
@@ -174,10 +174,10 @@ Verus (`0.2026.05.24.ecee80a`) below in *Ground the path*.
 The equivalence check is a new seam in `forge/src/mutation.rs` (the equivalence-
 obligation formulation) consumed by `check::mutation_score` in `check.rs` (it
 weaves the obligation as a per-item sub-program, lowers via the EXISTING
-`thermite_lower::lower`, content-addresses through `cache.rs`, and runs the
-EXISTING `run_verus`). It depends on `thermite_syntax` (the `FnItem` whose `req`
+`fluffy_lower::lower`, content-addresses through `cache.rs`, and runs the
+EXISTING `run_verus`). It depends on `fluffy_syntax` (the `FnItem` whose `req`
 + params + return type frame the obligation, the real `body`, and the survivor's
-`body`), `thermite_lower::lower` (reused), the `check.rs` Verus driver (reused),
+`body`), `fluffy_lower::lower` (reused), the `check.rs` Verus driver (reused),
 and `cache.rs` (the `CHECK_SCHEMA_VERSION` bump + per-query content addressing).
 
 ### The equivalence obligation (the formulation)
@@ -197,7 +197,7 @@ stay-counted reading (REQ-2, sound-but-incomplete).
 ```text
 mutation_score, per mutant Verus-classified SURVIVED:
   build the equivalence obligation (B_mut, B_real, f.req, f.params)        (REQ-1)
-  item_subprogram(obligation) -> thermite_lower::lower -> cache::cache_key  (REQ-1/REQ-6, reuse)
+  item_subprogram(obligation) -> fluffy_lower::lower -> cache::cache_key  (REQ-1/REQ-6, reuse)
   load? else run_verus + store                                             (REQ-6, #8 cache)
     VERIFIED        -> PROVED equivalent -> drop from denominator           (REQ-2: scored -= 1, not a survivor)
     counterexample  -> distinguishing    -> STAYS a counted survivor        (REQ-3)
@@ -380,7 +380,7 @@ indistinguishable mutants (REQ-3, R-DEFER-9).
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (per-survivor Verus equivalence check) | SHIPPED | The seam `thermite_lower::lower_equivalence_obligation` (`thermite-lower/src/lower.rs`, exported in `lib.rs`) renders `f`'s real body + a survivor's body into the GROUNDED `spec fn equiv_real_<n>` / `spec fn equiv_mut_<n>` + `proof fn equiv_check_<n> requires <req> ensures mut == real {}` Verus unit, REUSING the L3 exec coercions (`lower_expr` + the `(expr) as <ret>` bounded-arith coercion — a naive spec render of `x + 0` over `u64` fails `verus` with `expected u64, found int`, R-CHAR-3 no hand-emit). Consumer: `check::equivalence_proves_equal` (`check.rs`), called per SURVIVOR from `check::mutation_score`. Verified: `thermite-lower/tests/equivalence_obligation.rs` (real verus — equivalent body VERIFIES, distinguishing `x + 1` / `loose` early-return FAIL, non-scalar → `Unsupported`) + `forge/tests/equivalent_mutants_conformance.rs`. |
+| REQ-1 (per-survivor Verus equivalence check) | SHIPPED | The seam `fluffy_lower::lower_equivalence_obligation` (`fluffy-lower/src/lower.rs`, exported in `lib.rs`) renders `f`'s real body + a survivor's body into the GROUNDED `spec fn equiv_real_<n>` / `spec fn equiv_mut_<n>` + `proof fn equiv_check_<n> requires <req> ensures mut == real {}` Verus unit, REUSING the L3 exec coercions (`lower_expr` + the `(expr) as <ret>` bounded-arith coercion — a naive spec render of `x + 0` over `u64` fails `verus` with `expected u64, found int`, R-CHAR-3 no hand-emit). Consumer: `check::equivalence_proves_equal` (`check.rs`), called per SURVIVOR from `check::mutation_score`. Verified: `fluffy-lower/tests/equivalence_obligation.rs` (real verus — equivalent body VERIFIES, distinguishing `x + 1` / `loose` early-return FAIL, non-scalar → `Unsupported`) + `forge/tests/equivalent_mutants_conformance.rs`. |
 | REQ-2 (PROVED-equivalent → drop from denominator; sound-but-incomplete) | SHIPPED | `check::mutation_score` runs `equivalence_proves_equal` on each SURVIVOR; a VERIFIED query (`mutant_outcome_is_survivor`/`mutant_cert_is_survivor` true) `continue`s WITHOUT incrementing `scored` (the survivor drops from the denominator) and bumps `MutationScore.equivalent`; an unproven query (counterexample/timeout/un-renderable) increments `scored` (stays counted). Verified: `forge/tests/equivalent_mutants_conformance.rs::ac1_forced_output_excludes_equivalents_and_certifies` (`clamp_zero` 1/3 → 1/1 L3, real verus). |
 | REQ-3 (soundness line — distinguishing mutant never excluded) | SHIPPED | Exclusion is gated on `equivalence_proves_equal == Ok(true)` (a Verus PROOF, `0 errors`); a counterexample/timeout/`Unsupported` returns `Ok(false)` → the survivor stays counted. Verified: `forge/tests/equivalent_mutants_conformance.rs::ac2_weak_contract_survivor_stays_counted` (`loose`'s distinguishing early-`return 0` FAILS the query → STILL `WeakContract`, NOT laundered) + the seam test's `distinguishing_offbyone_fails` / `loose_early_return_stays_distinguishing`. |
 | REQ-4 (`MutationScore` denominator + `K/N` cert) | SHIPPED | `mutation::MutationScore` gains `equivalent: usize` (the proved-equivalent exclusion count); `scored` is now NET of proved-equivalents, so `kill_ratio = killed / scored` and `mutants_killed_string` reflect the REDUCED denominator. The `0/0` backstop in `kill_ratio` is unchanged (`scored == 0 ⟹ 0.0`). Verified: `clamp_zero` cert `mutants_killed = "1/1"` (AC-1); `refuse` `"0/0"` (AC-3); `loose` below floor (AC-2). |

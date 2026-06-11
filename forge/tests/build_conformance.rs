@@ -1,8 +1,8 @@
 //! Conformance test for `forge build` (issue #56) against the EXTERNAL truth: the
 //! real `rustc` compiler + the hand-derived oracle `conformance/build/cases.json`
-//! (`.design/forge/build.md`). `forge build` lowers a Thermite program to
-//! executable Rust (`thermite_lower::lower_l1`) and compiles it with rustc into a
-//! contract-checked artifact whose always-active `thermite_check!`s fire at
+//! (`.design/forge/build.md`). `forge build` lowers a Fluffy program to
+//! executable Rust (`fluffy_lower::lower_l1`) and compiles it with rustc into a
+//! contract-checked artifact whose always-active `fluffy_check!`s fire at
 //! RUNTIME (the #57 hook).
 //!
 //! Verification is by EXECUTION (the design's AC-1..AC-7): the artifact COMPILES
@@ -315,7 +315,7 @@ fn ens_violation_fires_at_runtime() {
         "the built `bad` binary must ABORT at the violated ens check (non-zero exit):\n{output}"
     );
     assert!(
-        output.contains("thermite L1 contract violation [ens]")
+        output.contains("fluffy L1 contract violation [ens]")
             || output.contains("contract violation [ens]")
             || output.contains("ens"),
         "AC-4: the runtime ens check must fire with an [ens] diagnostic:\n{output}"
@@ -330,9 +330,9 @@ fn ens_violation_fires_at_runtime() {
 
 // ---- AC-2: checks are baked in (always-active, NOT debug_assert) -------------
 //
-// The compiled artifact is `thermite_lower::lower_l1`'s output verbatim (build.rs
+// The compiled artifact is `fluffy_lower::lower_l1`'s output verbatim (build.rs
 // never strips it). The §6 every-profile property — the always-active
-// `thermite_check!` macro (`if !($cond)`, NOT debug_assert) — is structurally
+// `fluffy_check!` macro (`if !($cond)`, NOT debug_assert) — is structurally
 // present in that emission. Anchored to the public `lower_l1` (the EXACT bytes
 // build_file compiles), the same property `l1_conformance.rs::
 // no_debug_assert_in_emission` pins (R-CHAR-3 — the §6 design property, not
@@ -343,8 +343,8 @@ fn checks_are_baked_in() {
     let sum = corpus_dir().join("sum.th");
     let src = lower_corpus_l1(&sum);
     assert!(
-        src.contains("macro_rules! thermite_check"),
-        "AC-2: the compiled source must define the always-active thermite_check macro:\n{src}"
+        src.contains("macro_rules! fluffy_check"),
+        "AC-2: the compiled source must define the always-active fluffy_check macro:\n{src}"
     );
     assert!(
         src.contains("if !($cond)"),
@@ -417,7 +417,7 @@ fn uncompilable_lowering_is_nonzero_exit() {
 
 // ---- helper: the EXACT bytes build_file compiles for the library form --------
 //
-// `build_file` compiles `thermite_lower::lower_l1(program)` verbatim (build.rs's
+// `build_file` compiles `fluffy_lower::lower_l1(program)` verbatim (build.rs's
 // `emit_source` is `lower_l1` + an optional appended runner). AC-2 inspects that
 // emission directly through the public `lower_l1` (the same bytes the artifact is
 // compiled from) — anchored to the §6 design property, not a self-comparison
@@ -426,11 +426,11 @@ fn uncompilable_lowering_is_nonzero_exit() {
 fn lower_corpus_l1(path: &Path) -> String {
     let src =
         std::fs::read_to_string(path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
-    let parsed = thermite_syntax::parse(&src);
+    let parsed = fluffy_syntax::parse(&src);
     assert!(
         parsed.errors.is_empty(),
         "fixture must parse clean: {:?}",
         parsed.errors
     );
-    thermite_lower::lower_l1(&parsed.program).expect("lower_l1")
+    fluffy_lower::lower_l1(&parsed.program).expect("lower_l1")
 }

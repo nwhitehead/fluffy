@@ -1,4 +1,4 @@
-//! `forge/src/manifest.rs` — the certificate schema (`thermite-design.md` §5.1,
+//! `forge/src/manifest.rs` — the certificate schema (`fluffy-design.md` §5.1,
 //! Appendix A). The `Certificate` is the deliverable's trust statement (§6): a
 //! STABLE, versioned data contract that `forge check` emits. This module owns the
 //! schema and its `serde_json` (de)serialization; it performs NO I/O and runs NO
@@ -67,7 +67,7 @@
 //! | `lowered_assurance: bool` (degrade flag) | SHIPPED | `Certificate.lowered_assurance` (additive, `#[serde(default)]` so the frozen golden `sum.cert.json` still deserializes — R-SPEC-2). `true` ONLY on a cert the #10 ladder produced by degrading a verus TIMEOUT to L2/L1; set by `Certificate::into_degraded`, produced by `degrade::run_ladder`, consumed by `check::ladder_for_timeout` + `cli::render_assurance`. VERDICT-relevant (it qualifies the level as "lowered, not proved") so NOT oracle-excluded; the corpus never degrades so the golden keeps the default `false`. |
 //! | `degrade_reason: Option<RejectReason>` | SHIPPED | `Certificate.degrade_reason` (additive, `#[serde(default, skip_serializing_if)]`). `Some` ONLY on a `lowered_assurance` cert — the `VerusTimeout` reason carried from the timed-out L3 attempt (REQ-4). Set by `Certificate::into_degraded`; DIAGNOSTIC, EXCLUDED from `oracle_subset`. |
 //! | `Level: Ord` (ladder ordering) | SHIPPED | `#[derive(PartialOrd, Ord)]` on `enum Level` makes the declaration order `L0 < L1 < L2 < L3` the `Ord` the aggregate's min-over-functions uses (`.design/forge/degrade-ladder.md` REQ-6). |
-//! | `AssuranceManifest` + `ProjectAssurance` (the aggregate) | SHIPPED | `AssuranceManifest::aggregate(&[Certificate])` computes the per-fn `FunctionAssurance` rows + the project headline `ProjectAssurance::{Certified(min), Failed}` (REQ-5/REQ-6); a non-certifying fn (`cert_certifies` false) caps the project at `Failed` (a non-rung, REQ-2). Render-time aggregate (OQ-4 (b)). Consumed by `cli::run_check`/`render_assurance`. VERUS-ANCHORED (epic #60, REQ-10 / `.design/verified/self-verification.md` Target D): the project-level min-over-functions is anchored to the proved fold-min `thermite_verified::aggregate_level` (D1: ≤ every fn — the §5.2 no-over-claim bound; D2: attained == exactly the min) by the in-module `tests::verus_anchor` block (Option B, forge binary-only) enumerating ALL `Level` lists up to length 4 (341 lists), asserting `aggregate(certs).project == Certified(proved_min)` AND headline ≤ every level. |
+//! | `AssuranceManifest` + `ProjectAssurance` (the aggregate) | SHIPPED | `AssuranceManifest::aggregate(&[Certificate])` computes the per-fn `FunctionAssurance` rows + the project headline `ProjectAssurance::{Certified(min), Failed}` (REQ-5/REQ-6); a non-certifying fn (`cert_certifies` false) caps the project at `Failed` (a non-rung, REQ-2). Render-time aggregate (OQ-4 (b)). Consumed by `cli::run_check`/`render_assurance`. VERUS-ANCHORED (epic #60, REQ-10 / `.design/verified/self-verification.md` Target D): the project-level min-over-functions is anchored to the proved fold-min `fluffy_verified::aggregate_level` (D1: ≤ every fn — the §5.2 no-over-claim bound; D2: attained == exactly the min) by the in-module `tests::verus_anchor` block (Option B, forge binary-only) enumerating ALL `Level` lists up to length 4 (341 lists), asserting `aggregate(certs).project == Certified(proved_min)` AND headline ≤ every level. |
 //!
 //! ## #17 additive schema (the §9 end-to-end vs to-the-boundary scope, this iteration)
 //!
@@ -77,13 +77,13 @@
 //! | `ProjectScope` (project §9 claim) | SHIPPED | `enum ProjectScope { EndToEnd, ToBoundary { crossings } }` + `AssuranceManifest.scope`; `AssuranceManifest::aggregate` computes it (`project_scope`): END-TO-END iff every cert is end-to-end, else TO-THE-BOUNDARY listing the reached crossings (sorted + deduplicated, deterministic — REQ-4/REQ-6). ORTHOGONAL to the `project` level headline. Consumed by `cli::run_check`. |
 
 use serde::{Deserialize, Serialize};
-use thermite_syntax::{Effect, EffectRow};
+use fluffy_syntax::{Effect, EffectRow};
 
 use crate::profile::SolverProfile;
 use crate::strengthen::Suggestion;
 
 /// The §9 ASSURANCE SCOPE of a function (issue #17,
-/// `.design/forge/e2e-vs-boundary.md` REQ-2/REQ-3; `thermite-design.md` §9). The
+/// `.design/forge/e2e-vs-boundary.md` REQ-2/REQ-3; `fluffy-design.md` §9). The
 /// manifest distinction "verified to the boundary" vs "verified, period":
 ///
 /// - [`AssuranceScope::EndToEnd`] — the fn's transitive intra-file call closure
@@ -139,7 +139,7 @@ fn scope_is_end_to_end(scope: &Option<AssuranceScope>) -> bool {
     }
 }
 
-/// The assurance level (`thermite-design.md` §6). Serializes to the string form
+/// The assurance level (`fluffy-design.md` §6). Serializes to the string form
 /// `"L0".."L3"` to match the golden cert's `"level": "L3"` (REQ-1, REQ-7).
 ///
 /// The declaration order `L0 < L1 < L2 < L3` IS the ladder ordering
@@ -219,7 +219,7 @@ impl ObligationResult {
     }
 }
 
-/// The contract-quality block (`thermite-design.md` §7, Appendix A) — REQ-3.
+/// The contract-quality block (`fluffy-design.md` §7, Appendix A) — REQ-3.
 /// FORWARD-DECLARED in #5: the vacuity battery (`tautology`/
 /// `vacuous_precondition`, #6/#13) and the mutation scorer
 /// (`mutants_killed`/`survivor`, #12) are not yet built, so these carry honest
@@ -254,7 +254,7 @@ impl ContractQuality {
     }
 }
 
-/// A reserved `suggested_move` heuristic hint (`thermite-design.md` §5.1) —
+/// A reserved `suggested_move` heuristic hint (`fluffy-design.md` §5.1) —
 /// REQ-4. The slot exists so populating it later (missing-invariant patterns,
 /// overflow-guard templates, trigger hints) is not a breaking schema change. In
 /// #5 the `Certificate`'s `suggested_move` is always `None` (a reserved honest
@@ -302,7 +302,7 @@ pub struct RejectReason {
     pub detail: String,
 }
 
-/// The certificate `forge check` emits for one item (`thermite-design.md` §5.1,
+/// The certificate `forge check` emits for one item (`fluffy-design.md` §5.1,
 /// Appendix A). Field declaration order is the deterministic serialization order
 /// (REQ-7) and mirrors Appendix A: `item`, `level`, `solver_time_ms`,
 /// `contract_quality`, `effects`, `slag`; the #5 additive schema surface
@@ -594,7 +594,7 @@ impl Certificate {
     /// §9). The FFI analog of [`Certificate::slag_l1`]: a `#[boundary("crate::path")]`
     /// fn whose FOREIGN body is UNPROVEN, so it certifies at `Level::L1` (the
     /// contract enforced at the crossing — `req` before, `ens` after — by
-    /// `thermite_lower::l1`'s wrapper) with `boundary: true` and the foreign
+    /// `fluffy_lower::l1`'s wrapper) with `boundary: true` and the foreign
     /// `target` recorded for the #15 TCB enumeration — NOT L3 (no verus run on a
     /// foreign body). A single discharged obligation records the trusted-by-fiat
     /// fact (NOT a verus obligation). The §7.1 (a)/(b)/(c) triage STILL applies (a
@@ -1026,7 +1026,7 @@ mod tests {
     }
 
     // AC-1: schema matches Appendix A — every documented key present, Level::L3
-    // serializes to "L3". Expected keys/values trace to `thermite-design.md`
+    // serializes to "L3". Expected keys/values trace to `fluffy-design.md`
     // Appendix A (R-CHAR-3), not to forge's own output.
     #[test]
     fn schema_matches_appendix_a() {
@@ -1578,12 +1578,12 @@ mod tests {
     // a `manifest::verus_anchor` block (forge is binary-only, so an external test
     // cannot reach `AssuranceManifest::aggregate`/`Certificate`). Nested in the
     // existing `tests` module so the anti-pattern gate's `#[cfg(test)]` exemption
-    // covers it. `thermite-verified` is a forge DEV-dependency.
+    // covers it. `fluffy-verified` is a forge DEV-dependency.
     //
     // AC-10c — the EXHAUSTIVE `Level`-list equivalence: enumerate ALL per-fn `Level`
     // lists up to length 4 over the 4 levels (plus the empty list) and assert, for
     // each, that `AssuranceManifest::aggregate(certs).project` agrees with the VERUS-
-    // PROVED fold-min `thermite_verified::aggregate_level`. The production `aggregate`
+    // PROVED fold-min `fluffy_verified::aggregate_level`. The production `aggregate`
     // splits two ORTHOGONAL axes (REQ-2/REQ-6): a NON-certifying fn (a plain `L0`
     // cert carries no rung — `cert_certifies` is false) caps the project at `Failed`,
     // independent of the min; when EVERY fn certifies (the list is empty or over the
@@ -1597,10 +1597,10 @@ mod tests {
     // =======================================================================
     mod verus_anchor {
         use super::*;
-        use thermite_verified::{aggregate_level, Level as VLevel};
+        use fluffy_verified::{aggregate_level, Level as VLevel};
 
         /// The 4 production levels in rank order (`L0 < L1 < L2 < L3`), each paired
-        /// with the verus-proved `thermite_verified::Level` mirror. The pairing IS
+        /// with the verus-proved `fluffy_verified::Level` mirror. The pairing IS
         /// the representation bridge the anchor binds (R-CHAR-3 — the design's
         /// lattice, not forge output).
         const LEVELS: &[(Level, VLevel)] = &[
@@ -1610,7 +1610,7 @@ mod tests {
             (Level::L3, VLevel::L3),
         ];
 
-        /// Map a proved `thermite_verified::Level` back to the production `Level`
+        /// Map a proved `fluffy_verified::Level` back to the production `Level`
         /// via the lattice bridge. Total over the 4-level alphabet.
         fn prod_of(v: VLevel) -> Level {
             match v {

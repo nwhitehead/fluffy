@@ -3,14 +3,14 @@
 //! blocker #204).
 //!
 //! Today the obligation content the pipeline discharges exists only transiently,
-//! materialized as Verus TEXT (`thermite-tv/src/obligation.rs`'s
+//! materialized as Verus TEXT (`fluffy-tv/src/obligation.rs`'s
 //! `equivalence_obligation` family). This module REIFIES that same content as a
 //! prover-NEUTRAL value (see the "honest scope" note below on serialization): an
 //! [`Obligation`] carries the item, its
 //! obligation [`ObligationClass`], the [`ObligationRole`], the AST slice it is
-//! stated over (a `thermite-syntax` node, NOT a Verus string), and a prover-neutral
-//! [`ObligationEnv`] (the generalization of `thermite-tv`'s `ObligationFrame` —
-//! AST nodes + Thermite types + coercion flags, NOT rendered Verus text). An
+//! stated over (a `fluffy-syntax` node, NOT a Verus string), and a prover-neutral
+//! [`ObligationEnv`] (the generalization of `fluffy-tv`'s `ObligationFrame` —
+//! AST nodes + Fluffy types + coercion flags, NOT rendered Verus text). An
 //! engine (`engine.rs`) RENDERS it into its own input language (Verus text for the
 //! Verus engine; Lean source for the future Lean engine — increment (ii)).
 //!
@@ -19,10 +19,10 @@
 //! becomes the Verus engine's `render`, not the artifact itself.
 //!
 //! **A note on "serializable" (REQ-1, honest scope).** The load-bearing property
-//! increment (i) delivers is prover-NEUTRALITY: the artifact carries `thermite-
-//! syntax` AST nodes + Thermite `Type`s + coercion flags, NOT any prover's rendered
-//! text. The `thermite-syntax` AST does NOT derive `serde` in production (serde is a
-//! dev-dependency there — `thermite-syntax/Cargo.toml`), and adding it is outside
+//! increment (i) delivers is prover-NEUTRALITY: the artifact carries `fluffy-
+//! syntax` AST nodes + Fluffy `Type`s + coercion flags, NOT any prover's rendered
+//! text. The `fluffy-syntax` AST does NOT derive `serde` in production (serde is a
+//! dev-dependency there — `fluffy-syntax/Cargo.toml`), and adding it is outside
 //! the #204 manifest, so the artifact is a prover-neutral in-memory VALUE
 //! (`Clone + PartialEq + Eq`), not a wire-serialized one. The Verus engine consumes
 //! the `&Obligation` directly and keys its evidence on the LOWERED source (the
@@ -35,7 +35,7 @@
 //!
 //! | REQ | Status | Evidence |
 //! |---|---|---|
-//! | REQ-1 (the backend-neutral Obligation artifact) | SHIPPED | `pub struct Obligation { item, class, role, ast_slice, env }` + `pub enum ObligationClass`/`ObligationRole` + `pub struct ObligationEnv`/`ObligationParam` here, prover-neutral (the `ast_slice` is an `AstSlice` of `thermite-syntax` nodes; the env carries Thermite `Type`s + coercion flags, NO Verus strings). Non-test consumer: `engine::VerusEngine::discharge`/`evidence_key` (`engine.rs`) consume an `&Obligation`, and `check::obligation_for_item` mints one per checked item on the live L3 path. |
+//! | REQ-1 (the backend-neutral Obligation artifact) | SHIPPED | `pub struct Obligation { item, class, role, ast_slice, env }` + `pub enum ObligationClass`/`ObligationRole` + `pub struct ObligationEnv`/`ObligationParam` here, prover-neutral (the `ast_slice` is an `AstSlice` of `fluffy-syntax` nodes; the env carries Fluffy `Type`s + coercion flags, NO Verus strings). Non-test consumer: `engine::VerusEngine::discharge`/`evidence_key` (`engine.rs`) consume an `&Obligation`, and `check::obligation_for_item` mints one per checked item on the live L3 path. |
 //! | REQ-1.2 (the REGISTRY-TERMINATION class + the full-expression-position closure) | SHIPPED (class assignment + corrected closure) | `ObligationClass::RegistryTermination` is minted for an item whose called-spec-fn set (the corrected `req ∪ ens ∪ body ∪ dec(item)` seed, closure-step over each reached spec-fn's `body ∪ dec` — `check::reachable_spec_fn_names_full`) is non-empty; the Lean-path well-foundedness DISCHARGE is increment (ii), NOT-STARTED. The corrected closure walks the dec measures (was body-only). |
 //!
 //! The auxiliary OVERFLOW / TERMINATION classes and the multi-class minting of one
@@ -44,10 +44,10 @@
 //! REGISTRY-TERMINATION classes the §0 pipeline observably discharges today, which
 //! is what the Verus engine's `discharge` keys on.
 
-use thermite_syntax::{Block, Expr, FnItem, SpecFnItem, Type};
+use fluffy_syntax::{Block, Expr, FnItem, SpecFnItem, Type};
 
 /// The backend-neutral obligation class (`.design/verified/proof-backends.md`
-/// REQ-1 / AC-1). The variant set is the UNION of the `thermite-tv/src/obligation.rs`
+/// REQ-1 / AC-1). The variant set is the UNION of the `fluffy-tv/src/obligation.rs`
 /// emitters (CONTRACT / EXEC / BODY / LOOP-{entry,preservation,exit}), the §6/§7
 /// in-item auxiliaries Verus discharges (OVERFLOW / TERMINATION), and REQ-1.2's
 /// [`ObligationClass::RegistryTermination`]. The three §0.1 meta/battery query
@@ -146,7 +146,7 @@ impl ObligationRole {
 
 /// The parsed AST node(s) the obligation is stated over (`.design/verified/
 /// proof-backends.md` §1 `ast_slice: ExprOrBlock`). The SAME `&Expr` / `&Block`
-/// the `thermite-tv` obligation functions consume — kept as owned clones so the
+/// the `fluffy-tv` obligation functions consume — kept as owned clones so the
 /// `Obligation` is a self-contained, serializable artifact (it outlives the
 /// borrow of the parsed `Program`). An engine renders THIS into its language; the
 /// artifact never carries pre-rendered prover text.
@@ -166,30 +166,30 @@ pub enum AstSlice {
     Block(Box<Block>),
 }
 
-/// One free-var binding in the obligation env, at its THERMITE type — the
-/// prover-neutral generalization of `thermite-tv`'s `ParamDecl` (which carries a
+/// One free-var binding in the obligation env, at its FLUFFY type — the
+/// prover-neutral generalization of `fluffy-tv`'s `ParamDecl` (which carries a
 /// VERUS `type_str`). The engine renders the `Type` into ITS spelling (`u64` /
 /// `Seq<u32>` for Verus; the Lean sort for Lean), so the artifact stays neutral
-/// (§1 — "free vars at their THERMITE types, not Verus strings; the engine renders
+/// (§1 — "free vars at their FLUFFY types, not Verus strings; the engine renders
 /// them").
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObligationParam {
     /// The free-var name as it appears in the AST slice.
     pub name: String,
-    /// The Thermite type (NOT a Verus string) — the engine renders it.
+    /// The Fluffy type (NOT a Verus string) — the engine renders it.
     pub ty: Type,
 }
 
 /// The typing / env context — the prover-neutral generalization of
-/// `thermite-tv`'s `ObligationFrame` (`.design/verified/proof-backends.md` §1).
-/// Carries the PRE-rendering content (AST nodes + Thermite types + coercion flags)
+/// `fluffy-tv`'s `ObligationFrame` (`.design/verified/proof-backends.md` §1).
+/// Carries the PRE-rendering content (AST nodes + Fluffy types + coercion flags)
 /// so an engine renders it into its language. NO Verus strings live here (the
 /// `spec_defs` are spec-fn NAMES resolved against the shared frozen registry, not
 /// verbatim Verus `verus_l3` text; the coercion flags are named param sets the
 /// engine maps to its own view — Verus's `@`-view / `as nat`, Lean's `Seq`/`toNat`).
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ObligationEnv {
-    /// The free vars at their Thermite types (the clause params + `result` +
+    /// The free vars at their Fluffy types (the clause params + `result` +
     /// `old(_)` values), in signature order.
     pub params: Vec<ObligationParam>,
     /// The enclosing precondition as an AST node (NOT rendered text), if any.
@@ -227,7 +227,7 @@ pub struct Obligation {
     /// `Certification`).
     pub role: ObligationRole,
     /// The parsed AST node(s) the obligation is stated over (the `source: &Expr` /
-    /// `body: &Block` the `thermite-tv` obligation functions consume).
+    /// `body: &Block` the `fluffy-tv` obligation functions consume).
     pub ast_slice: AstSlice,
     /// The prover-neutral typing / env context.
     pub env: ObligationEnv,
@@ -239,7 +239,7 @@ impl Obligation {
     /// spine already proves the reference encoder satisfies, lifted to the per-item
     /// obligation"). The `ast_slice` is the fn's body (the production side the
     /// `ens[result := body]` shape characterizes); `env` carries the params at
-    /// their Thermite types, the `req` clause expr, and the in-scope spec-fn names
+    /// their Fluffy types, the `req` clause expr, and the in-scope spec-fn names
     /// (`called_spec_fns`, the full-expression-position closure, REQ-1.2/#226). A
     /// boundary fn (`body == None`) has no in-language body obligation — the env's
     /// `req` and params still characterize the contract, and the body slice falls
@@ -338,10 +338,10 @@ impl Obligation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use thermite_syntax::{Item, Program};
+    use fluffy_syntax::{Item, Program};
 
     fn parse_one(src: &str) -> Program {
-        let parsed = thermite_syntax::parse(src);
+        let parsed = fluffy_syntax::parse(src);
         assert!(parsed.is_clean(), "fixture must parse: {:?}", parsed.errors);
         parsed.program
     }
@@ -357,7 +357,7 @@ mod tests {
     }
 
     // REQ-1: the CONTRACT obligation reifies the fn's body + params + req as
-    // NEUTRAL content (no Verus strings) — the params carry their Thermite types,
+    // NEUTRAL content (no Verus strings) — the params carry their Fluffy types,
     // the req is an AST node. Expected from the design's §1 artifact shape (R-CHAR-3).
     #[test]
     fn contract_obligation_is_neutral_content() {
@@ -369,12 +369,12 @@ mod tests {
         assert_eq!(o.item, "add");
         assert_eq!(o.class, ObligationClass::Contract);
         assert_eq!(o.role, ObligationRole::Certification);
-        // The params carry THERMITE types, not Verus strings.
+        // The params carry FLUFFY types, not Verus strings.
         assert_eq!(o.env.params.len(), 2);
         assert_eq!(o.env.params[0].name, "x");
         assert_eq!(
             o.env.params[0].ty,
-            Type::Prim(thermite_syntax::PrimType::U64)
+            Type::Prim(fluffy_syntax::PrimType::U64)
         );
         // The req is an AST node (not rendered text).
         assert!(o.env.req.is_some());

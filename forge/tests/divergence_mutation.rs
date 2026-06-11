@@ -3,7 +3,7 @@
 //!
 //! Authority chain (R-CHAR-3 — expected outcomes trace to the design, never to
 //! forge's own output):
-//!   - `thermite-design.md` §7 step 4: "Forge generates N mutants of the body ...
+//!   - `fluffy-design.md` §7 step 4: "Forge generates N mutants of the body ...
 //!     and re-verifies each against the contract. The kill ratio ... A
 //!     configurable floor (default 60%) gates certification; below it, Forge
 //!     reports exactly which mutants survived." The floor's PURPOSE is to catch a
@@ -107,7 +107,7 @@ fn is_clean_l3(cert: &Value) -> bool {
 // ----------------------------------------------------------------------------
 // DIVERGENCE 1 — the 0/0 escape: a WEAK contract certifies L3 UNSCORED.
 //
-// Authority: `thermite-design.md` §7 step 4 (the floor gates a contract that
+// Authority: `fluffy-design.md` §7 step 4 (the floor gates a contract that
 // under-constrains its body) + `goal.md` R-DEFER-9 (a path that lets a weak
 // contract certify is a Goodhart hole).
 //
@@ -184,7 +184,7 @@ fn divergence_weak_contract_escapes_floor_via_zero_scored_mutants() {
 // L3 for a weak contract is a bypass = a hole).
 //
 // The cache key (`cache::cache_key`) is (lowered_src, seed, verus_version,
-// THERMITE_VERSION). Commit fa55760 introduced the mutation gate but did NOT bump
+// FLUFFY_VERSION). Commit fa55760 introduced the mutation gate but did NOT bump
 // `forge`'s version (still 0.1.0), and the gate's existence / the floor are NOT
 // in the key. So a cert stored by PRE-#12 forge (#5/#6/#13 all shipped at 0.1.0
 // and populate the SAME `target/` cache) for the weak-contract program `f` is an
@@ -236,7 +236,7 @@ fn divergence_stale_same_version_cache_entry_bypasses_mutation_gate() {
 
     // Locate the MAIN-ITEM cache entry (the `f` cert: the WeakContract L0 reject)
     // and OVERWRITE it with the cert PRE-#12 forge would have stored under the
-    // SAME key (same lowered source, same seed, same verus+thermite version 0.1.0):
+    // SAME key (same lowered source, same seed, same verus+fluffy version 0.1.0):
     // an L3-CLEAN cert with the forward-declared `mutants_killed: "0/0"`. No
     // production code is touched — we only model the stale same-version cache file.
     let mut planted = false;
@@ -286,7 +286,7 @@ fn divergence_stale_same_version_cache_entry_bypasses_mutation_gate() {
     // contract certify clean L3, bypassing the mutation gate.
     assert!(
         !is_clean_l3(warm_cert),
-        "REQ-7 / R-DEFER-9 divergence: a stale SAME-VERSION (thermite 0.1.0) pre-gate \
+        "REQ-7 / R-DEFER-9 divergence: a stale SAME-VERSION (fluffy 0.1.0) pre-gate \
          cache entry is re-served as a clean L3 certify, BYPASSING the §7 mutation \
          floor — the weak contract `ens result <= 1000000` is gated `WeakContract` on \
          a cold check but certifies L3 from the stale cache. The gate-introducing \

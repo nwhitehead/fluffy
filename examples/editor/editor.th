@@ -2,7 +2,7 @@
 // builds on #90) — the keystone acceptance program, MAX-VERIFIED.
 //
 // THE THESIS (verified vs trusted, pushed as far as the language allows):
-//   * VERIFIED (certifies L3 — proven Thermite, NOT trusted glue):
+//   * VERIFIED (certifies L3 — proven Fluffy, NOT trusted glue):
 //       - the EDIT CORE: Buffer + insert_str + backspace + move_left + move_right
 //         (the cursor math + buffer edits — proven for all inputs). The buffer is
 //         ONE String with `\n` bytes; the cursor is a byte offset, so insert_str/
@@ -344,7 +344,7 @@ fn to_1based(x: u64) -> u64
 // frame (a dropped-text mutant shortens the frame and fails the `ens`). The `req`
 // bounds the text so every bounded `concat` stays within the §4.2 cage; the C4
 // coordinate concat discharges because `u64_to_string`'s `ens` bounds the
-// formatted length <= 20 (blocker #105). VERIFIED Thermite (L3) — the multi-line
+// formatted length <= 20 (blocker #105). VERIFIED Fluffy (L3) — the multi-line
 // display logic is proven, NOT a trusted wrapper. The actual `write` syscall
 // (write_frame) is the trusted boundary.
 fn render_frame(b: &Buffer) -> String
@@ -378,7 +378,7 @@ fn render_frame(b: &Buffer) -> String
 // decodes to 1004; Ctrl-S to 19; Ctrl-Q to 17; the arrows to 1000..1003; and the
 // result is always a bounded code (`result <= 1004`). The mapping is total and
 // each special case is pinned (a decode that dropped a case fails the `ens`).
-// VERIFIED Thermite (L3) — the keystroke interpretation is proven, not trusted.
+// VERIFIED Fluffy (L3) — the keystroke interpretation is proven, not trusted.
 fn decode(b0: u64, b1: u64, b2: u64) -> u64
   req true
   ens b0 < 32 || b0 > 126 || b0 == 27 || result == b0
@@ -486,7 +486,7 @@ fn decode(b0: u64, b1: u64, b2: u64) -> u64
   ;
 
 // LOAD the initial buffer content from the editor's fixed demo file (the
-// THERMITE_EDITOR_FILE env path, else /tmp/thermite_editor.txt) into a String
+// FLUFFY_EDITOR_FILE env path, else /tmp/fluffy_editor.txt) into a String
 // (the multi-line `\n` bytes preserved). A missing file yields the empty string (a
 // fresh buffer) — the honest arm, no crash. The v0.1 `--entry run` synthesizes no
 // path arg, so the load source is fixed. Trusted, #57-confined to the `read`/`open`

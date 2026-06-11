@@ -1,6 +1,6 @@
 //! `forge/src/slag.rs` — the §8 `#[slag]` escape hatch semantics: the only
 //! sanctioned way to ship a function whose body is NOT machine-proved. The parser
-//! already builds the attribute node (`thermite_syntax::FnItem.slag:
+//! already builds the attribute node (`fluffy_syntax::FnItem.slag:
 //! Option<SlagAttr { reason, owner, review, span }>`); this component supplies the
 //! FORGE-side semantics the parser deferred "downstream/forge":
 //! (1) **validate** the three mandatory fields are present (`Some`) AND non-empty
@@ -31,7 +31,7 @@
 
 use std::fmt;
 
-use thermite_syntax::SlagAttr;
+use fluffy_syntax::SlagAttr;
 
 pub use crate::manifest::SlagMeta;
 
@@ -126,7 +126,7 @@ fn validate_field(field: &'static str, value: Option<&str>) -> Result<String, Sl
 #[cfg(test)]
 mod tests {
     use super::*;
-    use thermite_syntax::Span;
+    use fluffy_syntax::Span;
 
     fn attr(reason: Option<&str>, owner: Option<&str>, review: Option<&str>) -> SlagAttr {
         SlagAttr {

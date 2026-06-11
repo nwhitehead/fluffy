@@ -22,7 +22,7 @@
 //!       - the VERIFIED EDIT CORE (`Buffer`, `insert_str`, `backspace`,
 //!         `move_left`, `move_right`) at **L3** (cursor math + length deltas PROVEN);
 //!       - the VERIFIED RENDER-FRAME (`render_frame`) at **L3** — THE THESIS: the
-//!         display-frame construction is PROVEN Thermite, not trusted glue (the C4
+//!         display-frame construction is PROVEN Fluffy, not trusted glue (the C4
 //!         cursor coordinate `(b.cursor+1).to_string()` now discharges the bounded
 //!         `concat` §4.2 CAP because `u64_to_string`'s `ens` bounds the formatted
 //!         length `<= 20`, blocker #105);
@@ -428,9 +428,9 @@ fn editor_multiline_enter_up_nav_and_ctrl_s_save() {
     assert!(artifact.exists(), "the built editor binary must exist");
 
     // A dedicated save target so the test is hermetic + asserts the round-trip. The
-    // editor's `os::read_file`/`os::write_file` wrappers honor THERMITE_EDITOR_FILE.
+    // editor's `os::read_file`/`os::write_file` wrappers honor FLUFFY_EDITOR_FILE.
     let save_path = std::env::temp_dir().join(format!(
-        "thermite_editor_multiline_{}.txt",
+        "fluffy_editor_multiline_{}.txt",
         std::process::id()
     ));
     let _ = std::fs::remove_file(&save_path);
@@ -439,7 +439,7 @@ fn editor_multiline_enter_up_nav_and_ctrl_s_save() {
     // UP arrow (ESC [ A = 0x1b 0x5b 0x41 -> decode 1000 -> move_up); Ctrl-S (0x13 ->
     // decode 19 -> write_file SAVE); Ctrl-Q (0x11 -> decode 17 -> clean quit).
     let mut child = Command::new(&artifact)
-        .env("THERMITE_EDITOR_FILE", &save_path)
+        .env("FLUFFY_EDITOR_FILE", &save_path)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

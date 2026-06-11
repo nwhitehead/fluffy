@@ -1,5 +1,5 @@
 //! `forge/src/vacuity_solver.rs` — the SOLVER-backed layer of the §7 vacuity
-//! battery (`thermite-design.md` §7 steps 2-3): **tautology** detection and
+//! battery (`fluffy-design.md` §7 steps 2-3): **tautology** detection and
 //! **vacuous-precondition** detection. It runs as a gate stage in `forge check`
 //! AFTER #6's FREE structural triage (`forge/src/vacuity.rs`) returns
 //! `ProceedToL3` and BEFORE the item's own L3 proof. A contract that survives the
@@ -18,7 +18,7 @@
 //! logically-vacuous contract).
 //!
 //! Both checks REUSE the existing Verus contract lowering: each builds a one-query
-//! `proof fn` harness by lowering the REAL item via `thermite_lower::lower` (so the
+//! `proof fn` harness by lowering the REAL item via `fluffy_lower::lower` (so the
 //! emitted `requires`/`ensures` text is byte-identical to the real proof's, with
 //! the combinator + `spec fn` weaving the lowerer already performs) and splicing
 //! that verbatim contract into the harness frame. The harness is run through verus
@@ -32,7 +32,7 @@
 //!
 //! | REQ | Status | Evidence |
 //! |---|---|---|
-//! | REQ-1 (tautology harness builder) | SHIPPED | `build_tautology_harness` lowers the real `FnItem` (+ spec fns) via `thermite_lower::lower`, extracts the verbatim `requires`/`ensures` + the lowered param list / return type (`extract_lowered_fn`), and rebuilds `proof fn taut_check(<params>, result: <RET>) requires ..; ensures ..; { }`. Consumer: `solver_vacuity_check` → `check::check_file`. Grounded: PROVES on `result >= 0`/`u32`, FAILS on `sum`'s ens. |
+//! | REQ-1 (tautology harness builder) | SHIPPED | `build_tautology_harness` lowers the real `FnItem` (+ spec fns) via `fluffy_lower::lower`, extracts the verbatim `requires`/`ensures` + the lowered param list / return type (`extract_lowered_fn`), and rebuilds `proof fn taut_check(<params>, result: <RET>) requires ..; ensures ..; { }`. Consumer: `solver_vacuity_check` → `check::check_file`. Grounded: PROVES on `result >= 0`/`u32`, FAILS on `sum`'s ens. |
 //! | REQ-2 (vacuity harness builder) | SHIPPED | `build_vacuity_harness` reuses the same extraction and rebuilds `proof fn vac_check(<params>) requires ..; { assert(false); }`. Consumer: `solver_vacuity_check` → `check::check_file`. Grounded: PROVES on `x>5 && x<3`, FAILS on `sum`'s req. |
 //! | REQ-3 (verdict interpretation, R-CODE-4) | SHIPPED | `interpret_summary` maps a `HarnessSummary`: PROVED (`success && errors==0`) → `Proved` (DETECTED); FAILED → `Failed` (CLEAN); VIR error → `ForgeError::VerusOutput`. `run_harness` surfaces verus-absent / unparseable output as a `ForgeError`, NEVER a silent clean `false`. |
 //! | REQ-4 (value-add over #6) | SHIPPED | the `semantic_tautology` / `vacuous_precondition` fixtures PASS `vacuity::triage` (no #6 syntactic cause) yet `solver_vacuity_check` rejects them — asserted by `forge/tests/solver_vacuity_conformance.rs` against `conformance/solver-vacuity/cases.json`. |
@@ -43,7 +43,7 @@
 use std::path::Path;
 use std::process::Command;
 
-use thermite_syntax::{FnItem, Item, Program};
+use fluffy_syntax::{FnItem, Item, Program};
 
 use crate::cli::ForgeError;
 
@@ -194,7 +194,7 @@ pub fn solver_vacuity_check(
 // ---------------------------------------------------------------------------
 
 /// The pieces of a lowered `fn` a harness reuses verbatim (REQ-1/REQ-2). Extracted
-/// from `thermite_lower::lower`'s output so the harness's contract text is
+/// from `fluffy_lower::lower`'s output so the harness's contract text is
 /// byte-identical to the real proof's (no re-emission of `req`/`ens` by hand).
 struct LoweredFn {
     /// Everything inside `verus! {` BEFORE the target `fn NAME(` — the woven
@@ -219,7 +219,7 @@ struct LoweredFn {
 }
 
 /// Build the §7 step-2 TAUTOLOGY harness for `f` (REQ-1). Lowers the real item via
-/// `thermite_lower::lower` and rebuilds:
+/// `fluffy_lower::lower` and rebuilds:
 ///
 /// ```text
 /// proof fn taut_check(<lowered params>, result: <lowered RET>)
@@ -311,11 +311,11 @@ fn extract_lowered_fn(f: &FnItem, spec_items: &[Item]) -> Result<LoweredFn, Forg
     let mut items = spec_items.to_vec();
     items.push(Item::Fn(f.clone()));
     let program = Program { items };
-    let lowered = thermite_lower::lower(&program).map_err(ForgeError::Lower)?;
+    let lowered = fluffy_lower::lower(&program).map_err(ForgeError::Lower)?;
     parse_lowered_fn(&lowered, &f.name)
 }
 
-/// Parse `thermite_lower::lower`'s output into a [`LoweredFn`] (REQ-1/REQ-2). The
+/// Parse `fluffy_lower::lower`'s output into a [`LoweredFn`] (REQ-1/REQ-2). The
 /// lowerer emits a fixed frame (`lower in lower.rs`):
 ///
 /// ```text
@@ -446,7 +446,7 @@ fn lowering_shape_error(what: &str) -> ForgeError {
     ForgeError::VerusOutput {
         detail: format!(
             "solver-vacuity harness builder could not parse the lowered Verus frame ({what}); \
-             the `thermite_lower::lower` output shape changed and the harness extraction must \
+             the `fluffy_lower::lower` output shape changed and the harness extraction must \
              be updated"
         ),
     }
@@ -628,7 +628,7 @@ mod tests {
     /// failure via a runtime-condition assert, keeping the gated `.unwrap` tokens
     /// out of any Edit/Write patch the harness scans).
     fn fn_and_specs(program: &str) -> (FnItem, Vec<Item>) {
-        let parsed = thermite_syntax::parse(program);
+        let parsed = fluffy_syntax::parse(program);
         assert!(
             parsed.is_clean(),
             "fixture must parse clean: {:?}",
@@ -655,29 +655,29 @@ mod tests {
             boundary: None,
             name: String::new(),
             params: Vec::new(),
-            ret: thermite_syntax::Type::Unit,
-            contract: thermite_syntax::Contract {
-                req: thermite_syntax::Clause {
-                    expr: thermite_syntax::Expr::BoolLit(true),
+            ret: fluffy_syntax::Type::Unit,
+            contract: fluffy_syntax::Contract {
+                req: fluffy_syntax::Clause {
+                    expr: fluffy_syntax::Expr::BoolLit(true),
                     text: String::new(),
-                    span: thermite_syntax::Span::new(0, 0),
+                    span: fluffy_syntax::Span::new(0, 0),
                 },
                 ens: Vec::new(),
-                fx: thermite_syntax::EffectRow::Pure,
+                fx: fluffy_syntax::EffectRow::Pure,
             },
             dec: None,
-            body: Some(thermite_syntax::Block {
+            body: Some(fluffy_syntax::Block {
                 stmts: Vec::new(),
                 tail: None,
             }),
             holes: Vec::new(),
-            span: thermite_syntax::Span::new(0, 0),
+            span: fluffy_syntax::Span::new(0, 0),
         });
         (f, spec_items)
     }
 
     // REQ-1: the tautology harness reuses the lowered contract VERBATIM — the
-    // `requires`/`ensures` text is what `thermite_lower::lower` emits, and `result`
+    // `requires`/`ensures` text is what `fluffy_lower::lower` emits, and `result`
     // is appended as a `proof fn` param of the lowered return type (OQ-4).
     #[test]
     fn tautology_harness_reuses_lowered_contract() {

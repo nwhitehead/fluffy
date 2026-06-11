@@ -3,12 +3,12 @@
 <!--
 tier: 3-component
 status: draft
-governs: thermite-tv/src/exec_encode.rs, thermite-tv/src/obligation.rs, thermite-tv/src/gen.rs, forge/src/exec_tv.rs
+governs: fluffy-tv/src/exec_encode.rs, fluffy-tv/src/obligation.rs, fluffy-tv/src/gen.rs, forge/src/exec_tv.rs
 thesis-refs:
-  - thermite-design.md §1 (trust relocated: code → spec → spec-intent)
-  - thermite-design.md §4.1 (contract-first functions — and the EXEC body they guard)
-  - thermite-design.md §6 (the verification ladder; L3 = Verus-derived SMT proof; L1 runtime checks)
-  - thermite-design.md §5.1 (counterexamples, not adjectives)
+  - fluffy-design.md §1 (trust relocated: code → spec → spec-intent)
+  - fluffy-design.md §4.1 (contract-first functions — and the EXEC body they guard)
+  - fluffy-design.md §6 (the verification ladder; L3 = Verus-derived SMT proof; L1 runtime checks)
+  - fluffy-design.md §5.1 (counterexamples, not adjectives)
 epic: crosslink #151
 step-1-sibling: .design/verified/contract-tv.md (crosslink #139 — CONTRACT-position TV, shipped + total on the corpus)
 -->
@@ -44,14 +44,14 @@ exec-lowering produces the reference VALUE for all inputs ⟺ faithful; a `postc
 Exec-TV checks `production-exec-lowering ≡ independent-exec-reference`. Agreement is EVIDENCE, not
 PROOF: both encoders could share a wrong assumption. What makes it meaningful is asymmetry of
 auditability — the exec reference encoder is a small total recursion over the pure-exec subset of
-`Expr` (arithmetic, casts, comparisons, calls, indexing), authored against `thermite-design.md`
+`Expr` (arithmetic, casts, comparisons, calls, indexing), authored against `fluffy-design.md`
 §4.1/§6 + standard Rust/Verus exec semantics, independently of `lower_expr in lower.rs`. A human can
 certify it by inspection; the production `lower_expr` (~2000 exec-path lines, shape-keyed rewrites)
 cannot. The honesty boundary is HARD (REQ-1): the exec reference MUST NOT call
-`thermite_lower::lower::lower_expr` or any production lowering symbol — independence is the entire
+`fluffy_lower::lower::lower_expr` or any production lowering symbol — independence is the entire
 point (`assert(result == result)`-style vacuity is the failure mode). Independence is enforced as a
-COMPILE constraint: the `thermite-tv` crate has NO `thermite-lower` dependency (the step-1 invariant,
-`cargo tree -p thermite-tv` = syntax + spec only, AC-6 of contract-tv.md).
+COMPILE constraint: the `fluffy-tv` crate has NO `fluffy-lower` dependency (the step-1 invariant,
+`cargo tree -p fluffy-tv` = syntax + spec only, AC-6 of contract-tv.md).
 
 ## The mechanism (how to Z3-check exec-expr faithfulness)
 
@@ -86,7 +86,7 @@ none is a silent pass.
 
 **The EXEC-value semantics (the load-bearing concern — the dual of step-1's coercion soundness).**
 The exec value is BOUNDED — `u64`/`usize`/`u32` with the always-active runtime overflow checks
-(`thermite-design.md` §6, L1) — NOT unbounded `nat`/`int`. The reference denotation MUST capture the
+(`fluffy-design.md` §6, L1) — NOT unbounded `nat`/`int`. The reference denotation MUST capture the
 EXEC value semantics, at the production VALUE TYPE, so an overflow-distinguishing infidelity is
 CAUGHT (not coerced away):
 - The reference for `a + b` (source `u64`) is the bounded `u64` `a + b` — which CARRIES the verus
@@ -103,14 +103,14 @@ CAUGHT (not coerced away):
   (`xs[i + 1]`) FAILS `postcondition not satisfied`.
 
 **The home (where it lives).** Reuse the step-1 architecture; extend, do not fork:
-- `thermite-tv/src/exec_encode.rs` — the NEW exec-expr reference encoder (REQ-1), sibling to
+- `fluffy-tv/src/exec_encode.rs` — the NEW exec-expr reference encoder (REQ-1), sibling to
   `ref_encode.rs` (which stays CONTRACT-only). Independent EXEC semantics.
-- `thermite-tv/src/obligation.rs` — a NEW `exec_equivalence_obligation` (REQ-2) alongside the
+- `fluffy-tv/src/obligation.rs` — a NEW `exec_equivalence_obligation` (REQ-2) alongside the
   existing contract `equivalence_obligation`. It emits the exec-fn-wrapped `ensures` form, NOT the
   proof-fn `<==>` form.
-- `thermite-tv/src/gen.rs` — extend with `gen_exec_exprs` (REQ-3): typed EXEC-position `Expr` trees.
+- `fluffy-tv/src/gen.rs` — extend with `gen_exec_exprs` (REQ-3): typed EXEC-position `Expr` trees.
 - `forge/src/exec_tv.rs` — the NEW forge check phase (REQ-5), sibling to `contract_tv.rs`. The
-  production side is `thermite_lower::lower_contract_expr` called in EXEC context (the per-expr
+  production side is `fluffy_lower::lower_contract_expr` called in EXEC context (the per-expr
   production entry; a `lower_exec_expr` exec-context variant is the #152-noted prerequisite if the
   existing `lower_contract_expr` spec-context entry cannot be reused). Discharged through
   `forge::check::run_verus` / the `ScratchDir` (#53) cleanup, exactly as `contract_tv::discharge`.
@@ -118,41 +118,41 @@ CAUGHT (not coerced away):
 ## Requirements
 
 - **REQ-1 (exec-expr reference encoder — independent, EXEC semantics)** —
-  `thermite_tv::exec_encode::ref_exec_expr(expr: &Expr, &ExecRefCtx) -> Result<String>` maps a pure
+  `fluffy_tv::exec_encode::ref_exec_expr(expr: &Expr, &ExecRefCtx) -> Result<String>` maps a pure
   exec-position `Expr` to a Verus EXEC-VALUE expression STRING, covering arithmetic (`Expr::Binary`
   with `Add`/`Sub`/`Mul`/`Div`/`Rem`/shifts/bitops at the BOUNDED `u64`/`u32`/`usize` type — NOT
   `nat`/`int`), comparisons (`Eq`/`Ne`/`Lt`/`Le`/`Gt`/`Ge` → `bool`), casts (`Expr::Cast` at the
   target type, with the #122 inner-paren for a `Binary`/`Unary` inner and the #146 outer-paren when a
   `Cast` is the LEFT operand of a `<`-leading op), calls (`Expr::Call` — the exec callee verbatim),
   and indexing (`Expr::Index` — `xs[i as int]` for the spec view of the exec element value). Derived
-  from `thermite-design.md` §4.1/§6. **HARD CONSTRAINT (R-CHAR-3 / trust model):** MUST NOT call
-  `thermite_lower::lower::lower_expr` or any production lowering symbol; the `thermite-tv` crate keeps
-  NO `thermite-lower` dependency.
+  from `fluffy-design.md` §4.1/§6. **HARD CONSTRAINT (R-CHAR-3 / trust model):** MUST NOT call
+  `fluffy_lower::lower::lower_expr` or any production lowering symbol; the `fluffy-tv` crate keeps
+  NO `fluffy-lower` dependency.
 - **REQ-2 (exec-fn-wrapped equivalence obligation + discharge path)** —
-  `thermite_tv::obligation::exec_equivalence_obligation(source: &Expr, p_production: &str, frame:
+  `fluffy_tv::obligation::exec_equivalence_obligation(source: &Expr, p_production: &str, frame:
   &ExecObligationFrame) -> Result<String>` emits a self-contained `fn tv_exec_wrap(<params>)
   requires <req>, ensures result == <ref_exec_expr output>, { <p_production> }` Verus unit (NOT the
   proof-fn `<==>` form — an exec value is not a predicate). Discharged through the EXISTING
   `forge::check::run_verus`. VERIFIED ⟺ faithful; a `postcondition not satisfied`/type/parse error ⟺
-  infidelity. Derived from `thermite-design.md` §6. The production side reuses the per-expr exec
+  infidelity. Derived from `fluffy-design.md` §6. The production side reuses the per-expr exec
   lowering verbatim (the artifact under test); the reference side is REQ-1.
-- **REQ-3 (generator extension — exec-position exprs)** — `thermite_tv::gen::gen_exec_exprs(seed,
+- **REQ-3 (generator extension — exec-position exprs)** — `fluffy_tv::gen::gen_exec_exprs(seed,
   budget) -> impl Iterator<Item = ExecClause>` produces well-typed EXEC-position `Expr` trees over
   the pure-exec subset: `u64`/`usize` arithmetic, narrowing/widening casts, the cast-`<` form
   (`n as u32 < k` — the #146 surface), comparisons, indexing of a `&[u32]` param. Seeded +
   deterministic (R-CODE-5). This un-bounds the #122/#146 fidelity check off-corpus (the step-1
-  generator is contract-position only). Derived from `thermite-design.md` §1.
-- **REQ-4 (the teeth — R-CHAR-3)** — a conformance test (`thermite-tv/tests/exec_teeth.rs`)
+  generator is contract-position only). Derived from `fluffy-design.md` §1.
+- **REQ-4 (the teeth — R-CHAR-3)** — a conformance test (`fluffy-tv/tests/exec_teeth.rs`)
   asserting (a) FAITHFUL exec exprs VERIFY and (b) each injected exec infidelity produces a verus
   FAILURE: the #122 cast-paren drop (`E0308`/value-distinguishing wrapping → `postcondition not
   satisfied`), the #146 cast-`<` mis-parse (`error: expected ','`), and an overflow-distinguishing
   infidelity (`wrapping_add` for source checked `+` → `postcondition not satisfied`). GROUNDED below.
-  Expected values trace to `thermite-design.md` §4.1/§6 + the #122/#146 fixes, never the lowerer's
+  Expected values trace to `fluffy-design.md` §4.1/§6 + the #122/#146 fixes, never the lowerer's
   output.
 - **REQ-5 (forge plug-in point)** — a new `forge::exec_tv` check phase runs the exec-expr TV over the
   pure exec exprs of each checked item's body, exposed as `forge tv <file> --exec` (the non-test
   consumer is `cli::run_tv`). An exec-TV counterexample is a per-expr DIVERGENT verdict (a body
-  meaning-mismatch finding). Derived from `thermite-design.md` §6.
+  meaning-mismatch finding). Derived from `fluffy-design.md` §6.
 
 ## Acceptance criteria
 
@@ -171,8 +171,8 @@ CAUGHT (not coerced away):
 - **AC-5 (usize indexing exec expr discharges)** — `xs[i] as u64` (`i: usize`, `xs: &[u32]`, `req i <
   xs.len()`) against reference `xs[i as int] as u64` VERIFIES; an off-by-one production (`xs[i + 1]`)
   FAILS `postcondition not satisfied`. GROUNDED below.
-- **AC-6 (independence is structural)** — `thermite-tv` keeps NO `thermite-lower` dependency; a
-  `cargo tree -p thermite-tv` audit shows `exec_encode.rs` references no `lower_expr` symbol.
+- **AC-6 (independence is structural)** — `fluffy-tv` keeps NO `fluffy-lower` dependency; a
+  `cargo tree -p fluffy-tv` audit shows `exec_encode.rs` references no `lower_expr` symbol.
 - **AC-7 (off-corpus coverage)** — `gen_exec_exprs` produces ≥ N exec exprs (incl. ≥1 cast-`<` and ≥1
   arithmetic-overflow-surface form) and the exec-TV obligation runs (and VERIFIES for the faithful
   lowerer) on each; a seeded run is reproducible.
@@ -183,12 +183,12 @@ CAUGHT (not coerced away):
 - **RE-IMPLEMENTED by the exec reference encoder (the infidelity surface):** the exec-context
   rewrites where fidelity bugs live — the cast paren discipline (#122 inner paren on a `Binary`/
   `Unary` cast inner; #146 outer paren on a `Cast` left of a `<`-leading op), the bounded-int
-  arithmetic at the source type, the exec index form. Authored against `thermite-design.md` §4.1/§6 +
+  arithmetic at the source type, the exec index form. Authored against `fluffy-design.md` §4.1/§6 +
   standard Rust/Verus exec semantics, INDEPENDENTLY of `Expr::Cast in lower.rs` /
   `lower_binary_operand in lower.rs` / `lower_index in lower.rs`. The `binop(BinOp) in lower.rs` 1-to-1
   operator map is re-stated independently (re-stating it is the point — an imported map would hide a
   production binop bug).
-- **REUSED (correct):** `thermite_spec::lookup(name)` for any spec-fn / combinator a call resolves to
+- **REUSED (correct):** `fluffy_spec::lookup(name)` for any spec-fn / combinator a call resolves to
   (the frozen shared ground truth, same as step 1) — but in EXEC position the corpus body exprs are
   arithmetic/cast/index/exec-call, so the combinator path is rare; the common case is pure scalar
   exec arithmetic with no registry lookup.
@@ -212,7 +212,7 @@ fn tv_exec_wrap(<params>) -> (result: <ret>)
 ```
 
 Verus discharges the exec fn's value via its `ensures`. The production body is an EXEC fn body
-(`fn`, not `proof fn`/`spec fn`), so the always-active runtime overflow checks (`thermite-design.md`
+(`fn`, not `proof fn`/`spec fn`), so the always-active runtime overflow checks (`fluffy-design.md`
 §6, L1) are LIVE — an overflowing arithmetic in production raises the obligation, matching the
 bounded reference (AC-4). This is the structural reason the obligation is an exec fn, not a proof fn:
 the exec-value/overflow semantics must be the ones under test.
@@ -299,8 +299,8 @@ infidelities fail); (2) the exec-value/overflow semantics match at the productio
 overflow infidelity is caught rather than coerced away; (3) the #122/#146 class bites in EXEC
 position (AC-2/AC-3), closing it generally off-corpus.
 
-**Crate gauntlet (when built):** `cargo test -p thermite-tv`, `cargo test -p forge` (`exec_tv`
-conformance), `cargo clippy -p thermite-tv -p forge --all-targets -- -D warnings`, `cargo fmt
+**Crate gauntlet (when built):** `cargo test -p fluffy-tv`, `cargo test -p forge` (`exec_tv`
+conformance), `cargo clippy -p fluffy-tv -p forge --all-targets -- -D warnings`, `cargo fmt
 --check`. Scratch/verus temp cleaned per the `ScratchDir` Drop guard (blocker #53).
 
 ## Step 2.2 horizon — operational semantics for statements/loops/mutation (kernel-gated, FRAMED not designed)
@@ -336,8 +336,8 @@ faithfulness.
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (exec-expr reference encoder) | SHIPPED | `thermite_tv::exec_encode::exec_ref_value` (`thermite-tv/src/exec_encode.rs`) — the independent BOUNDED exec-VALUE encoder (`u64`/`u32`/`usize`/`bool`, NEVER `nat`/`int`): arithmetic at the operand type (the overflow obligation carried), comparisons → `bool`, casts with the #122 inner-paren (`(n - 1) as u8`) + the #146 cast-`<` outer-paren (`(x as u32) < 33`, independent `is_lt_leading`), calls verbatim, and the slice index → the spec-view element value `xs[i as int]`. Non-test consumer `obligation::exec_equivalence_obligation`. Verified by `thermite-tv/tests/exec_teeth.rs` E1–E4 under real verus (the `exec_ref_value_matches_faithful_meaning` unit + the four faithful obligations VERIFY). Deps `thermite-syntax` + `thermite-spec` ONLY — no `thermite-lower` (`cargo tree -p thermite-tv` = syntax + spec; AC-6). Out-of-scope (method calls / Vec-String accessors) → honest `RefEncodeError::Unsupported` (#154/#156 territory), never silent-wrong. |
-| REQ-2 (exec-fn-wrapped equivalence obligation + discharge) | SHIPPED | `thermite_tv::obligation::exec_equivalence_obligation` + `ExecObligationFrame`/`ExecParamDecl` (`thermite-tv/src/obligation.rs`) emits the self-contained `fn tv_exec_wrap(<params>) requires <req>, ensures result == <exec_ref_value(source)>, { <p_production> }` EXEC-FN form (NOT the proof-fn `<==>`). The production side reuses `thermite_lower::lower_exec_expr` (the per-expr EXEC lowering, `thermite-lower/src/lower.rs` — re-enters `lower_expr` in `Ctx::exec()`, the standalone exec `Ctx` IS reachable for a pure expr; the #152 feasibility unknown RESOLVED). Discharged through real verus by `tests/exec_teeth.rs`: all four faithful VERIFY (`1 verified, 0 errors`), all four infidel CAUGHT (E1 `E0308 mismatched types`, E2 `error: expected ','`, E3/E4 `postcondition not satisfied`). The bounded reference catches the E3 wrap (NOT coerced away). GROUNDED in Verification above. |
-| REQ-3 (off-corpus generator — exec exprs) | SHIPPED | `thermite_tv::gen::gen_exec_exprs` + `gen::ExecClause` (`thermite-tv/src/gen.rs`) — a DETERMINISTIC (SplitMix64-seeded, no `rand`/clock, R-CODE-5) generator of WELL-FRAMED exec-position `Expr`s over the bounded exec sublanguage: `u64`/`usize` arithmetic (`+`/`-`/`*`), shifts, bitwise, narrowing/widening casts (`as u8`/`u16`/`u32`/`u64`/`usize`), the cast-`<` surface (`x as u32 < k` — the #146 guard), and slice indexing (`xs[i]`). EACH `ExecClause` carries an ADEQUATE FRAME (every base scalar `<= 1000` + an index `< xs.len()`) so the FAITHFUL lowering VERIFIES (the overflow obligation does not spuriously fire). The frame-adequacy disciplines: arithmetic operands are PROVABLY-BOUNDED (no bitwise/shift/index result fed to `+`/`*`), and `*` scales by a small LITERAL only (a product of two unknowns is NONLINEAR — verus cannot bound it). Non-test consumer `forge::exec_tv::run_generated`. Determinism + construct coverage + self-framing in `gen::tests` (`exec_deterministic_and_seed_sensitive`, `exec_diverse_construct_coverage`, `exec_clauses_are_self_framed`) + the 200-expr all-faithful run in `forge/tests/exec_tv_conformance.rs`. Deps `thermite-syntax` + `thermite-spec` ONLY — no `thermite-lower` (AC-6). |
-| REQ-4 (the teeth — R-CHAR-3) | SHIPPED | `thermite-tv/tests/exec_teeth.rs` — E1 (#122 cast-paren), E2 (#146 cast-`<`), E3 (wrong-op/overflow), E4 (off-by-one index): each FAITHFUL `p_production` (the exact `lower_exec_expr` output, pinned in `thermite-lower/src/lower.rs::exec_expr_tests` — the cross-crate bridge, since `thermite-tv` has no `thermite-lower` dep) VERIFIES + each INFIDEL is CAUGHT with the precise catch shape asserted (`CatchShape::Compile`/`Postcondition`). Expected values trace to the fixtures + §4.1/§6, never the lowerer's output. Skip-loudly if verus absent. |
-| REQ-5 (forge plug-in point) | SHIPPED | `forge::exec_tv::run_generated` (the off-corpus exec run — PRIMARY, the #122/#146 regression guard) + `forge::exec_tv::exec_tv_file` (the corpus body-expr check — best-effort) (`forge/src/exec_tv.rs`); both compute `P_production` via `thermite_lower::lower_exec_expr` (CLOSING the consumer loop — R-DEFER-1), build the obligation via `thermite_tv::exec_equivalence_obligation`, and discharge it through `verus` (the `discharge` helper, reusing `crate::check::ScratchDir`/#53 cleanup). Non-test consumer `cli::run_exec_tv` (the `forge exec-tv <file>` subcommand). The FOUR-WAY classification — Faithful / Divergent / Unverifiable / Skipped — is REPORTED DISTINCTLY (Unverifiable/Skipped never mask an infidelity, R-HONEST-3): an inadequate body-expr overflow frame is Unverifiable, a statement/loop/non-derivable-frame/Unsupported is Skipped, a non-compiling production / postcondition counterexample is Divergent. Verified by `forge/tests/exec_tv_conformance.rs` under real verus: the 200-expr generated run is all-faithful (0 divergent/unverifiable/skipped) with the cast-`<`/arith/cast/index coverage non-vacuous; the corpus body-expr check is faithful-where-checked + the loop skipped HONESTLY (out-of-scope step 2.2). |
+| REQ-1 (exec-expr reference encoder) | SHIPPED | `fluffy_tv::exec_encode::exec_ref_value` (`fluffy-tv/src/exec_encode.rs`) — the independent BOUNDED exec-VALUE encoder (`u64`/`u32`/`usize`/`bool`, NEVER `nat`/`int`): arithmetic at the operand type (the overflow obligation carried), comparisons → `bool`, casts with the #122 inner-paren (`(n - 1) as u8`) + the #146 cast-`<` outer-paren (`(x as u32) < 33`, independent `is_lt_leading`), calls verbatim, and the slice index → the spec-view element value `xs[i as int]`. Non-test consumer `obligation::exec_equivalence_obligation`. Verified by `fluffy-tv/tests/exec_teeth.rs` E1–E4 under real verus (the `exec_ref_value_matches_faithful_meaning` unit + the four faithful obligations VERIFY). Deps `fluffy-syntax` + `fluffy-spec` ONLY — no `fluffy-lower` (`cargo tree -p fluffy-tv` = syntax + spec; AC-6). Out-of-scope (method calls / Vec-String accessors) → honest `RefEncodeError::Unsupported` (#154/#156 territory), never silent-wrong. |
+| REQ-2 (exec-fn-wrapped equivalence obligation + discharge) | SHIPPED | `fluffy_tv::obligation::exec_equivalence_obligation` + `ExecObligationFrame`/`ExecParamDecl` (`fluffy-tv/src/obligation.rs`) emits the self-contained `fn tv_exec_wrap(<params>) requires <req>, ensures result == <exec_ref_value(source)>, { <p_production> }` EXEC-FN form (NOT the proof-fn `<==>`). The production side reuses `fluffy_lower::lower_exec_expr` (the per-expr EXEC lowering, `fluffy-lower/src/lower.rs` — re-enters `lower_expr` in `Ctx::exec()`, the standalone exec `Ctx` IS reachable for a pure expr; the #152 feasibility unknown RESOLVED). Discharged through real verus by `tests/exec_teeth.rs`: all four faithful VERIFY (`1 verified, 0 errors`), all four infidel CAUGHT (E1 `E0308 mismatched types`, E2 `error: expected ','`, E3/E4 `postcondition not satisfied`). The bounded reference catches the E3 wrap (NOT coerced away). GROUNDED in Verification above. |
+| REQ-3 (off-corpus generator — exec exprs) | SHIPPED | `fluffy_tv::gen::gen_exec_exprs` + `gen::ExecClause` (`fluffy-tv/src/gen.rs`) — a DETERMINISTIC (SplitMix64-seeded, no `rand`/clock, R-CODE-5) generator of WELL-FRAMED exec-position `Expr`s over the bounded exec sublanguage: `u64`/`usize` arithmetic (`+`/`-`/`*`), shifts, bitwise, narrowing/widening casts (`as u8`/`u16`/`u32`/`u64`/`usize`), the cast-`<` surface (`x as u32 < k` — the #146 guard), and slice indexing (`xs[i]`). EACH `ExecClause` carries an ADEQUATE FRAME (every base scalar `<= 1000` + an index `< xs.len()`) so the FAITHFUL lowering VERIFIES (the overflow obligation does not spuriously fire). The frame-adequacy disciplines: arithmetic operands are PROVABLY-BOUNDED (no bitwise/shift/index result fed to `+`/`*`), and `*` scales by a small LITERAL only (a product of two unknowns is NONLINEAR — verus cannot bound it). Non-test consumer `forge::exec_tv::run_generated`. Determinism + construct coverage + self-framing in `gen::tests` (`exec_deterministic_and_seed_sensitive`, `exec_diverse_construct_coverage`, `exec_clauses_are_self_framed`) + the 200-expr all-faithful run in `forge/tests/exec_tv_conformance.rs`. Deps `fluffy-syntax` + `fluffy-spec` ONLY — no `fluffy-lower` (AC-6). |
+| REQ-4 (the teeth — R-CHAR-3) | SHIPPED | `fluffy-tv/tests/exec_teeth.rs` — E1 (#122 cast-paren), E2 (#146 cast-`<`), E3 (wrong-op/overflow), E4 (off-by-one index): each FAITHFUL `p_production` (the exact `lower_exec_expr` output, pinned in `fluffy-lower/src/lower.rs::exec_expr_tests` — the cross-crate bridge, since `fluffy-tv` has no `fluffy-lower` dep) VERIFIES + each INFIDEL is CAUGHT with the precise catch shape asserted (`CatchShape::Compile`/`Postcondition`). Expected values trace to the fixtures + §4.1/§6, never the lowerer's output. Skip-loudly if verus absent. |
+| REQ-5 (forge plug-in point) | SHIPPED | `forge::exec_tv::run_generated` (the off-corpus exec run — PRIMARY, the #122/#146 regression guard) + `forge::exec_tv::exec_tv_file` (the corpus body-expr check — best-effort) (`forge/src/exec_tv.rs`); both compute `P_production` via `fluffy_lower::lower_exec_expr` (CLOSING the consumer loop — R-DEFER-1), build the obligation via `fluffy_tv::exec_equivalence_obligation`, and discharge it through `verus` (the `discharge` helper, reusing `crate::check::ScratchDir`/#53 cleanup). Non-test consumer `cli::run_exec_tv` (the `forge exec-tv <file>` subcommand). The FOUR-WAY classification — Faithful / Divergent / Unverifiable / Skipped — is REPORTED DISTINCTLY (Unverifiable/Skipped never mask an infidelity, R-HONEST-3): an inadequate body-expr overflow frame is Unverifiable, a statement/loop/non-derivable-frame/Unsupported is Skipped, a non-compiling production / postcondition counterexample is Divergent. Verified by `forge/tests/exec_tv_conformance.rs` under real verus: the 200-expr generated run is all-faithful (0 divergent/unverifiable/skipped) with the cast-`<`/arith/cast/index coverage non-vacuous; the corpus body-expr check is faithful-where-checked + the loop skipped HONESTLY (out-of-scope step 2.2). |

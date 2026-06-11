@@ -1,5 +1,5 @@
 //! `forge/src/review.rs` — the PLUGGABLE SPEC-INTENT REVIEW SLOT (`forge review`,
-//! `thermite-design.md` §7 line 227, §summary line 298, issue #19). The §7
+//! `fluffy-design.md` §7 line 227, §summary line 298, issue #19). The §7
 //! "residue surfaced for review": the one irreducible judgment the deterministic
 //! battery (#6/#12/#13 vacuity + mutation pre-screening) cannot make — "is this
 //! contract what you MEANT?".
@@ -26,7 +26,7 @@
 //!    cert (`reject.is_some()`) is FLAGGED [`battery_failing`] with its
 //!    `reject.cause` and is NOT surfaced for intent review (R-DEFER-9: the
 //!    mechanical failure is answered first).
-//! 2. The contract surface — the parsed `Program` (`thermite_syntax::parse`). The
+//! 2. The contract surface — the parsed `Program` (`fluffy_syntax::parse`). The
 //!    spec layer is built from the verbatim `Clause.text` (`ast.rs`), and the
 //!    spec-fn references are resolved by walking the contract clause `Expr`s for a
 //!    callee name matching a top-level `Item::SpecFn`. EXCLUSION is STRUCTURAL: the
@@ -65,7 +65,7 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 
 use serde::{Deserialize, Serialize};
-use thermite_syntax::{Contract, Expr, Item, Param, Program, Type};
+use fluffy_syntax::{Contract, Expr, Item, Param, Program, Type};
 
 use crate::check;
 use crate::cli::ForgeError;
@@ -104,7 +104,7 @@ impl SpecFnDecl {
     /// `params`, `ret`, and `dec` — NEVER `body` (the §7 "no bodies" rule, enforced
     /// structurally by which fields this reads, paralleling
     /// `audit::FunctionRow::from_certificate`).
-    fn from_spec_fn(s: &thermite_syntax::SpecFnItem) -> Self {
+    fn from_spec_fn(s: &fluffy_syntax::SpecFnItem) -> Self {
         SpecFnDecl {
             name: s.name.clone(),
             signature: format!(
@@ -143,7 +143,7 @@ impl SpecLayer {
     /// verbatim `Contract` clauses + resolves the directly-referenced `spec fn`
     /// declarations against `spec_fns`; never touches `FnItem.body` /
     /// `SpecFnItem.body`.
-    fn extract(contract: &Contract, spec_fns: &[&thermite_syntax::SpecFnItem]) -> Self {
+    fn extract(contract: &Contract, spec_fns: &[&fluffy_syntax::SpecFnItem]) -> Self {
         SpecLayer {
             req: contract.req.text.clone(),
             ens: contract.ens.iter().map(|c| c.text.clone()).collect(),
@@ -288,7 +288,7 @@ pub fn review_file(
         path: path.display().to_string(),
         source: e,
     })?;
-    let parsed = thermite_syntax::parse(&src);
+    let parsed = fluffy_syntax::parse(&src);
     if !parsed.is_clean() {
         return Err(ForgeError::Parse(parsed.errors));
     }
@@ -307,7 +307,7 @@ fn project_artifact(
     program: &Program,
     item_filter: Option<&str>,
 ) -> ReviewArtifact {
-    let spec_fns: Vec<&thermite_syntax::SpecFnItem> = program
+    let spec_fns: Vec<&fluffy_syntax::SpecFnItem> = program
         .items
         .iter()
         .filter_map(|i| match i {
@@ -387,7 +387,7 @@ fn lookup_fn_contract<'a>(program: &'a Program, name: &str) -> Option<&'a Contra
 /// bodies (each `SpecFnDecl` reads only the declaration fields).
 fn referenced_spec_fns(
     contract: &Contract,
-    spec_fns: &[&thermite_syntax::SpecFnItem],
+    spec_fns: &[&fluffy_syntax::SpecFnItem],
 ) -> Vec<SpecFnDecl> {
     // Collect referenced names from every contract clause expr (req + each ens). A
     // BTreeSet → sorted + deduplicated (deterministic), and only names that resolve
@@ -505,7 +505,7 @@ fn collect_callee_names(expr: &Expr, out: &mut std::collections::BTreeSet<String
 /// a contract clause). A contract clause's `if` carries blocks whose exprs may
 /// reference a spec fn.
 fn collect_block_callee_names(
-    block: &thermite_syntax::Block,
+    block: &fluffy_syntax::Block,
     out: &mut std::collections::BTreeSet<String>,
 ) {
     for stmt in &block.stmts {
@@ -519,10 +519,10 @@ fn collect_block_callee_names(
 /// Walk a `Stmt` collecting callee names (covers every statement shape so a
 /// spec-fn reference nested in a contract-clause block is found).
 fn collect_stmt_callee_names(
-    stmt: &thermite_syntax::Stmt,
+    stmt: &fluffy_syntax::Stmt,
     out: &mut std::collections::BTreeSet<String>,
 ) {
-    use thermite_syntax::Stmt;
+    use fluffy_syntax::Stmt;
     match stmt {
         Stmt::Let {
             mutable: _,
@@ -560,10 +560,10 @@ fn collect_stmt_callee_names(
 /// Walk an `IndexArg` collecting callee names (a contract clause may index with a
 /// spec-fn-derived bound, e.g. `xs[..spec_len(xs)]`).
 fn collect_index_callee_names(
-    index: &thermite_syntax::IndexArg,
+    index: &fluffy_syntax::IndexArg,
     out: &mut std::collections::BTreeSet<String>,
 ) {
-    use thermite_syntax::IndexArg;
+    use fluffy_syntax::IndexArg;
     match index {
         IndexArg::Single(e) => collect_callee_names(e, out),
         IndexArg::RangeTo(e) => collect_callee_names(e, out),
@@ -588,7 +588,7 @@ fn render_params(params: &[Param]) -> String {
 /// Render a `Type` as surface text (REQ-1) — the declaration form a reviewer reads.
 /// Deterministic (R-CODE-5).
 fn render_type(ty: &Type) -> String {
-    use thermite_syntax::PrimType;
+    use fluffy_syntax::PrimType;
     match ty {
         Type::Prim(PrimType::U32) => "u32".to_string(),
         Type::Prim(PrimType::U64) => "u64".to_string(),
@@ -776,7 +776,7 @@ mod tests {
     use crate::manifest::{Certificate, Level, RejectReason};
 
     fn parse_ok(src: &str) -> Program {
-        let parsed = thermite_syntax::parse(src);
+        let parsed = fluffy_syntax::parse(src);
         assert!(parsed.is_clean(), "fixture must parse clean: {:?}", parsed);
         parsed.program
     }

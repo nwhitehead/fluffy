@@ -3,12 +3,12 @@
 tier: 3-component
 status: draft
 governs: forge/src/check.rs
-governs: thermite-lower/src/lower.rs
+governs: fluffy-lower/src/lower.rs
 thesis-refs:
-  - thermite-design.md §4.1
-  - thermite-design.md §4.2
-  - thermite-design.md §2.3
-  - thermite-design.md §7
+  - fluffy-design.md §4.1
+  - fluffy-design.md §4.2
+  - fluffy-design.md §2.3
+  - fluffy-design.md §7
 -->
 
 ## Summary
@@ -63,7 +63,7 @@ Verification) before this contract was pinned.
   refines.
 
 - **The validator's self-call rule (`block_calls_name`) is unchanged.** The
-  `thermite-spec` validator (`validator.rs` `run`'s `Item::Fn` arm) flags only a
+  `fluffy-spec` validator (`validator.rs` `run`'s `Item::Fn` arm) flags only a
   DIRECT self-call missing `dec` (`MissingDecreases`); a mutual pair (neither
   calls itself directly) is NOT flagged there. C11 does NOT move the mutual
   missing-`dec` diagnostic into the validator — it stays a `forge::check` cert
@@ -134,7 +134,7 @@ Verification) before this contract was pinned.
   - **Lexicographic measures are supported.** GROUNDED: a pair with comma-list
     measures `decreases n, 1` / `decreases n, 0` (a `(level, tag)` lexicographic
     tuple where the cross-call keeps `n` and drops the tag) certifies L3
-    (`2 verified, 0 errors`). Since Thermite's `dec` clause lowers a single
+    (`2 verified, 0 errors`). Since Fluffy's `dec` clause lowers a single
     measure expression today (C9 `spec_dec`), the lexicographic *surface* (a
     comma-separated `dec`) is a SEPARATE surface concern (OQ-2) — but the v1
     common case (each member decreases a shared structural / numeric measure on
@@ -220,11 +220,11 @@ extension, not a new mechanism.
 
 **Why `forge::check`, not the validator (REQ-2 placement).** The missing-`dec`
 mutual diagnostic stays in `forge::check`'s `mutual_recursion_cycle_fns`, NOT the
-`thermite-spec` validator. The validator's `block_calls_name` rule (C9 REQ-2)
+`fluffy-spec` validator. The validator's `block_calls_name` rule (C9 REQ-2)
 catches a DIRECT self-call missing `dec`; a mutual cycle is a call-GRAPH property
 (an SCC), and `forge::check` already computes the in-file call graph
 (`closure::reachable_in_file_fns`) and owns the cycle-detection. Moving the
-diagnostic to the validator would duplicate the call-graph walk in `thermite-spec`
+diagnostic to the validator would duplicate the call-graph walk in `fluffy-spec`
 (which has no `closure` module) — so REQ-2 refines the EXISTING `forge::check`
 reject (the minimal, single-site change) rather than relocating it. The reject is
 still a clean cert verdict (verdict-in-cert, §5.1 / R-SPEC-3), never a crash.
@@ -297,10 +297,10 @@ body/measure is rejected — the §7 vacuity gate is respected.
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (mutual cycle with `dec` on every member → L3) | SHIPPED | #121 (epic #113). `mutual_recursion_cycle_fns` (in `check.rs`) is now CONDITIONAL: a `fn` is in the reject set only if its SCC (size ≥ 2) contains a non-`fx diverge` member lacking `dec`. A dec-complete cycle is ABSENT from the set → the per-item loop FALLS THROUGH to `item_subprogram` → `thermite_lower::lower` → `run_verus`. The partner is already woven into each member's §5.3 sub-program by the existing `reachable_fn_deps` (`reachable_in_file_fns` returns the cross-called partner). VERIFIED end-to-end: `forge/tests/mutual_recursion_conformance.rs::dec_complete_mutual_pair_certifies_l3` — `is_even`/`is_odd` each `dec n` cross `n-1`, non-vacuous `ens result == (n % 2 == 0/1)` → BOTH L3 (real verus). Non-test consumer: `cli::run` → `check_file`. |
+| REQ-1 (mutual cycle with `dec` on every member → L3) | SHIPPED | #121 (epic #113). `mutual_recursion_cycle_fns` (in `check.rs`) is now CONDITIONAL: a `fn` is in the reject set only if its SCC (size ≥ 2) contains a non-`fx diverge` member lacking `dec`. A dec-complete cycle is ABSENT from the set → the per-item loop FALLS THROUGH to `item_subprogram` → `fluffy_lower::lower` → `run_verus`. The partner is already woven into each member's §5.3 sub-program by the existing `reachable_fn_deps` (`reachable_in_file_fns` returns the cross-called partner). VERIFIED end-to-end: `forge/tests/mutual_recursion_conformance.rs::dec_complete_mutual_pair_certifies_l3` — `is_even`/`is_odd` each `dec n` cross `n-1`, non-vacuous `ens result == (n % 2 == 0/1)` → BOTH L3 (real verus). Non-test consumer: `cli::run` → `check_file`. |
 | REQ-2 (the #110 reject becomes conditional — missing/insufficient `dec` → L0) | SHIPPED | #121 (epic #113). `mutual_recursion_cycle_fns` rejects ONLY when a cycle member `f.dec.is_none() && !fn_is_diverge(f)` (scanning the whole SCC); the per-item loop emits `Certificate::rejected` (`Level::L0`, cause RENAMED `MutualRecursionMissingDecreases` + a member-naming "every member must carry a `dec` measure, or declare `fx diverge`" detail). The `fx diverge` exemption (`fn_is_diverge` skip) is PRESERVED. A dec-complete cycle whose measures don't decrease reaches Verus and is rejected there (`could not prove termination`, the single-fn non-decreasing L0 shape). VERIFIED: `mutual_recursion_conformance.rs::mutual_cycle_missing_dec_is_rejected_l0` (missing-dec → L0 `MutualRecursionMissingDecreases`) + `nondecreasing_mutual_cycle_is_l0` (verus termination L0) + `diverge_mutual_cycle_is_l1` (#88 exemption); `divergence_mutual_recursion.rs` (the #110 no-dec pin, still a clean non-L3 cert). |
-| REQ-3 (the mutual-group lowering — grandfathered-correct, no change) | SHIPPED | C9 #108, CONFIRMED unchanged by #121. `lower` (in `lower.rs`) emits every `Item::Fn` in source order inside one `verus! { }` block; `lower_fn` emits `decreases <spec_dec(f.dec, f.params)>` for any `f.dec.is_some()`. CONFIRMED no `lower.rs` change needed: `item_subprogram`'s `Item::Fn` arm weaves `fn_deps` (= `reachable_fn_deps`, the partner) THEN the item, so each cycle member's per-item sub-program already contains its partner — Verus discovers the SCC. Non-test consumer: `forge::check` (`item_subprogram` → `thermite_lower::lower` → `run_verus`). VERIFIED L3 end-to-end via the REQ-1 conformance (the existing emission IS the contract). |
-| REQ-4 (v1 measure scope — full lexicographic, n-cycles, per-fn `dec`) | SHIPPED | #121 (epic #113). n-cycles: `mutual_recursion_cycle_fns` computes the whole SCC, so any size ≥ 2 cycle is handled. VERIFIED: `mutual_recursion_conformance.rs::dec_complete_three_cycle_certifies_l3` — a 3-cycle `step_a -> step_b -> step_c -> step_a`, each `dec n` cross `n-1` → all three L3 (real verus). Per-fn `dec` is the measure-supply mechanism (each member writes its own `dec`); the common single-measure case is fully covered. The lexicographic comma-`dec` SURFACE remains OQ-2 (Verus has the capability; Thermite's `dec` lowers a single measure today via `spec_dec` — a separate surface concern, not a v1 REQ). |
+| REQ-3 (the mutual-group lowering — grandfathered-correct, no change) | SHIPPED | C9 #108, CONFIRMED unchanged by #121. `lower` (in `lower.rs`) emits every `Item::Fn` in source order inside one `verus! { }` block; `lower_fn` emits `decreases <spec_dec(f.dec, f.params)>` for any `f.dec.is_some()`. CONFIRMED no `lower.rs` change needed: `item_subprogram`'s `Item::Fn` arm weaves `fn_deps` (= `reachable_fn_deps`, the partner) THEN the item, so each cycle member's per-item sub-program already contains its partner — Verus discovers the SCC. Non-test consumer: `forge::check` (`item_subprogram` → `fluffy_lower::lower` → `run_verus`). VERIFIED L3 end-to-end via the REQ-1 conformance (the existing emission IS the contract). |
+| REQ-4 (v1 measure scope — full lexicographic, n-cycles, per-fn `dec`) | SHIPPED | #121 (epic #113). n-cycles: `mutual_recursion_cycle_fns` computes the whole SCC, so any size ≥ 2 cycle is handled. VERIFIED: `mutual_recursion_conformance.rs::dec_complete_three_cycle_certifies_l3` — a 3-cycle `step_a -> step_b -> step_c -> step_a`, each `dec n` cross `n-1` → all three L3 (real verus). Per-fn `dec` is the measure-supply mechanism (each member writes its own `dec`); the common single-measure case is fully covered. The lexicographic comma-`dec` SURFACE remains OQ-2 (Verus has the capability; Fluffy's `dec` lowers a single measure today via `spec_dec` — a separate surface concern, not a v1 REQ). |
 
 ## Open questions (for the orchestrator)
 
@@ -315,7 +315,7 @@ body/measure is rejected — the §7 vacuity gate is respected.
   the only remaining reject IS missing-`dec`, making a rename the honest choice).
   Not a blocker for the contract.
 - **OQ-2 (lexicographic comma-`dec` surface):** Verus supports a comma-separated
-  lexicographic `decreases` (GROUNDED), and Thermite's `dec` clause is a single
+  lexicographic `decreases` (GROUNDED), and Fluffy's `dec` clause is a single
   measure expression today (C9 `spec_dec`). A future lexicographic `dec`
   (`dec n, tag`) would extend the `dec` grammar + `spec_dec` to a comma-list — a
   separate surface concern, NOT required for the v1 common case (a shared
@@ -323,7 +323,7 @@ body/measure is rejected — the §7 vacuity gate is respected.
   v1 REQ. Not a blocker.
 - **OQ-3 (the missing-`dec` mutual diagnostic placement — `forge::check` vs
   validator):** REQ-2 keeps the diagnostic in `forge::check` (where the call
-  graph is computed). A future move into `thermite-spec` (so the editor surfaces
-  it earlier) would need the call-graph walk in `thermite-spec` (which has no
+  graph is computed). A future move into `fluffy-spec` (so the editor surfaces
+  it earlier) would need the call-graph walk in `fluffy-spec` (which has no
   `closure` module). The `forge::check` placement is the minimal, single-site v1
   choice. Not a blocker.

@@ -1,5 +1,5 @@
 //! `forge/src/vacuity.rs` — the FREE, syntactic layer of the §7 vacuity battery
-//! (`thermite-design.md` §7.1, "structural triage"). It runs as a gate stage in
+//! (`fluffy-design.md` §7.1, "structural triage"). It runs as a gate stage in
 //! `forge check` BEFORE each item's L3 proof: "a function does not certify until
 //! its contract certifies" (§7). This component is the cheapest, solver-free guard
 //! on that rule — it rejects the four §7.1 degenerate moves by inspecting the
@@ -28,10 +28,10 @@
 //! |---|---|---|
 //! | REQ-3 (MatchArm.guard ripple) | SHIPPED | `expr_mentions_result`'s `Expr::Match` arm checks `arm.guard` for a `result` mention — a contract that mentions `result` ONLY through a match guard is still NON-vacuous (the §7 gate is not fooled). `Pattern::Or` needs no vacuity arm. Consumer: `triage`. |
 
-use thermite_syntax::{BinOp, Effect, EffectRow, Expr, FnItem, SlagAttr, Type};
+use fluffy_syntax::{BinOp, Effect, EffectRow, Expr, FnItem, SlagAttr, Type};
 
 /// The maximum `Expr`-tree descent depth for the `result`-mention walk (REQ-2).
-/// Mirrors the `thermite-lower` / `thermite-spec` bounded-descent convention
+/// Mirrors the `fluffy-lower` / `fluffy-spec` bounded-descent convention
 /// (`MAX_EMIT_DEPTH` / `MAX_RECURSION_DEPTH`): a hostile deeply-nested `ens`
 /// never blows the stack. On exhaustion the walk CONSERVATIVELY reports "result
 /// MIGHT be present" (so triage never FALSE-rejects an `ens` it could not fully
@@ -152,7 +152,7 @@ pub fn triage(item: &FnItem) -> VacuityVerdict {
 /// is a syntactic identity (`x == x`, `x <= x`, `x >= x`). NON-trivial tautologies
 /// (`a || !a`, `x + 0 == x`) are the SOLVER check (#13), explicitly NOT decided
 /// here.
-fn ens_is_trivially_true(ens: &[thermite_syntax::Clause]) -> Option<usize> {
+fn ens_is_trivially_true(ens: &[fluffy_syntax::Clause]) -> Option<usize> {
     // (ii) any single clause is a syntactic identity → that clause is the cause.
     for (idx, clause) in ens.iter().enumerate() {
         if identity_clause(&clause.expr) {
@@ -183,7 +183,7 @@ fn identity_clause(expr: &Expr) -> bool {
 /// `Type::Unit` return is EXEMPT ("Must mention `result` unless the return type is
 /// `()`"). The walk descends every `ens` clause's `Expr` tree looking for an
 /// `Expr::Path` whose first segment is `"result"`.
-fn ens_omits_result(ret: &Type, ens: &[thermite_syntax::Clause]) -> bool {
+fn ens_omits_result(ret: &Type, ens: &[fluffy_syntax::Clause]) -> bool {
     if matches!(ret, Type::Unit) {
         return false; // exempt
     }
@@ -274,7 +274,7 @@ fn expr_mentions_result(expr: &Expr, depth: usize) -> bool {
 
 /// Walk a block's statements + tail for a `result` mention (the `ens`-side `If`
 /// arms carry blocks). Bounded by the caller's `depth`.
-fn block_mentions_result(block: &thermite_syntax::Block, depth: usize) -> bool {
+fn block_mentions_result(block: &fluffy_syntax::Block, depth: usize) -> bool {
     if depth >= MAX_EXPR_DEPTH {
         return true;
     }
@@ -289,8 +289,8 @@ fn block_mentions_result(block: &thermite_syntax::Block, depth: usize) -> bool {
 
 /// Walk a statement for a `result` mention (completeness over the closed `Stmt`
 /// enum, R-DEFER-8). Bounded by `depth`.
-fn stmt_mentions_result(stmt: &thermite_syntax::Stmt, depth: usize) -> bool {
-    use thermite_syntax::Stmt;
+fn stmt_mentions_result(stmt: &fluffy_syntax::Stmt, depth: usize) -> bool {
+    use fluffy_syntax::Stmt;
     if depth >= MAX_EXPR_DEPTH {
         return true;
     }
@@ -320,8 +320,8 @@ fn stmt_mentions_result(stmt: &thermite_syntax::Stmt, depth: usize) -> bool {
 }
 
 /// Walk an index argument for a `result` mention. Bounded by `depth`.
-fn index_arg_mentions_result(index: &thermite_syntax::IndexArg, depth: usize) -> bool {
-    use thermite_syntax::IndexArg;
+fn index_arg_mentions_result(index: &fluffy_syntax::IndexArg, depth: usize) -> bool {
+    use fluffy_syntax::IndexArg;
     match index {
         IndexArg::Single(e) | IndexArg::RangeTo(e) | IndexArg::RangeFrom(e) => {
             expr_mentions_result(e, depth)
@@ -344,7 +344,7 @@ fn index_arg_mentions_result(index: &thermite_syntax::IndexArg, depth: usize) ->
 /// (c)-rejected. Returns the first req-implied `ens` clause index (for the
 /// diagnostic) ONLY when EVERY clause matches; `None` otherwise. SYNTACTIC only:
 /// the SOLVER "is `ens` provable from `req`" question is #13.
-fn ens_implied_by_req(req: &Expr, ens: &[thermite_syntax::Clause]) -> Option<usize> {
+fn ens_implied_by_req(req: &Expr, ens: &[fluffy_syntax::Clause]) -> Option<usize> {
     let mut conjuncts = Vec::new();
     flatten_and(req, &mut conjuncts, 0);
     // The WHOLE postcondition is req-implied only if EVERY clause is. A single
@@ -392,7 +392,7 @@ fn flatten_and<'a>(expr: &'a Expr, out: &mut Vec<&'a Expr>, depth: usize) {
 fn fx_maximal_without_slag(
     fx: &EffectRow,
     slag: Option<&SlagAttr>,
-    boundary: Option<&thermite_syntax::BoundaryAttr>,
+    boundary: Option<&fluffy_syntax::BoundaryAttr>,
 ) -> bool {
     slag.is_none() && boundary.is_none() && effect_row_is_maximal(fx)
 }
@@ -460,13 +460,13 @@ mod tests {
                     name: String::new(),
                     params: Vec::new(),
                     ret: Type::Unit,
-                    contract: thermite_syntax::Contract {
+                    contract: fluffy_syntax::Contract {
                         req: dummy_clause(),
                         ens: vec![dummy_clause()],
                         fx: EffectRow::Pure,
                     },
                     dec: None,
-                    body: Some(thermite_syntax::Block {
+                    body: Some(fluffy_syntax::Block {
                         stmts: Vec::new(),
                         tail: None,
                     }),
@@ -478,24 +478,24 @@ mod tests {
     }
 
     fn try_fn_item(program: &str) -> Result<FnItem, String> {
-        let parsed = thermite_syntax::parse(program);
+        let parsed = fluffy_syntax::parse(program);
         if !parsed.is_clean() {
             return Err(format!("fixture must parse clean: {:?}", parsed.errors));
         }
         for item in parsed.program.items {
-            if let thermite_syntax::Item::Fn(f) = item {
+            if let fluffy_syntax::Item::Fn(f) = item {
                 return Ok(f);
             }
         }
         Err("fixture has no fn item".to_string())
     }
 
-    fn dummy_span() -> thermite_syntax::Span {
-        thermite_syntax::Span::new(0, 0)
+    fn dummy_span() -> fluffy_syntax::Span {
+        fluffy_syntax::Span::new(0, 0)
     }
 
-    fn dummy_clause() -> thermite_syntax::Clause {
-        thermite_syntax::Clause {
+    fn dummy_clause() -> fluffy_syntax::Clause {
+        fluffy_syntax::Clause {
             expr: Expr::BoolLit(true),
             text: String::new(),
             span: dummy_span(),

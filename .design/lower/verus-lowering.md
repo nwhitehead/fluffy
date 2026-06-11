@@ -1,33 +1,33 @@
-# Thermite AST → Verus-Annotated Rust Lowering (L3 emission)
+# Fluffy AST → Verus-Annotated Rust Lowering (L3 emission)
 <!--
 tier: 3-component
 status: draft
-governs: thermite-lower/src/lower.rs
+governs: fluffy-lower/src/lower.rs
 thesis-refs:
-  - thermite-design.md §3
-  - thermite-design.md §4.1
-  - thermite-design.md §4.2
-  - thermite-design.md §6
-  - thermite-design.md §5.3
-  - thermite-design.md Appendix A
+  - fluffy-design.md §3
+  - fluffy-design.md §4.1
+  - fluffy-design.md §4.2
+  - fluffy-design.md §6
+  - fluffy-design.md §5.3
+  - fluffy-design.md Appendix A
 -->
 
 ## Summary
 
-`thermite-lower::lower` is the **L3 emission stage**: it walks a validated
-`thermite-syntax` `Program` and emits a single Verus source file — a
+`fluffy-lower::lower` is the **L3 emission stage**: it walks a validated
+`fluffy-syntax` `Program` and emits a single Verus source file — a
 `use vstd::prelude::*; verus! { … } fn main() {}` unit whose
-`requires`/`ensures`/`invariant`/`decreases` annotations are the Thermite
-contract, and whose body is the lowered Thermite body. Forge (#5/#6) hands that
+`requires`/`ensures`/`invariant`/`decreases` annotations are the Fluffy
+contract, and whose body is the lowered Fluffy body. Forge (#5/#6) hands that
 file to the `verus` binary; a `0 errors` result is the L3 certificate
-(`thermite-design.md §6`). The corpus programs `conformance/sum.th` and
+(`fluffy-design.md §6`). The corpus programs `conformance/sum.th` and
 `conformance/binary_search.th` lower to `tests/golden/lower/sum.verus.rs` and
 `tests/golden/lower/binary_search.verus.rs`, each of which **must itself pass
 `verus` with 0 errors** — that is the load-bearing external truth this component
 is pinned against (`goal.md` "Verus/Kani/Z3 golden files").
 
 This doc is GREENFIELD / FORWARD-LOOKING. Only the empty
-`thermite-lower/src/lib.rs` scaffold root exists (no `lower.rs`). Every REQ is
+`fluffy-lower/src/lib.rs` scaffold root exists (no `lower.rs`). Every REQ is
 **NOT-STARTED**, blocked on issue **#4**. The exact verified Verus forms below
 were produced by running the real `verus 0.2026.05.24` binary during authoring;
 they are the lowering contract the builder reproduces, not guesses.
@@ -39,13 +39,13 @@ they are the lowering contract the builder reproduces, not guesses.
   `use vstd::prelude::*;`, a `verus! { … }` block containing the lowered items in
   source order, and a trailing `fn main() {}`. A `FnItem` lowers to a Verus `fn`
   whose return type binds the result name (`-> (result: T)`) so the `ens` clauses
-  can mention `result` (`thermite-design.md §4.1` "Must mention `result`");
+  can mention `result` (`fluffy-design.md §4.1` "Must mention `result`");
   `req`→`requires`, each `ens`→`ensures`, `fx pure`→no Verus effect annotation
   (a Verus `fn` is pure by default; §4.1). A `SpecFnItem` lowers to a Verus
   `spec fn` carrying `decreases <dec>` (§4.2 "No spec-level recursion without a
   `dec` measure"). Derived from §3 ("transpile to Verus"), §4.1, Appendix A.
 
-- **REQ-2 (type lowering):** Thermite `Type` lowers to its Verus/Rust spelling:
+- **REQ-2 (type lowering):** Fluffy `Type` lowers to its Verus/Rust spelling:
   `Prim(U32|U64|Usize|Bool)`→`u32|u64|usize|bool`; `Unit`→`()`;
   `Ref{mutable:false, Slice(U32)}`→`&[u32]`; `Generic{"Option", Usize}`→
   `Option<usize>`. No lifetimes are emitted (§4.4 "Explicit lifetimes →
@@ -89,7 +89,7 @@ they are the lowering contract the builder reproduces, not guesses.
 - **REQ-6 (combinator Verus(L3) definitions — the #4 lowering facet):** This
   component supplies the per-combinator **Verus(L3) `spec fn` definition** that
   `.design/spec/spectherm-combinators.md` (OQ-2) deferred to #4. For each of the
-  8 frozen registry combinators (`thermite-spec/src/combinators.rs` `static
+  8 frozen registry combinators (`fluffy-spec/src/combinators.rs` `static
   REGISTRY`) the lowerer emits/links a `spec fn` whose body is the frozen
   bounded-quantifier form with a **frozen `#[trigger]`** on the predicate
   application (§4.2 "hand-tuned, frozen SMT triggers"). The four corpus
@@ -137,10 +137,10 @@ they are the lowering contract the builder reproduces, not guesses.
   model (A), R-CHAR-3, R-DEFER-9.
 
 - **REQ-9 (`LowerError`, no panics):** `lower` returns `Result<String,
-  LowerError>`; `LowerError` is `thermite-lower`'s OWN error enum, born with this
+  LowerError>`; `LowerError` is `fluffy-lower`'s OWN error enum, born with this
   first fallible function (per `.design/scaffold/workspace.md` REQ-3 "each crate
   introduces its OWN error enum … when its first fallible function lands"). It is
-  span-bearing (reusing `thermite_syntax::lexer::Span`) and `Display`-able, with
+  span-bearing (reusing `fluffy_syntax::lexer::Span`) and `Display`-able, with
   a variant for an un-lowerable construct (e.g. a combinator call whose callee is
   not in the registry — though validation (#2) should have caught it; the lowerer
   re-checks defensively). No `unwrap`/`expect`/`panic!` in production
@@ -180,8 +180,8 @@ they are the lowering contract the builder reproduces, not guesses.
     invariant at the loop EXIT, including break); an invariant that is true at
     re-entry but NOT at break must instead be written `invariant_except_break`;
     and what is provable AFTER the loop is the loop's `ensures` clause (true at
-    break OR normal exit). The lowering's contract: a Thermite `inv` lowers to a
-    Verus `invariant` (held at re-entry AND break); if a Thermite program needs a
+    break OR normal exit). The lowering's contract: a Fluffy `inv` lowers to a
+    Verus `invariant` (held at re-entry AND break); if a Fluffy program needs a
     re-entry-only fact (true on continue, broken at break) that is a FUTURE
     `invariant_except_break` need (OQ-5) — the v0.1 corpus break-loop holds all
     its `inv`s at the break point, so the plain `invariant` suffices and a loop
@@ -279,20 +279,20 @@ they are the lowering contract the builder reproduces, not guesses.
 
 ## Architecture
 
-The component is `thermite-lower/src/lower.rs`: a recursive emitter over the
-`thermite-syntax` AST producing a Verus source `String`, plus the `LowerError`
-enum. It is downstream of `thermite-spec::validate` (a contract that fails
+The component is `fluffy-lower/src/lower.rs`: a recursive emitter over the
+`fluffy-syntax` AST producing a Verus source `String`, plus the `LowerError`
+enum. It is downstream of `fluffy-spec::validate` (a contract that fails
 validation never reaches the lowerer — `.design/spec/spectherm-combinators.md`
 "boundary role"). Symbol anchors: `struct FnItem` / `struct SpecFnItem` /
 `struct Contract` / `struct LoopNode` / `enum Expr` / `enum Type` in
-`thermite-syntax/src/ast.rs`; `static REGISTRY` / `fn lookup` in
-`thermite-spec/src/combinators.rs`.
+`fluffy-syntax/src/ast.rs`; `static REGISTRY` / `fn lookup` in
+`fluffy-spec/src/combinators.rs`.
 
 ### Two lowering contexts: exec vs. spec
 
 Verus distinguishes **exec** code (function bodies) from **spec** code
 (`requires`/`ensures`/`invariant`/`decreases` and `spec fn` bodies). The same
-Thermite expression lowers differently by context — this is the central finding
+Fluffy expression lowers differently by context — this is the central finding
 of authoring against the real binary:
 
 - A `&[T]` slice in **exec** position is plain Rust `&[u32]`; in **spec**
@@ -323,7 +323,7 @@ with `decreases LOWER_SPEC(dec)` and a `Seq`-typed slice parameter (REQ-5).
 
 ### Type mapping (REQ-2)
 
-| Thermite `Type` | Verus/Rust |
+| Fluffy `Type` | Verus/Rust |
 |---|---|
 | `Prim(U32)` / `U64` / `Usize` / `Bool` | `u32` / `u64` / `usize` / `bool` |
 | `Unit` | `()` |
@@ -371,8 +371,8 @@ was established by running the real `verus 0.2026.05.24` binary (Verification):
 
   This is the load-bearing finding: after a `break`, the loop GUARD is NOT known
   false (break can exit mid-guard-true), so post-loop reasoning is the loop
-  `ensures`, NOT `invariant ∧ ¬guard`. The lowering maps a Thermite `inv` to a
-  plain Verus `invariant` (so it must hold at break too); a Thermite `ens`
+  `ensures`, NOT `invariant ∧ ¬guard`. The lowering maps a Fluffy `inv` to a
+  plain Verus `invariant` (so it must hold at break too); a Fluffy `ens`
   (function postcondition) is what the post-loop code must establish — for a
   break-bearing loop the relevant facts thread onto the loop `ensures`. The v0.1
   corpus break-loops hold all their `inv`s at the break point (so plain
@@ -572,7 +572,7 @@ input (R-CODE-5, §5.3).
 
 ## Verification
 
-`cargo test -p thermite-lower` over `tests/golden/lower/` (this route's
+`cargo test -p fluffy-lower` over `tests/golden/lower/` (this route's
 `reference` in `tooling/spec-routes.toml`):
 
 - **AC-1/AC-2:** lower the parsed corpus programs and `assert_eq!` the emitted
@@ -641,9 +641,9 @@ NOTE (the load-bearing finding): writing `found == false` as a PLAIN `invariant`
 (not `invariant_except_break`) FAILS — `error: loop invariant not satisfied …
 at this loop exit` — because a plain `invariant` must also hold at the `break`,
 and `found` is `true` there. This is exactly why (c) above distinguishes
-`invariant` / `invariant_except_break` / `ensures`. The lowering's Thermite-`inv`
+`invariant` / `invariant_except_break` / `ensures`. The lowering's Fluffy-`inv`
 → Verus-`invariant` mapping is sound for the v0.1 corpus (whose `inv`s hold at
-break); a re-entry-only Thermite invariant would need the
+break); a re-entry-only Fluffy invariant would need the
 `invariant_except_break` lowering (OQ-5).
 
 **(5) `fx diverge` loop with `break` AND `continue`, no `decreases` → verifies
@@ -677,9 +677,9 @@ break-exit `invariant`/`invariant_except_break`/`ensures` distinction (4) are th
 crux — they prove break/continue cannot launder the invariant or termination
 (R-DEFER-9), and that the diverge cap (5) is honest and diverge-only (6).
 
-Gauntlet (R-DEFER-6): `cargo test -p thermite-lower`,
-`cargo clippy -p thermite-lower --all-targets -- -D warnings`,
-`cargo fmt --check`. Because this route touches `thermite-lower`, the conformance
+Gauntlet (R-DEFER-6): `cargo test -p fluffy-lower`,
+`cargo clippy -p fluffy-lower --all-targets -- -D warnings`,
+`cargo fmt --check`. Because this route touches `fluffy-lower`, the conformance
 expectation (the golden Verus passing `verus`) is part of the gate.
 
 **The `tests/golden/lower/` goldens do NOT exist yet** (GREENFIELD). The two
@@ -692,17 +692,17 @@ break/continue golden(s) are hand-authored from the six probes above.
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (file frame + signature lowering) | SHIPPED | `lower` in `lower.rs` emits the `use vstd::prelude::*; verus! { .. } fn main() {}` frame; `lower_fn`/`lower_spec_fn` build `-> (result: T)`, `requires`/`ensures`, `decreases`; consumer `thermite_lower::lower`; verified by `lower_conformance::sum_emitted_verifies` (`verus`: 5 verified, 0 errors). |
+| REQ-1 (file frame + signature lowering) | SHIPPED | `lower` in `lower.rs` emits the `use vstd::prelude::*; verus! { .. } fn main() {}` frame; `lower_fn`/`lower_spec_fn` build `-> (result: T)`, `requires`/`ensures`, `decreases`; consumer `fluffy_lower::lower`; verified by `lower_conformance::sum_emitted_verifies` (`verus`: 5 verified, 0 errors). |
 | REQ-2 (type lowering) | SHIPPED | `lower_type` in `lower.rs`; consumer `lower_fn`/`emit_params`; asserted by `lower_conformance::corpus_node_substrings`. |
 | REQ-3 (expression lowering) | SHIPPED | `lower_expr` (exec) + `precedence`/`lower_binary_operand` (grouping); consumer `lower_block_with_fn_aids`; verified by both corpus programs. |
 | REQ-4 (statement + loop lowering) | SHIPPED | `lower_stmt`/`lower_loop` emit every `inv`→`invariant` + `dec`→`decreases`; `while`/`loop` preserved; consumer `lower_fn_body`. |
 | REQ-5 (spec-context `Seq` lowering) | SHIPPED | `lower_expr` w/ `Ctx::Spec` + `lower_spec_arg`/`lower_index` (`xs@`/`subrange`/`@[i as int]`); `spec_sum` Seq recursion via `seq_fold_body`; verified by `sum_emitted_verifies`. |
-| REQ-6 (combinator Verus(L3) defs + triggers) | SHIPPED | `CombinatorSig.verus_l3` in `thermite-spec/src/combinators.rs` (all 8 frozen forms); consumer `emit_combinator_defs` in `lower.rs` (closes OQ-2, R-DEFER-1); verified by `combinator_forms_compile_under_verus` (`verus`: 2 verified, 0 errors incl. non-vacuity). |
-| REQ-7 (proof-aid emission) | SHIPPED | shape-keyed templates in `lower.rs`: `push_lemma_for` (a), `lift_immutable_preconds` (b), `accumulator_aid`/`match_acc_invariant` (c), `extensionality_at_exit` (d), `complementary_coverage_split` (e), `req_bounded_mul_asserts` (f, #196 — the var*var overflow discharge: a `Binary{Mul}` of non-literal operands whose every variable carries a `v <= CONST`/`v < CONST` req conjunct gets ONE `assert((EXPR) <= BOUND) by(nonlinear_arith) requires <those conjuncts>;` placed at its ENCLOSING block's start — fn-body via `render_mul_proof_block` in `lower_fn_body`, in-loop via the same call in `lower_loop`, since a body-start fact does not flow past a loop head; the emitted `requires` are EXACTLY req conjuncts (no invented bound) and the assert can only FAIL → sound, R-DEFER-9; a product over a non-param / mutated-local / unbounded operand is SKIPPED so the obligation stands honestly — `req_expr_upper_bound`/`block_rebinds`); NO per-program hardcoding; both corpus programs verify; #196 GROUNDED live: `sq` (`req n <= 30 ens result == n * n`) → L3, 3-var chain `a*b*c` → L3, in-loop `n*n` → L3, unbounded `n*m` → honest fail, `lo + (hi-lo)/2` non-mul → no aid (`thermite-lower/tests/req_bounded_mul_aid.rs` 6/6, `forge/tests/req_bounded_mul_conformance.rs` 2/2). |
+| REQ-6 (combinator Verus(L3) defs + triggers) | SHIPPED | `CombinatorSig.verus_l3` in `fluffy-spec/src/combinators.rs` (all 8 frozen forms); consumer `emit_combinator_defs` in `lower.rs` (closes OQ-2, R-DEFER-1); verified by `combinator_forms_compile_under_verus` (`verus`: 2 verified, 0 errors incl. non-vacuity). |
+| REQ-7 (proof-aid emission) | SHIPPED | shape-keyed templates in `lower.rs`: `push_lemma_for` (a), `lift_immutable_preconds` (b), `accumulator_aid`/`match_acc_invariant` (c), `extensionality_at_exit` (d), `complementary_coverage_split` (e), `req_bounded_mul_asserts` (f, #196 — the var*var overflow discharge: a `Binary{Mul}` of non-literal operands whose every variable carries a `v <= CONST`/`v < CONST` req conjunct gets ONE `assert((EXPR) <= BOUND) by(nonlinear_arith) requires <those conjuncts>;` placed at its ENCLOSING block's start — fn-body via `render_mul_proof_block` in `lower_fn_body`, in-loop via the same call in `lower_loop`, since a body-start fact does not flow past a loop head; the emitted `requires` are EXACTLY req conjuncts (no invented bound) and the assert can only FAIL → sound, R-DEFER-9; a product over a non-param / mutated-local / unbounded operand is SKIPPED so the obligation stands honestly — `req_expr_upper_bound`/`block_rebinds`); NO per-program hardcoding; both corpus programs verify; #196 GROUNDED live: `sq` (`req n <= 30 ens result == n * n`) → L3, 3-var chain `a*b*c` → L3, in-loop `n*n` → L3, unbounded `n*m` → honest fail, `lo + (hi-lo)/2` non-mul → no aid (`fluffy-lower/tests/req_bounded_mul_aid.rs` 6/6, `forge/tests/req_bounded_mul_conformance.rs` 2/2). |
 | REQ-8 (golden-file contract — VERIFY) | SHIPPED | `lower_conformance.rs` runs the real `verus` binary on emitted output (`sum`: 5 verified; `binary_search`: 2 verified; 0 errors each) and asserts the emitted contracts equal the corpus contracts (no weakening). Goldens used as the verified reference, not byte-matched (amended REQ-8). |
-| REQ-9 (`LowerError`, no panics) | SHIPPED | `enum LowerError` (span-bearing via `thermite_syntax::lexer::Span`, `Display`) born in `lower.rs`; `lower` returns `Result`; no `unwrap`/`expect`/`panic!` in `src/`; `unknown_combinator_is_err_not_panic` exercises the API surface. |
-| REQ-EQ (equivalent-mutant equivalence-obligation seam, #101) | SHIPPED | `pub fn lower_equivalence_obligation(f, mutant_body) -> Result<String, LowerError>` in `lower.rs` (exported in `lib.rs`) renders `f`'s real body + a survivor mutant's body into a self-contained Verus EQUIVALENCE OBLIGATION (`spec fn equiv_real_<n>` / `spec fn equiv_mut_<n>` + a `proof fn equiv_check_<n> requires <req> ensures mut == real {}`), the seam `.design/forge/equivalent-mutants.md` REQ-1 lowers through. It REUSES the L3 exec lowering — each body's expressions go through the SAME `lower_expr`, and the design-GROUNDED `(expr) as <ret>` bounded-arithmetic coercion is applied (the EXEC coercion a naive spec render omits: `x + 0` over a `u64` return fails `verus` with `expected u64, found int` without it). NOT a hand-emitted Verus duplicate (R-CHAR-3): the obligation is built from `lower_expr` output, not from `Expr` by hand. SCALAR-only (`scalar_obligation_type`, OQ-1 of equivalent-mutants.md): a non-scalar param/return or a non-forced-output body shape returns `LowerError::Unsupported` so the survivor STAYS counted (sound-but-incomplete). Consumer: `check::equivalence_proves_equal` (`forge/src/check.rs`). Verified: `thermite-lower/tests/equivalence_obligation.rs` (real verus — equivalent body VERIFIES `2 verified, 0 errors`; distinguishing `x + 1` / `loose` early-return FAIL `0 verified, 1 errors`; non-scalar → `Unsupported`, no panic). |
-| REQ-12 (`break`/`continue` lowering + verification semantics, #93) | SHIPPED | `lower_stmt` in `lower.rs` emits `Stmt::Break`→`break;` / `Stmt::Continue`→`continue;` (the Verus-native loop-control statements); mirrored by `lower_stmt_l1` in `l1.rs` (the L1 form; `l2.rs` routes through it via `lower_block_exec`/`lower_loop_exec`). The lowering emits the loop annotations UNCHANGED (no `assume`/`external`/dropped `decreases` — R-DEFER-9) and Verus enforces the GROUNDED obligations. Consumer: `lower` (via `lower_block_with_fn_aids`/`lower_loop`). The `Stmt` ripple closed across `address.rs` (leaf), `effects.rs` (no effect), `validator.rs` (no cage), `mutation.rs` (no mutant — OQ-4), `vacuity.rs`/`closure.rs`/`review.rs`/`check.rs` (leaf walks), `thermite-skill/src/generate.rs` (the loop-control prose) — NO `_`/panic fallthrough. Verified (real `verus`, `forge/tests/break_continue_conformance.rs`, 8/8): continue preserving invariant+decreases → L3 (`continue_preserving_invariant_and_decreases_certifies_l3`); invariant-breaking continue → L0 (`continue_breaking_invariant_is_l0`); non-decreasing continue → L0 (`continue_not_decreasing_measure_is_l0`); break early-exit (post-loop fact from the plain `invariant` held at break — OQ-5 policy (ii)) → L3 (`break_early_exit_certifies_l3`); `fx diverge` loop with break AND continue (no `decreases`) → invariants verify, capped L1 by #88 (`diverge_loop_with_break_and_continue_caps_at_l1`); the in-loop structural rule (`break;`/`continue;` outside a loop → `SyntaxError`) is enforced in `parser.rs` (`break_or_continue_outside_a_loop_is_a_structured_error_not_a_panic`). NO regression — `sum`/`binary_search` STILL L3 (`corpus_loops_without_break_or_continue_still_certify_l3`). |
+| REQ-9 (`LowerError`, no panics) | SHIPPED | `enum LowerError` (span-bearing via `fluffy_syntax::lexer::Span`, `Display`) born in `lower.rs`; `lower` returns `Result`; no `unwrap`/`expect`/`panic!` in `src/`; `unknown_combinator_is_err_not_panic` exercises the API surface. |
+| REQ-EQ (equivalent-mutant equivalence-obligation seam, #101) | SHIPPED | `pub fn lower_equivalence_obligation(f, mutant_body) -> Result<String, LowerError>` in `lower.rs` (exported in `lib.rs`) renders `f`'s real body + a survivor mutant's body into a self-contained Verus EQUIVALENCE OBLIGATION (`spec fn equiv_real_<n>` / `spec fn equiv_mut_<n>` + a `proof fn equiv_check_<n> requires <req> ensures mut == real {}`), the seam `.design/forge/equivalent-mutants.md` REQ-1 lowers through. It REUSES the L3 exec lowering — each body's expressions go through the SAME `lower_expr`, and the design-GROUNDED `(expr) as <ret>` bounded-arithmetic coercion is applied (the EXEC coercion a naive spec render omits: `x + 0` over a `u64` return fails `verus` with `expected u64, found int` without it). NOT a hand-emitted Verus duplicate (R-CHAR-3): the obligation is built from `lower_expr` output, not from `Expr` by hand. SCALAR-only (`scalar_obligation_type`, OQ-1 of equivalent-mutants.md): a non-scalar param/return or a non-forced-output body shape returns `LowerError::Unsupported` so the survivor STAYS counted (sound-but-incomplete). Consumer: `check::equivalence_proves_equal` (`forge/src/check.rs`). Verified: `fluffy-lower/tests/equivalence_obligation.rs` (real verus — equivalent body VERIFIES `2 verified, 0 errors`; distinguishing `x + 1` / `loose` early-return FAIL `0 verified, 1 errors`; non-scalar → `Unsupported`, no panic). |
+| REQ-12 (`break`/`continue` lowering + verification semantics, #93) | SHIPPED | `lower_stmt` in `lower.rs` emits `Stmt::Break`→`break;` / `Stmt::Continue`→`continue;` (the Verus-native loop-control statements); mirrored by `lower_stmt_l1` in `l1.rs` (the L1 form; `l2.rs` routes through it via `lower_block_exec`/`lower_loop_exec`). The lowering emits the loop annotations UNCHANGED (no `assume`/`external`/dropped `decreases` — R-DEFER-9) and Verus enforces the GROUNDED obligations. Consumer: `lower` (via `lower_block_with_fn_aids`/`lower_loop`). The `Stmt` ripple closed across `address.rs` (leaf), `effects.rs` (no effect), `validator.rs` (no cage), `mutation.rs` (no mutant — OQ-4), `vacuity.rs`/`closure.rs`/`review.rs`/`check.rs` (leaf walks), `fluffy-skill/src/generate.rs` (the loop-control prose) — NO `_`/panic fallthrough. Verified (real `verus`, `forge/tests/break_continue_conformance.rs`, 8/8): continue preserving invariant+decreases → L3 (`continue_preserving_invariant_and_decreases_certifies_l3`); invariant-breaking continue → L0 (`continue_breaking_invariant_is_l0`); non-decreasing continue → L0 (`continue_not_decreasing_measure_is_l0`); break early-exit (post-loop fact from the plain `invariant` held at break — OQ-5 policy (ii)) → L3 (`break_early_exit_certifies_l3`); `fx diverge` loop with break AND continue (no `decreases`) → invariants verify, capped L1 by #88 (`diverge_loop_with_break_and_continue_caps_at_l1`); the in-loop structural rule (`break;`/`continue;` outside a loop → `SyntaxError`) is enforced in `parser.rs` (`break_or_continue_outside_a_loop_is_a_structured_error_not_a_panic`). NO regression — `sum`/`binary_search` STILL L3 (`corpus_loops_without_break_or_continue_still_certify_l3`). |
 
 ## Open questions (for the orchestrator before the builder runs)
 
@@ -742,14 +742,14 @@ break/continue golden(s) are hand-authored from the six probes above.
   Not a blocker.
 
 - **OQ-5 (`invariant_except_break` lowering, #93 — least-confident):** REQ-12 (c)
-  pins that the v0.1 corpus break-loops hold all their Thermite `inv`s at the
-  break point, so a Thermite `inv` lowers to a plain Verus `invariant` (which
+  pins that the v0.1 corpus break-loops hold all their Fluffy `inv`s at the
+  break point, so a Fluffy `inv` lowers to a plain Verus `invariant` (which
   Verus checks at break too) and the post-break fact threads onto the loop
-  `ensures`. A Thermite program whose `inv` is true at re-entry but FALSE at break
-  would need the `invariant_except_break` lowering — and Thermite has no surface
+  `ensures`. A Fluffy program whose `inv` is true at re-entry but FALSE at break
+  would need the `invariant_except_break` lowering — and Fluffy has no surface
   syntax to distinguish "re-entry-only" from "always" invariants today. This is
   the LEAST-CONFIDENT part of #93: the GROUNDED break probe (4) needed
-  `invariant_except_break` + a loop `ensures`, neither of which the Thermite
+  `invariant_except_break` + a loop `ensures`, neither of which the Fluffy
   surface currently spells. The builder must decide whether (i) the lowering
   INFERS which `inv`s are re-entry-only (hard — needs a break-reachability +
   fact-survival analysis), or (ii) v0.1 requires every `inv` to hold at break

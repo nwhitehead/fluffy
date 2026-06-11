@@ -2,7 +2,7 @@
 //! `os::<name>` wrappers the design ENUMERATES do not LINK + RUN.
 //!
 //! Authority: `.design/basis/08-runnable-effect-link.md`
-//!   - REQ-1: "`thermite-stdlib/src/effect/{read,write,time}.rs` provide a real
+//!   - REQ-1: "`fluffy-stdlib/src/effect/{read,write,time}.rs` provide a real
 //!     Rust syscall wrapper `fn` for each v1 `os::<name>` target: … `os::read_line`
 //!     (… the latter over Stage 7 `String`), `os::write`/`os::print`
 //!     (`std::io::stdout().write_all`, Stage 7 `String` arg). Each wrapper's
@@ -16,11 +16,11 @@
 //!
 //! THE DIVERGENCE: `forge/src/effect_wrappers.rs` `WRAPPERS` emits the
 //! `os::write`/`os::print`/`os::read_line` bodies referencing `super::TString`,
-//! and `thermite_lower::lower_l1` lowers a `String`-typed boundary fn's signature
-//! to the bare type name `TString` (`thermite-lower/src/l1.rs` `lower_type` arm
+//! and `fluffy_lower::lower_l1` lowers a `String`-typed boundary fn's signature
+//! to the bare type name `TString` (`fluffy-lower/src/l1.rs` `lower_type` arm
 //! `Type::String => Ok("TString")`). But neither `emit_mod_os` nor `lower_l1`
 //! EMITS a `struct TString` definition into the BUILD-emitted crate (the `TString`
-//! struct lives only in the L3/Verus lowering, `thermite-lower/src/lower.rs`). So
+//! struct lives only in the L3/Verus lowering, `fluffy-lower/src/lower.rs`). So
 //! `forge build` of ANY program using `os::write`/`os::print`/`os::read_line`
 //! `rustc`-FAILS `error[E0425]: cannot find type \`TString\``.
 //!

@@ -4,14 +4,14 @@ tier: 3-component
 status: draft
 governs: forge/src/closure.rs
 thesis-refs:
-  - thermite-design.md §9
-  - thermite-design.md §6
-  - thermite-design.md §8
+  - fluffy-design.md §9
+  - fluffy-design.md §6
+  - fluffy-design.md §8
 -->
 
 ## Summary
 
-`thermite-design.md` §9 promises: "Pure-Thermite transitive closures can be
+`fluffy-design.md` §9 promises: "Pure-Fluffy transitive closures can be
 certified **end-to-end**; the manifest distinguishes 'verified to the boundary'
 from 'verified, period.'" This component computes, for each `fn` in a file, its
 **transitive call closure** within the file and classifies the function's
@@ -60,7 +60,7 @@ For each `Item::Fn` `f` in a file, compute the **transitive call closure**
 `closure(f)`: the set of in-file functions `f` calls, transitively. Then:
 
 - **END-TO-END** ("verified, period"): `f` AND every function in `closure(f)` is
-  pure-Thermite — there is **no** `#[boundary]` fn and **no** `#[slag]` fn
+  pure-Fluffy — there is **no** `#[boundary]` fn and **no** `#[slag]` fn
   anywhere in the closure. Every link is a proved (or `spec fn` / combinator)
   body. The whole-program guarantee rests only on the toolchain.
 - **TO-THE-BOUNDARY** ("verified to the boundary"): `closure(f)` transitively
@@ -79,7 +79,7 @@ verification driver, `.design/forge/check.md`).
 
 ### The call graph (what is PURE, what is a CROSSING)
 
-- **Nodes** are the file's `Item::Fn` and `Item::SpecFn` (`thermite-syntax`
+- **Nodes** are the file's `Item::Fn` and `Item::SpecFn` (`fluffy-syntax`
   `enum Item in ast.rs`).
 - **Edges** come from walking each `fn` body's expressions for call forms:
   `Expr::Call { callee, .. }` and `Expr::MethodCall { name, .. }` (`enum Expr in
@@ -88,10 +88,10 @@ verification driver, `.design/forge/check.md`).
 - **Callee resolution** resolves a call to an in-file node by name (the leading
   `Path` segment for `Expr::Call`, the method `name` for `Expr::MethodCall`):
   - resolves to an in-file `Item::SpecFn` → **PURE** (a `spec fn` is total,
-    terminating, body-Thermite-verified; §4.2 — it is never a crossing, even when
+    terminating, body-Fluffy-verified; §4.2 — it is never a crossing, even when
     transitively self-recursive like `spec_sum`);
   - resolves to a registry combinator (`forall_in`, `sorted`, …; the
-    `thermite-spec` combinator set, §4.2) → **PURE** (frozen-trigger library, a
+    `fluffy-spec` combinator set, §4.2) → **PURE** (frozen-trigger library, a
     proved definition, never a crossing);
   - resolves to an in-file `Item::Fn` `g` → recurse: `g` is a CROSSING iff `g` is
     `#[boundary]`/`#[slag]`, else inherit `g`'s closure classification;
@@ -129,20 +129,20 @@ The assurance scope is **orthogonal** to the assurance `Level` (L0–L3) and to 
 
 - `Level` answers "how strongly is THIS fn's own contract established?" (L3 SMT
   proof, L2 bounded, L1 runtime). A TO-THE-BOUNDARY fn can be `Level::L3`: a pure-
-  Thermite `g` that calls a `#[boundary]` `f` is itself SMT-proved (L3) *against
+  Fluffy `g` that calls a `#[boundary]` `f` is itself SMT-proved (L3) *against
   f's contract* — its own body is fully verified — yet its whole-program closure
   reaches a foreign body, so its scope is TO-THE-BOUNDARY (`via: f`). The `via`
   fn `f` is itself `Level::L1` + `boundary: true`. Scope and level are reported
   together, never merged (OQ-3).
 - A `#[boundary]`/`#[slag]` fn is trivially TO-THE-BOUNDARY (it IS the crossing;
   `via` is itself).
-- A pure-Thermite leaf or a fn whose entire closure is pure is END-TO-END.
+- A pure-Fluffy leaf or a fn whose entire closure is pure is END-TO-END.
 
 ## Architecture
 
 The analysis is a new pure module, expected at `forge/src/closure.rs` (the route
 the orchestrator must add — see Verification). It depends ONLY on the parsed
-`Program` (`thermite-syntax`) plus the per-fn certificate collection
+`Program` (`fluffy-syntax`) plus the per-fn certificate collection
 (`manifest.rs`): it owns NO prover invocation and changes NO verdict — it LAYERS
 a structural classification on top of the verdicts `check::check_file` already
 produced (the §9 composition rule made operational).
@@ -150,7 +150,7 @@ produced (the §9 composition rule made operational).
 Data flow (the §9 distinction, end to end):
 
 ```text
-parsed Program (thermite-syntax: Item::{Fn,SpecFn}, Expr::{Call,MethodCall})
+parsed Program (fluffy-syntax: Item::{Fn,SpecFn}, Expr::{Call,MethodCall})
       │
       ▼
 build call graph  (resolve callees: spec fn / combinator = PURE; #[boundary]/#[slag] fn = CROSSING)
@@ -179,7 +179,7 @@ in-file `#[boundary]`/`#[slag]` *node*, not its foreign target.
   walking `Expr::Call`/`Expr::MethodCall` and resolving callees to in-file
   `Item::Fn`/`Item::SpecFn`. A `spec fn` and a registry combinator are PURE
   (never a crossing). The walk is cycle-safe (a visited set; recursion does not
-  loop) and bounded (each node touched once). Derived from `thermite-design.md`
+  loop) and bounded (each node touched once). Derived from `fluffy-design.md`
   §9 (the composition rule) + §4.2 (`spec fn`s are total/terminating).
 - **REQ-2 (END-TO-END vs TO-THE-BOUNDARY rule):** classify a fn END-TO-END iff
   its closure contains NO `#[boundary]` and NO `#[slag]` fn; otherwise
@@ -218,7 +218,7 @@ this doc; R-CHAR-3, expected values hand-derived, never copied from forge output
   only `spec_sum` (a `spec fn`) — and `binary_search`
   (`conformance/binary_search.th`) — which calls only combinators (`sorted`,
   `forall_in`, `forall_below`, `forall_from`) — classify **END-TO-END**. (These
-  are the existing golden pure-Thermite programs; their closures contain no
+  are the existing golden pure-Fluffy programs; their closures contain no
   crossing.)
 - **AC-2 (direct boundary caller → TO-THE-BOUNDARY via that boundary):** a fixture
   with a `#[boundary("ext::foreign_id")]` fn `foreign_id` (the
@@ -226,19 +226,19 @@ this doc; R-CHAR-3, expected values hand-derived, never copied from forge output
   caller `g` whose body calls `foreign_id` → `g` classifies **TO-THE-BOUNDARY**
   with `via: "foreign_id"`; `foreign_id` itself is TO-THE-BOUNDARY (the crossing).
 - **AC-3 (transitive boundary chain → TO-THE-BOUNDARY):** a fixture `h → g →
-  foreign_id` (a pure-Thermite `h` calling a pure-Thermite `g` calling the
+  foreign_id` (a pure-Fluffy `h` calling a pure-Fluffy `g` calling the
   boundary `foreign_id`) → `h` classifies **TO-THE-BOUNDARY** (the closure reaches
   `foreign_id` transitively through `g`); so does `g`.
 - **AC-4 (slag in closure → TO-THE-BOUNDARY):** a fixture with a `#[slag(...)]`
   fn `s` and a caller `g` calling `s` → `g` classifies **TO-THE-BOUNDARY** via the
   slag crossing (a `#[slag]` body is unproven, identical to a boundary for the
   whole-program guarantee; §9 "TCB = slag ∪ boundary ∪ toolchain").
-- **AC-5 (project END-TO-END iff all fns are):** a project of only pure-Thermite
+- **AC-5 (project END-TO-END iff all fns are):** a project of only pure-Fluffy
   fns → project **END-TO-END**; a project with ANY TO-THE-BOUNDARY fn → project
   **TO-THE-BOUNDARY**, listing the crossing(s).
 - **AC-6 (cycle-safe):** a fixture with recursion (a fn calling itself, or mutual
   recursion `a → b → a`) classifies WITHOUT non-termination, and a recursive pure-
-  Thermite fn is END-TO-END (recursion is not a crossing).
+  Fluffy fn is END-TO-END (recursion is not a crossing).
 - **AC-7 (determinism):** classifying the same program twice yields byte-identical
   scopes and an identical `via` choice (R-CODE-5).
 

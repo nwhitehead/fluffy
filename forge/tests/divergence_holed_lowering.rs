@@ -10,7 +10,7 @@
 //! - `forge build` on `fn main() { ?0  42 }` emits an rlib ARTIFACT and a build
 //!   manifest claiming `assurance: L1 (built, runtime-checked)` — exit 0, no
 //!   mention of the open hole anywhere (`build::build_file` runs only the
-//!   parse/validate/check_effects front, then `thermite_lower::lower_l1`; it
+//!   parse/validate/check_effects front, then `fluffy_lower::lower_l1`; it
 //!   never consults `f.holes`).
 //! - `forge body-tv` on the same file reports `main — faithful, 0 skipped`
 //!   (exit 0): it lowers the hole-stripped body, ships it to verus, and certifies
@@ -23,11 +23,11 @@
 //!   L0-equivalent until every hole is filled"; REQ-5: a holed item gets "no
 //!   lowering, no verus"; Architecture: "A holed item NEVER reaches verus; it
 //!   can never accidentally certify."
-//! - `thermite_syntax::ast` (`FnItem.holes` doc, shipped by bf29a050): "a holed
+//! - `fluffy_syntax::ast` (`FnItem.holes` doc, shipped by bf29a050): "a holed
 //!   item never lowers — it short-circuits at `forge check`" — the very
 //!   invariant that justified omitting a `Stmt::Hole` variant. If ANY path
 //!   lowers a holed body, the omission turns the hole into silent deletion.
-//! - `thermite-design.md` §6: "The certificate attached to a build artifact …
+//! - `fluffy-design.md` §6: "The certificate attached to a build artifact …
 //!   This manifest **is** the deliverable's trust statement" — a build manifest
 //!   asserting L1 for a fn whose body still carries an open goal is a false
 //!   trust statement; §5.1: an open hole is an OPEN GOAL the oracle must
@@ -48,7 +48,7 @@ fn forge_bin() -> PathBuf {
 /// A minimal holed exec fn: the body carries the open hole `?0` ahead of a tail
 /// expr, so the hole-stripped statement stream is a VALID body (`{ 42 }`) — the
 /// exact shape in which the hole vanishes silently. Hand-derived from
-/// `thermite-design.md` §5.1 `body = hole ?0` (R-CHAR-3).
+/// `fluffy-design.md` §5.1 `body = hole ?0` (R-CHAR-3).
 const HOLED_MAIN: &str =
     "fn main() -> u64\n  req true\n  ens result == 42\n  fx  pure\n{\n  ?0\n  42\n}\n";
 
@@ -107,7 +107,7 @@ fn rustc_present() -> bool {
 /// emits an artifact + an `assurance: L1` manifest line — the open hole `?0`
 /// silently vanishes into a valid compiled program.
 /// Authority: `.design/forge/goal-repl.md` REQ-4/REQ-5 ("no lowering, no verus";
-/// "L0-equivalent until every hole is filled") + `thermite-design.md` §6 (the
+/// "L0-equivalent until every hole is filled") + `fluffy-design.md` §6 (the
 /// build manifest is the trust statement). Expected: build REFUSES a holed item
 /// with a structured error naming the open hole — non-success exit, no artifact.
 #[test]
@@ -121,7 +121,7 @@ fn divergence_build_emits_artifact_for_holed_item() {
     let _ = std::fs::remove_file(&file);
     assert!(
         !ok,
-        "AUTHORITY (goal-repl.md REQ-4/REQ-5; thermite-design.md §6): a holed item is \
+        "AUTHORITY (goal-repl.md REQ-4/REQ-5; fluffy-design.md §6): a holed item is \
          L0-equivalent and never lowers — `forge build` must REFUSE it, not emit an \
          artifact with the hole silently dropped.\nstdout:\n{stdout}\nstderr:\n{stderr}"
     );

@@ -3,21 +3,21 @@
 <!--
 tier: 3-component
 status: draft
-governs: thermite-tv/src/{ref_encode,exec_encode,exec_stmt_encode}.rs  (the Rust reference
-         encoders that RUN in the per-run TV) ↔ lean/Thermite/{RefEncode,Exec}.lean +
-         lean/Thermite/Exec/Stmt.lean (the kernel-proven Lean MODELS of those encoders).
+governs: fluffy-tv/src/{ref_encode,exec_encode,exec_stmt_encode}.rs  (the Rust reference
+         encoders that RUN in the per-run TV) ↔ lean/Fluffy/{RefEncode,Exec}.lean +
+         lean/Fluffy/Exec/Stmt.lean (the kernel-proven Lean MODELS of those encoders).
          This doc is NOT production code; it is the audit artifact closing the named
          trust-base residual "Rust↔Lean correspondence" at the audit-by-inspection tier.
          No .rs is added or changed by this doc.
 thesis-refs:
-  - thermite-design.md §1 (trust relocated: "a skeptical third party can audit in minutes")
-  - thermite-design.md §4.1 (contract-first functions; the exec body they guard)
-  - thermite-design.md §4.2 (the frozen SpecTherm combinator cage + frozen triggers)
-  - thermite-design.md §6 (the verification ladder; L3 SMT; L1 bounded exec values)
-  - thermite-design.md §13 (roadmap; verified-microkernel convergence)
+  - fluffy-design.md §1 (trust relocated: "a skeptical third party can audit in minutes")
+  - fluffy-design.md §4.1 (contract-first functions; the exec body they guard)
+  - fluffy-design.md §4.2 (the frozen SpecTherm combinator cage + frozen triggers)
+  - fluffy-design.md §6 (the verification ladder; L3 SMT; L1 bounded exec values)
+  - fluffy-design.md §13 (roadmap; verified-microkernel convergence)
 anchor-doc:
-  - .design/verified/thermite-semantics.md REQ-6 (the Rust↔Lean encoder-correspondence
-    residual — "the Rust thermite-tv code matching the Lean-proved algorithm"; this doc
+  - .design/verified/fluffy-semantics.md REQ-6 (the Rust↔Lean encoder-correspondence
+    residual — "the Rust fluffy-tv code matching the Lean-proved algorithm"; this doc
     CLOSES that residual at the inspection tier; the extraction-bridge tier stays a named
     future option, per the reduced-trusted-base table item #3)
 epic: crosslink #169 (lowering-soundness step 3)
@@ -31,9 +31,9 @@ prior-arc:
 ## Summary
 
 The Lean proof spine proves the reference-encoder *algorithm* is denotation-faithful
-(`Thermite.ref_sound`, `Thermite.Exec.exec_ref_sound`, `Thermite.Exec.body_ref_sound`,
-composed in `Thermite.lowering_faithful`). But Lean proves the **Lean** definitions sound;
-that the **Rust** encoders in `thermite-tv/` (which actually run in the per-run TV) implement
+(`Fluffy.ref_sound`, `Fluffy.Exec.exec_ref_sound`, `Fluffy.Exec.body_ref_sound`,
+composed in `Fluffy.lowering_faithful`). But Lean proves the **Lean** definitions sound;
+that the **Rust** encoders in `fluffy-tv/` (which actually run in the per-run TV) implement
 the *same* algorithm is a separate claim, discharged today by inspection. This document makes
 that inspection rigorous and complete: an arm-by-arm map, every row showing the actual Rust
 match arm / format string beside the actual Lean definition arm, plus the Verus-meaning bridge
@@ -52,7 +52,7 @@ The trust reduction this closes:
   {Lean-proven encoder ALGORITHM}      — ref_sound / exec_ref_sound / body_ref_sound
 + {this Rust↔Lean correspondence}      — CORR, by arm-by-arm inspection (THIS DOC)
 + {per-run Z3 translation validation}  — h_tv: ⟦lower(P)⟧ = ⟦ref(P)⟧, discharged per run
-= the UNIVERSAL faithfulness               per Thermite.lowering_faithful (Faithfulness.lean)
+= the UNIVERSAL faithfulness               per Fluffy.lowering_faithful (Faithfulness.lean)
 ```
 
 `lowering_faithful` consumes a `FnTvWitness` whose `h_tv_contract`/`h_tv_body` are the Z3
@@ -65,13 +65,13 @@ composes that with the Lean (T1) theorems. CORR is the bridge that lets the theo
 
 | Artifact | File | Pinned commit |
 |---|---|---|
-| Rust contract encoder | `thermite-tv/src/ref_encode.rs` | `579d3d48` (#150) |
-| Rust exec-expr encoder | `thermite-tv/src/exec_encode.rs` | `43c9a6c8` (#152) |
-| Rust exec-body encoder | `thermite-tv/src/exec_stmt_encode.rs` | `21b84c5f` (#163; was `b9dc22fd` #165 — re-pinned, see Amendment 2026-06-10) |
-| Frozen combinator registry | `thermite-spec/src/combinators.rs` | `c0b1d8a3` (#4) |
-| Lean spine | `lean/Thermite/**` | `65504c18` (was `7c85da25` — re-pinned, see Amendment 2026-06-10) |
+| Rust contract encoder | `fluffy-tv/src/ref_encode.rs` | `579d3d48` (#150) |
+| Rust exec-expr encoder | `fluffy-tv/src/exec_encode.rs` | `43c9a6c8` (#152) |
+| Rust exec-body encoder | `fluffy-tv/src/exec_stmt_encode.rs` | `21b84c5f` (#163; was `b9dc22fd` #165 — re-pinned, see Amendment 2026-06-10) |
+| Frozen combinator registry | `fluffy-spec/src/combinators.rs` | `c0b1d8a3` (#4) |
+| Lean spine | `lean/Fluffy/**` | `65504c18` (was `7c85da25` — re-pinned, see Amendment 2026-06-10) |
 
-Lean toolchain: `leanprover/lean4:v4.29.0` (downgraded from v4.30.0 by the #184 Z3-demotion probe — `lean/lakefile.toml` now `[[require]]`s Lean-SMT + Mathlib; this is OUTSIDE the `lean/Thermite/**` audited-spine scope and the entire audited spine still builds green and `sorry`-free on v4.29.0 — see `.design/verified/z3-demotion.md` and Amendment 2026-06-10).
+Lean toolchain: `leanprover/lean4:v4.29.0` (downgraded from v4.30.0 by the #184 Z3-demotion probe — `lean/lakefile.toml` now `[[require]]`s Lean-SMT + Mathlib; this is OUTSIDE the `lean/Fluffy/**` audited-spine scope and the entire audited spine still builds green and `sorry`-free on v4.29.0 — see `.design/verified/z3-demotion.md` and Amendment 2026-06-10).
 Verified `sorry`-free by inspection: every `sorry` token in the tree is inside a comment, never in
 a proof term (the proofs close by `simp`/`omega`/`decide`/`rfl`/structural induction). The spine's
 axiom footprint is the standard `{propext, Classical.choice, Quot.sound}` (per the #182/#174 commit
@@ -83,21 +83,21 @@ corresponding table section and requires re-audit (see "Drift" below).**
 > correctly fired: two pinned SHAs were stale because the loop-TV work (#163) landed AFTER the
 > arm-by-arm audit. The drift was VERIFIED additive-only against the actual diffs before re-pinning,
 > NOT rubber-stamped:
-> - **`thermite-tv/src/exec_stmt_encode.rs` `b9dc22fd` → `21b84c5f`** — `git diff` shows 396
+> - **`fluffy-tv/src/exec_stmt_encode.rs` `b9dc22fd` → `21b84c5f`** — `git diff` shows 396
 >   insertions, 1 deletion; the single deletion is the `use` line, EXTENDED only
 >   (`{BinOp, Block, Expr, IndexArg, Stmt}` → `{BinOp, Block, Clause, Expr, IndexArg, LoopKind, LoopNode, Stmt}`,
 >   adding `Clause`/`LoopKind`/`LoopNode` for the new loop arms). No AUDITED arm changed:
 >   `thread_stmt`/`body_ref_state`/`encode_block_tail`/`body_ref_state_ensures` (Table 3) are byte-for-byte
 >   the same. The additions are the new loop arms `loop_ref_obligations`/`recognize_v1_loop`.
-> - **`lean/Thermite/**` `7c85da25` → `65504c18`** — `git diff --name-status -- lean/Thermite/` shows
+> - **`lean/Fluffy/**` `7c85da25` → `65504c18`** — `git diff --name-status -- lean/Fluffy/` shows
 >   exactly TWO ADDED files and ZERO modified: `Exec/Loop.lean` (#163, the new `while`-loop semantics
 >   + `while_rule`/`tv_meta_loop`) and `SmtDemo.lean` (#184, the Z3-demotion PoC — this SHA range
 >   straddles both #163 and #184). Every AUDITED spine file — `RefEncode.lean`, `Denote.lean`,
 >   `Exec.lean`, `Exec/Stmt.lean`, `Soundness.lean`, `Faithfulness.lean` — is UNCHANGED, so all of
 >   Tables 1–3 and the cited (T1) theorems (`ref_sound`/`exec_ref_sound`/`body_ref_sound`/`lowering_faithful`)
->   + every negative lemma stand re-audit-free. (The `lean/Thermite.lean` import-aggregator gained two
+>   + every negative lemma stand re-audit-free. (The `lean/Fluffy.lean` import-aggregator gained two
 >   `import` lines and `lean/lakefile.toml`/`lean-toolchain`/`lake-manifest.json` changed for #184 —
->   all OUTSIDE the `lean/Thermite/**` audited scope, all purely additive.)
+>   all OUTSIDE the `lean/Fluffy/**` audited scope, all purely additive.)
 >
 > Verification verdict: **additive-only — the new loop arms `loop_ref_obligations`/`recognize_v1_loop`
 > + the new `Exec/Loop.lean` (and the #184 `SmtDemo.lean`); no audited arm changed.** The arm tables of
@@ -110,7 +110,7 @@ corresponding table section and requires re-audit (see "Drift" below).**
 - **REQ-1 (the arm-by-arm correspondence map)** — for every arm of each Rust reference encoder,
   exhibit the Rust source (the match arm / format string), the corresponding Lean model arm, the
   one-line Verus-meaning bridge, and the pinning Lean theorem (+ negative lemma where one exists).
-  Derived from `thermite-semantics.md` REQ-6 (the correspondence residual). The deliverable IS this
+  Derived from `fluffy-semantics.md` REQ-6 (the correspondence residual). The deliverable IS this
   doc's tables.
 - **REQ-2 (the extraction bridge — the stronger tier)** — a mechanized Lean→Rust extraction (or a
   Rust-side proof) that would make the Rust encoder equal the Lean model by construction rather than
@@ -155,7 +155,7 @@ matches the Lean datum, then checking the bridge line against Verus's precedence
 
 ---
 
-## Table 1 — `thermite-tv/src/ref_encode.rs` ↔ `lean/Thermite/RefEncode.lean`
+## Table 1 — `fluffy-tv/src/ref_encode.rs` ↔ `lean/Fluffy/RefEncode.lean`
 
 ### 1A. The binary-operator map (`binop_str`) ↔ `encOp`/`encLog`/`encArith` + `encode_unary`
 
@@ -250,7 +250,7 @@ Discrepancy D3 (Map membership is a residual; it is not in the Lean `S_C` fragme
 ### 1E. The 8 combinators — `encode_combinator_call`/`encode_combinator_arg`/`encode_pred_arg`/`encode_index_value` ↔ the `comb` arms + `countWhereVal`/`permEq`
 
 The Rust `encode_combinator_call` REUSES the registry name and re-encodes args **per
-`CombinatorSig.arg_kinds`** (the frozen `thermite-spec/src/combinators.rs` `verus_l3` is the shared
+`CombinatorSig.arg_kinds`** (the frozen `fluffy-spec/src/combinators.rs` `verus_l3` is the shared
 ground truth on both Rust and production sides). Lean `refDenote Expr.comb` reproduces each
 combinator's frozen `verus_l3` quantifier body directly.
 
@@ -265,7 +265,7 @@ combinator's frozen `verus_l3` quantifier body directly.
 | `count_where(s,p)` | `if s.len()==0 {0} else {(if p(s[0]){1}else{0})+count_where(s.drop_first(),p)}` | `refIntVal Expr.comb countWhere … => countWhereVal p s`; `countWhereVal (x::xs) = (ite (p x) 1 0) + countWhereVal p xs` | `count_where_*` lemmas; neg: `count_where_wrong_pred_breaks_soundness`, `count_where_off_by_one_breaks_soundness` |
 | `permutation_of(a,b)` | `a.to_multiset() == b.to_multiset()` | `CombName.permutationOf => permEq s s2`; `permEq a b = ∀ x, a.count x = b.count x` | `permutation_*`; neg: `permutation_set_model_breaks_soundness` |
 
-The three **arg-kinds** (the `encode_combinator_arg` dispatch on `thermite_spec::ArgKind`):
+The three **arg-kinds** (the `encode_combinator_arg` dispatch on `fluffy_spec::ArgKind`):
 
 | ArgKind | Rust arm (`encode_combinator_arg`) | Lean threading | Pinned by |
 |---|---|---|---|
@@ -295,11 +295,11 @@ element. The `wrong_combinator_breaks_soundness` (forallIn↔existsIn) and the `
 | Construct | Rust arm | Lean arm | Bridge | Pinned by |
 |---|---|---|---|---|
 | `old(x)` | `encode_call` case (1): `if name == "old" { … Ok(format!("old_{mangled}")) }` | (modelled as a free `var` — `old(x)` binds a distinct obligation param) | the obligation binds `old_x` as a value param | `ref_sound` (var case) |
-| frozen combinator | `encode_call` case (2): `if thermite_spec::lookup(&name).is_some() { encode_combinator_call(..) }` | the `Expr.comb` arms (Table 1E) | dispatched to the registry `verus_l3` | (Table 1E) |
+| frozen combinator | `encode_call` case (2): `if fluffy_spec::lookup(&name).is_some() { encode_combinator_call(..) }` | the `Expr.comb` arms (Table 1E) | dispatched to the registry `verus_l3` | (Table 1E) |
 | named spec-fn call | `encode_call` case (3): `Ok(format!("{name}({})", encoded_args.join(", ")))` (NOT inlined) | `refDenote \| fuel+1, Expr.specCall name args, env => match env.specs name with \| some fn => refDenote fuel fn.body (env.bindParams fn.params (refIntValArgs (fuel+1) args env)) \| none => True` | the call is a Verus `spec fn` call; the body is lowered ONCE as its own `spec fn` | `ref_sound` (specCall case); neg: `specfn_arg_order_breaks_soundness`, `specfn_wrong_resolution_breaks_soundness` |
 | per-arg encoding | `encode_call_arg`: `Closure => encode_pred_arg; other => encode_slice_arg` | `refIntValArgs \| a::rest => refIntVal fuel a env :: refIntValArgs fuel rest env` | each arg re-encoded (slice `@`-view / closure form) | `refIntValArgs_eq` |
 
-The fuel index is the Lean modelling of Verus's well-founded `spec fn` unfolding (every Thermite
+The fuel index is the Lean modelling of Verus's well-founded `spec fn` unfolding (every Fluffy
 spec fn carries a mandatory `dec` measure, §4.2). The Rust encoder does NOT inline (it emits a call),
 so there is no recursion to bound on the Rust side; the fuel models the *meaning* of the resulting
 recursive spec-fn definition. See Bridge Assumption A2.
@@ -333,7 +333,7 @@ for `ref_encode.rs`.
 
 ---
 
-## Table 2 — `thermite-tv/src/exec_encode.rs` ↔ `lean/Thermite/Exec.lean`
+## Table 2 — `fluffy-tv/src/exec_encode.rs` ↔ `lean/Fluffy/Exec.lean`
 
 The exec encoder is the BOUNDED dual: values carry the overflow obligation, casts WRAP at the target
 width, and there is **no `nat`/`int`**. Lean `execDenote` is `Option ExecVal` (`none` = obligation
@@ -385,7 +385,7 @@ sides agreeing.
 
 ---
 
-## Table 3 — `thermite-tv/src/exec_stmt_encode.rs` ↔ `lean/Thermite/Exec/Stmt.lean`
+## Table 3 — `fluffy-tv/src/exec_stmt_encode.rs` ↔ `lean/Fluffy/Exec/Stmt.lean`
 
 `body_ref_state` threads a big-step environment (`Env = BTreeMap<String, Expr>`); Lean
 `bodyRefState`/`refStmt` thread a `State` (an `ExecEnv` + an in-scope `scope` set). `body_ref_sound`
@@ -453,9 +453,9 @@ on any tier that targets Verus text).
   and the #146 `is_lt_leading` outer-paren is a PARSE-SAFETY guarantee (without it `x as u32 < 33`
   mis-parses as a generic-arg list — a hard parse error in Verus and Rust, surfaced as
   "Unverifiable," not a wrong meaning). A1 is the irreducible Verus-target trust (the
-  `thermite-semantics.md` reduced-trusted-base table item #1, the target semantics).
+  `fluffy-semantics.md` reduced-trusted-base table item #1, the target semantics).
 - **A2 (fuel ↔ Verus well-founded unfolding).** The Lean fuel index on `refDenote`/`refIntVal`
-  /`denote` models Verus's well-founded `spec fn` unfolding (every Thermite spec fn carries a
+  /`denote` models Verus's well-founded `spec fn` unfolding (every Fluffy spec fn carries a
   mandatory `dec` measure, §4.2 ⟹ termination ⟹ a well-founded fixpoint). The Rust `encode_call`
   case (3) does not inline (it emits a call), so the fuel models the MEANING of the recursive spec-fn
   definition, not a Rust recursion bound. The soundness is proved for ALL fuel and both sides share
@@ -478,7 +478,7 @@ on any tier that targets Verus text).
   Lean (which works at the AST level). A formatting bug that still parses to the same AST would not be
   caught by Lean — but would be caught by the per-run Z3 TV (which sees the real string) and by the
   golden lowering files.
-- **The production lowerer (`thermite-lower`).** NOT in scope. The whole architecture exists because
+- **The production lowerer (`fluffy-lower`).** NOT in scope. The whole architecture exists because
   the production lowerer is NOT verified — it is checked PER RUN by Z3 TV against the reference
   encoder. This doc audits the REFERENCE encoder ↔ its Lean model; the production lowerer ↔ reference
   link is the Z3 `h_tv` premise (`Faithfulness.lean`), not this inspection.
@@ -486,9 +486,9 @@ on any tier that targets Verus text).
   NOT absorbed into this doc's arm tables.** This doc's Tables 1–3 audit the STRAIGHT-LINE `S_B`
   fragment and remain loop-free; the v1 `while`-loop correspondence is a SEPARATE audit artifact and
   stays under its own authority. As of the #163 loop-TV arc, the Rust loop arm `loop_ref_obligations`
-  (`thermite-tv/src/exec_stmt_encode.rs` @ `21b84c5f`) produces the three per-run reference pieces, and
+  (`fluffy-tv/src/exec_stmt_encode.rs` @ `21b84c5f`) produces the three per-run reference pieces, and
   the Lean side proves the partial-correctness `while_rule` + its TV meta-theorem `tv_meta_loop`
-  (`lean/Thermite/Exec/Loop.lean` @ `65504c18`). The correspondence between the three Rust obligations
+  (`lean/Fluffy/Exec/Loop.lean` @ `65504c18`). The correspondence between the three Rust obligations
   and the Lean `while_rule`/`tv_meta_loop` premises was fidelity-audited in the #163 ACToR arc (the
   loop-TV critic verified the Lean premises match the Rust obligations) and lives under the authority of
   **`.design/verified/loop-tv.md`** — named here as a cross-reference, deliberately NOT silently
@@ -507,12 +507,12 @@ on any tier that targets Verus text).
   Rust-side proof) would make the Rust encoder equal the Lean model BY CONSTRUCTION, discharging A2/A3
   and the inspection entirely. There is no Lean→Rust extraction tooling for this encoder shape today
   (the encoders are hand-written Rust producing Verus strings, not extracted from Lean). The
-  audit-by-inspection tier is the accepted interim per `thermite-semantics.md` REQ-6 / the
+  audit-by-inspection tier is the accepted interim per `fluffy-semantics.md` REQ-6 / the
   reduced-trusted-base table item #3.
 - **Drift.** This doc pins the audited commits (above). Any edit to a pinned encoder file invalidates
   the corresponding table section and requires re-audit. **Recommended future work: a CI guard** that
-  fails when `thermite-tv/src/{ref_encode,exec_encode,exec_stmt_encode}.rs` or
-  `thermite-spec/src/combinators.rs` change without a matching update to the pinned SHAs here (a
+  fails when `fluffy-tv/src/{ref_encode,exec_encode,exec_stmt_encode}.rs` or
+  `fluffy-spec/src/combinators.rs` change without a matching update to the pinned SHAs here (a
   blocker-tracked enhancement, not a v0.1 kernel item).
 
 ## Discrepancies found
@@ -578,7 +578,7 @@ sides are not arm-for-arm identical.
   `body_ref_state_ensures`, i.e. the `result.{i} == {cell}` conjunction the body-refinement emits;
   D6 covers these `ref_encode.rs::encode` CONTRACT-position projection arms.) The Lean `Expr`
   inductive (constructors `intLit/boolLit/var/cmp/logic/neg/arith/cast/seqVar/strVar/idx/subrange/`
-  `seqLen/byteAt/comb/optResVar/match_/is_/specCall`, `lean/Thermite/Ast.lean`) has NO `field` or
+  `seqLen/byteAt/comb/optResVar/match_/is_/specCall`, `lean/Fluffy/Ast.lean`) has NO `field` or
   `tupleProj` constructor, so the Lean `S_C` fragment does not model struct-field / tuple-projection
   access at all. These two arms therefore have NO Lean counterpart and NO (T1) theorem backing —
   exactly like the Map accessor (D3) and the guard-arm path (D4): a Rust-encoder arm covering MORE
@@ -608,16 +608,16 @@ existence of the cited Lean theorems. The Lean spine builds clean and `sorry`-fr
 
 - `lake build` (Lean `v4.29.0` since the #184 probe; the audited spine builds core-only-equivalent) — the spine compiles; `#print axioms lowering_faithful`
   shows `{propext, Classical.choice, Quot.sound}` (standard).
-- The cited (T1) theorems: `Thermite.ref_sound` / `ref_sound_eq` (Soundness.lean),
-  `Thermite.Exec.exec_ref_sound` (Exec.lean), `Thermite.Exec.body_ref_sound` (Exec/Stmt.lean),
-  composed in `Thermite.lowering_faithful` (Faithfulness.lean).
+- The cited (T1) theorems: `Fluffy.ref_sound` / `ref_sound_eq` (Soundness.lean),
+  `Fluffy.Exec.exec_ref_sound` (Exec.lean), `Fluffy.Exec.body_ref_sound` (Exec/Stmt.lean),
+  composed in `Fluffy.lowering_faithful` (Faithfulness.lean).
 - The negative lemmas cited per row are theorems in Soundness.lean / Exec.lean (e.g.
   `eq_le_infidelity_breaks_soundness`, `cast_paren_drop_breaks_soundness`,
   `byteview_misdispatch_breaks_soundness`, `index_argkind_slice_view_breaks_soundness`,
   `match_arm_swap_breaks_soundness`, `is_wrong_variant_breaks_soundness`,
   `specfn_arg_order_breaks_soundness`, `count_where_wrong_pred_breaks_soundness`,
   `permutation_set_model_breaks_soundness`, `nat_coercion_underflow_breaks_soundness`).
-- The Rust encoders' own teeth/unit tests: `thermite-tv/tests/{teeth,exec_teeth,body_teeth}.rs`
+- The Rust encoders' own teeth/unit tests: `fluffy-tv/tests/{teeth,exec_teeth,body_teeth}.rs`
   (F1–F4 / E1–E4 / B1–B4 against real `verus`) and the in-module `#[test]`s pin the Rust output the
   Lean models mirror.
 
@@ -625,5 +625,5 @@ existence of the cited Lean theorems. The Lean spine builds clean and `sorry`-fr
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (the arm-by-arm correspondence map) | SHIPPED | This doc IS the deliverable. Every arm of `ref_contract_pred`/`exec_ref_value`/`body_ref_state` and the 8 combinator `verus_l3` forms is EITHER a row in Tables 1–3 OR an explicitly-listed out-of-Lean-scope residual (the `ref_encode.rs::encode` dispatch is enumerated exhaustively in Table 1H — its `Expr::Field`/`Expr::TupleProj` arms are residual D6, no Lean counterpart). Each row quotes the actual Rust arm (`thermite-tv/src/{ref_encode,exec_encode,exec_stmt_encode}.rs` @ `579d3d48`/`43c9a6c8`/`21b84c5f`; `thermite-spec/src/combinators.rs` @ `c0b1d8a3`) beside the actual Lean arm (`lean/Thermite/{RefEncode,Denote,Exec}.lean` + `Exec/Stmt.lean` @ `65504c18`), the Verus-meaning bridge, and the pinning Lean theorem + negative lemma. Bridge assumptions A1–A3 enumerated; residuals + discrepancies D1–D6 recorded honestly. Closes the `thermite-semantics.md` REQ-6 correspondence residual at the audit-by-inspection tier. |
-| REQ-2 (the extraction bridge — Lean→Rust extraction or a Rust-side proof) | NOT-STARTED | open prereq blocker #185 (this doc's blocker tracks both tiers; the inspection tier is REQ-1 SHIPPED, the extraction tier stays open). Gap: there is no Lean→Rust extraction tooling for this encoder shape — the encoders are hand-written Rust producing Verus STRINGS, not Lean-extracted code, so the inspection (this doc) is the accepted interim per `thermite-semantics.md` REQ-6 / the reduced-trusted-base table item #3. The named stronger closure (extraction or a Rust-side proof making the Rust encoder equal the Lean model by construction) is future work; until then A2/A3 stay inspection-trusted and a CI drift-guard (recommended above) is the cheap interim hardening. |
+| REQ-1 (the arm-by-arm correspondence map) | SHIPPED | This doc IS the deliverable. Every arm of `ref_contract_pred`/`exec_ref_value`/`body_ref_state` and the 8 combinator `verus_l3` forms is EITHER a row in Tables 1–3 OR an explicitly-listed out-of-Lean-scope residual (the `ref_encode.rs::encode` dispatch is enumerated exhaustively in Table 1H — its `Expr::Field`/`Expr::TupleProj` arms are residual D6, no Lean counterpart). Each row quotes the actual Rust arm (`fluffy-tv/src/{ref_encode,exec_encode,exec_stmt_encode}.rs` @ `579d3d48`/`43c9a6c8`/`21b84c5f`; `fluffy-spec/src/combinators.rs` @ `c0b1d8a3`) beside the actual Lean arm (`lean/Fluffy/{RefEncode,Denote,Exec}.lean` + `Exec/Stmt.lean` @ `65504c18`), the Verus-meaning bridge, and the pinning Lean theorem + negative lemma. Bridge assumptions A1–A3 enumerated; residuals + discrepancies D1–D6 recorded honestly. Closes the `fluffy-semantics.md` REQ-6 correspondence residual at the audit-by-inspection tier. |
+| REQ-2 (the extraction bridge — Lean→Rust extraction or a Rust-side proof) | NOT-STARTED | open prereq blocker #185 (this doc's blocker tracks both tiers; the inspection tier is REQ-1 SHIPPED, the extraction tier stays open). Gap: there is no Lean→Rust extraction tooling for this encoder shape — the encoders are hand-written Rust producing Verus STRINGS, not Lean-extracted code, so the inspection (this doc) is the accepted interim per `fluffy-semantics.md` REQ-6 / the reduced-trusted-base table item #3. The named stronger closure (extraction or a Rust-side proof making the Rust encoder equal the Lean model by construction) is future work; until then A2/A3 stay inspection-trusted and a CI drift-guard (recommended above) is the cheap interim hardening. |

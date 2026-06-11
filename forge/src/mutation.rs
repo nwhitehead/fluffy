@@ -1,5 +1,5 @@
 //! `forge/src/mutation.rs` — §7 step 4 of the vacuity battery: mutation scoring
-//! (`thermite-design.md` §7 line 224, "operator flips, off-by-ones, early
+//! (`fluffy-design.md` §7 line 224, "operator flips, off-by-ones, early
 //! returns, branch swaps — fixed deterministic mutator set"). Given a `fn` whose
 //! REAL body already verifies L3, this module generates a FROZEN, DETERMINISTIC
 //! set of mutants of that body (the contract UNTOUCHED), re-lowers + re-verifies
@@ -27,9 +27,9 @@
 //! |---|---|---|
 //! | REQ-1 (frozen deterministic mutator set) | SHIPPED | `pub fn generate` walks a `FnItem.body` in source order and applies the FIXED families: operator flips (`flip_binop`), off-by-ones (`IntLit n`→`n+1`/`n-1`, skip `n-1` at 0), early returns (`return <value>` via `early_return_value` at body head — scalar zero via `zero_value_for`, OR the empty-slice literal `&[]`/`&mut []` for a reference-to-slice return so EVERY real body is scored, #48), branch swaps (negate `if`/`Expr::If` cond, else swap arms). Consumer: `check::mutation_score` in `check.rs`. |
 //! | REQ-2 (deterministic order + seed + cap) | SHIPPED | a pre-order walk in a fixed family order, capped by `pub const MUTANT_CAP`; selection is the first `MUTANT_CAP` mutants in enumeration order. The seam takes the pinned `check::DEFAULT_SOLVER_SEED` (recorded in the run; the enumeration is seed-stable). Consumer: `check::mutation_score`. |
-//! | REQ-3 (re-lower + re-verify vs same contract) | SHIPPED | `pub fn generate` clones the original `FnItem` and mutates only `body`; `check::mutation_score` weaves each mutant via `item_subprogram` + `thermite_lower::lower` and runs the existing `run_verus`. The `req`/`ens`/`inv`/`dec` are the original's, unchanged. |
+//! | REQ-3 (re-lower + re-verify vs same contract) | SHIPPED | `pub fn generate` clones the original `FnItem` and mutates only `body`; `check::mutation_score` weaves each mutant via `item_subprogram` + `fluffy_lower::lower` and runs the existing `run_verus`. The `req`/`ens`/`inv`/`dec` are the original's, unchanged. |
 //! | REQ-4 (KILLED vs SURVIVED) | SHIPPED | `pub fn classify_mutant` maps a `MutantOutcome`: `Proved` → SURVIVED, `Killed` (counterexample / timeout) → KILLED; a lowering failure is DROPPED (not scored). Consumer: `check::mutation_score`. |
-//! | REQ-5 (kill ratio + floor gate, default 60%) | SHIPPED | `pub struct MutationScore` carries `killed`/`scored`/`survivor`; `pub fn MutationScore::kill_ratio` + `pub const MUTATION_FLOOR: f64 = 0.60`; `pub fn MutationScore::meets_floor`. A `0/0` score (no scoreable mutant) is BELOW the floor (`kill_ratio == 0.0`), not a vacuous pass — a contract that cannot be mutation-validated is gated `WeakContract` (#48, anti-Goodhart). The `cli` `--mutation-floor <FLOAT>` lever threads a non-default floor. Consumer: `check::mutation_score` + the floor gate in `check::check_file_with_options`. VERUS-ANCHORED (epic #60, REQ-11 / `.design/verified/self-verification.md` Target E): the f64 `meets_floor(0.60)` is anchored to the proved INTEGER cross-multiply `thermite_verified::meets_floor_60` (the #48 `scored == 0 ⟹ !pass` is verus-proved integer-only) by the in-module `tests::verus_anchor` f64↔integer grid (`0..=20 × 0..=20`, Option B); the grid AGREES on every cell (OQ-E: 0 divergences — the cross-multiply is the exact rational test, the f64 boundary is conformance-tested not masked). |
+//! | REQ-5 (kill ratio + floor gate, default 60%) | SHIPPED | `pub struct MutationScore` carries `killed`/`scored`/`survivor`; `pub fn MutationScore::kill_ratio` + `pub const MUTATION_FLOOR: f64 = 0.60`; `pub fn MutationScore::meets_floor`. A `0/0` score (no scoreable mutant) is BELOW the floor (`kill_ratio == 0.0`), not a vacuous pass — a contract that cannot be mutation-validated is gated `WeakContract` (#48, anti-Goodhart). The `cli` `--mutation-floor <FLOAT>` lever threads a non-default floor. Consumer: `check::mutation_score` + the floor gate in `check::check_file_with_options`. VERUS-ANCHORED (epic #60, REQ-11 / `.design/verified/self-verification.md` Target E): the f64 `meets_floor(0.60)` is anchored to the proved INTEGER cross-multiply `fluffy_verified::meets_floor_60` (the #48 `scored == 0 ⟹ !pass` is verus-proved integer-only) by the in-module `tests::verus_anchor` f64↔integer grid (`0..=20 × 0..=20`, Option B); the grid AGREES on every cell (OQ-E: 0 divergences — the cross-multiply is the exact rational test, the f64 boundary is conformance-tested not masked). |
 //! | REQ-6 (graduate `mutants_killed`/`survivor`) | SHIPPED | `MutationScore::mutants_killed_string` builds the `"K/N"` form; `check` sets it via `Certificate::with_mutation_score` / `Certificate::rejected_weak_contract`. |
 //! | REQ-7 (gate AFTER L3, reuse proof cache) | SHIPPED | `check::mutation_score` runs only on a `VerusOutcome::Proved` real body and content-addresses each mutant via `cache::cache_key`/`load`/`store`. |
 //! | REQ-8 (deterministic kill ratio) | SHIPPED | `generate` is a pure function of the AST + the frozen table; each mutant verdict is the deterministic verus run the L3 path + cache rely on, so `mutants_killed` is deterministic (asserted by the same-input-twice conformance double-run). `mutants_killed`/`survivor` stay oracle-EXCLUDED (OQ-1). |
@@ -40,7 +40,7 @@
 //! |---|---|---|
 //! | REQ-3 (MatchArm.guard ripple) | SHIPPED | `scan_expr`'s `Expr::Match` arm scans `arm.guard` (a guard is a mutable sub-expression — a guard mutant must be scoreable); `apply_expr`'s `Expr::Match` rebuild threads the mutation through `arm.guard`. `Pattern::Or` needs no mutation arm (mutation walks expressions, not patterns). Consumer: `mutation_score`. |
 
-use thermite_syntax::{BinOp, Block, Expr, FnItem, PrimType, Stmt, Type};
+use fluffy_syntax::{BinOp, Block, Expr, FnItem, PrimType, Stmt, Type};
 
 /// The FIXED budget on the number of mutants scored per `fn` (REQ-2; OQ-2). §7
 /// says "budgeted" without a number; this is a documented `const` (R-CODE-5 —
@@ -52,7 +52,7 @@ use thermite_syntax::{BinOp, Block, Expr, FnItem, PrimType, Stmt, Type};
 /// deterministic enumeration order (REQ-2).
 pub const MUTANT_CAP: usize = 64;
 
-/// The default mutation kill-ratio floor (`thermite-design.md` §7 "a
+/// The default mutation kill-ratio floor (`fluffy-design.md` §7 "a
 /// configurable floor (default 60%)"). `kill_ratio >= MUTATION_FLOOR` certifies;
 /// below it the item does NOT certify (verdict-in-cert reject). The `cli`
 /// `--mutation-floor <FLOAT>` lever overrides it; a non-default floor is a
@@ -199,7 +199,7 @@ pub fn generate(f: &FnItem, _seed: u64) -> Vec<Mutant> {
 
     // A boundary fn (`.design/boundary/ffi-boundary.md` REQ-2) has `body: None` —
     // its body is FOREIGN, so there is nothing to mutate (mutation scores a
-    // KNOWN-GOOD Thermite body, §7's premise). It never reaches here in
+    // KNOWN-GOOD Fluffy body, §7's premise). It never reaches here in
     // production (`check.rs` routes a boundary fn to L1 before any L3 proof +
     // mutation stage), but handle `None` as an empty mutant set rather than panic
     // (R-CODE-2). The `real_body` below is the in-language body the families walk.
@@ -246,7 +246,7 @@ fn mutant_with_body(f: &FnItem, body: Block, desc: String) -> Mutant {
     Mutant { item, desc }
 }
 
-/// The frozen operator-flip table (REQ-1; `thermite-design.md` §7 line 224). A
+/// The frozen operator-flip table (REQ-1; `fluffy-design.md` §7 line 224). A
 /// closed, deterministic mapping over the §4.4 `BinOp` set: `Add`↔`Sub`,
 /// `Mul`↔`Div`, `Lt`↔`Le`, `Gt`↔`Ge`, `Eq`↔`Ne`, `And`↔`Or`. Operators with no
 /// listed flip (none — every variant in the frozen set is covered as a pair, and
@@ -322,7 +322,7 @@ fn binop_token(op: BinOp) -> &'static str {
 ///   (unless `xs` is empty) → the mutant is KILLED → no over-gating (#48).
 /// - a bounded-`Vec` return (`Vec<T>`, `.design/basis/04-collections.md` REQ-5)
 ///   has no scalar zero either, so it synthesizes the EMPTY-Vec construction
-///   `TVec<Suffix> { data: Vec::new() }` — the exact `thermite_lower`
+///   `TVec<Suffix> { data: Vec::new() }` — the exact `fluffy_lower`
 ///   wrapper-newtype literal a `Vec<T>` lowers to (`tvec_name` in `lower.rs`),
 ///   constructed empty. This MIRRORS the #48 slice precedent (`&[]` for `&[T]`)
 ///   for the `Vec`-return class: an empty `Vec` is the canonical "trivial" Vec
@@ -336,7 +336,7 @@ fn binop_token(op: BinOp) -> &'static str {
 /// - a bounded-`String` return (`Type::String`, `.design/basis/07-strings.md`
 ///   REQ-4) has no scalar zero either, so it synthesizes the EMPTY-`TString`
 ///   construction `TString { data: Vec::new() }` (`empty_string_value`) — the
-///   exact `thermite_lower` wrapper-newtype literal a `String` lowers to
+///   exact `fluffy_lower` wrapper-newtype literal a `String` lowers to
 ///   (`Type::String => "TString"` in `lower.rs`), constructed empty. This MIRRORS
 ///   the #74 `Vec` precedent for the `String`-return class (#80): an empty
 ///   `TString` is the canonical "trivial" String (`len() == 0`, always
@@ -381,7 +381,7 @@ fn early_return_value(f: &FnItem) -> Option<(Expr, String)> {
     // `0/0` score → the #48 anti-Goodhart backstop spuriously gates a
     // genuinely-L3-proved fn to `WeakContract`/L0. An empty `TString` is the
     // canonical "trivial" String (`len() == 0`, always `well_formed`), the exact
-    // `thermite_lower::lower` wrapper-newtype literal a `String` lowers to
+    // `fluffy_lower::lower` wrapper-newtype literal a `String` lowers to
     // (`TString { data }` over `vstd::vec::Vec<u8>` — the single nullary `TString`
     // wrapper, no per-element suffix unlike `Vec`). A strong `ens result.len() ==
     // a.len() + b.len()` REJECTS the empty String (`0 != a.len()+b.len()` for
@@ -397,7 +397,7 @@ fn early_return_value(f: &FnItem) -> Option<(Expr, String)> {
 
 /// The empty-`String` early-return value: the wrapper-newtype struct literal
 /// `TString { data: Vec::new() }` (#80). The wrapper NAME mirrors
-/// `thermite_lower::lower`'s `Type::String => "TString"` — a Thermite `String`
+/// `fluffy_lower::lower`'s `Type::String => "TString"` — a Fluffy `String`
 /// lowers to the single `TString` newtype over `vstd::vec::Vec<u8>` (a nullary
 /// node, fixed `u8` element — unlike `Vec<T>`'s per-element `TVec<Suffix>`, there
 /// is exactly one `TString`). An empty `vstd::vec::Vec::new()` has `len() == 0`,
@@ -421,7 +421,7 @@ fn empty_string_value() -> (Expr, String) {
 
 /// The empty-`Vec` early-return value for a `Vec<elem>` return: the wrapper-newtype
 /// struct literal `TVec<Suffix> { data: Vec::new() }` (#74). The wrapper NAME
-/// mirrors `thermite_lower::lower`'s `tvec_name` — a `Vec<u64>` lowers to the
+/// mirrors `fluffy_lower::lower`'s `tvec_name` — a `Vec<u64>` lowers to the
 /// `TVecU64` newtype over `vstd::vec::Vec<u64>`, so the early-return mutant must
 /// construct THAT newtype empty (an empty `vstd::vec::Vec` has `len() == 0`, so the
 /// constructed wrapper is `well_formed` and lowers to exec code Verus accepts). The
@@ -759,8 +759,8 @@ impl MutantSink {
         }
     }
 
-    fn scan_index(&mut self, index: &thermite_syntax::IndexArg, ctr: &mut Counters) {
-        use thermite_syntax::IndexArg;
+    fn scan_index(&mut self, index: &fluffy_syntax::IndexArg, ctr: &mut Counters) {
+        use fluffy_syntax::IndexArg;
         match index {
             IndexArg::Single(e) | IndexArg::RangeTo(e) | IndexArg::RangeFrom(e) => {
                 self.scan_expr(e, ctr)
@@ -995,7 +995,7 @@ impl Applier<'_> {
                 scrutinee: Box::new(self.apply_expr(scrutinee)),
                 arms: arms
                     .iter()
-                    .map(|arm| thermite_syntax::MatchArm {
+                    .map(|arm| fluffy_syntax::MatchArm {
                         pattern: arm.pattern.clone(),
                         // A C10 match guard is a mutable sub-expression
                         // (`.design/basis/11-ergonomics.md` REQ-3) — apply the
@@ -1060,8 +1060,8 @@ impl Applier<'_> {
         }
     }
 
-    fn apply_index(&mut self, index: &thermite_syntax::IndexArg) -> thermite_syntax::IndexArg {
-        use thermite_syntax::IndexArg;
+    fn apply_index(&mut self, index: &fluffy_syntax::IndexArg) -> fluffy_syntax::IndexArg {
+        use fluffy_syntax::IndexArg;
         match index {
             IndexArg::Single(e) => IndexArg::Single(Box::new(self.apply_expr(e))),
             IndexArg::RangeTo(e) => IndexArg::RangeTo(Box::new(self.apply_expr(e))),
@@ -1078,14 +1078,14 @@ mod tests {
     use super::*;
 
     fn parse_fn(src: &str) -> FnItem {
-        let parsed = thermite_syntax::parse(src);
+        let parsed = fluffy_syntax::parse(src);
         assert!(parsed.is_clean(), "fixture must parse: {:?}", parsed.errors);
         parsed
             .program
             .items
             .into_iter()
             .find_map(|i| match i {
-                thermite_syntax::Item::Fn(f) => Some(f),
+                fluffy_syntax::Item::Fn(f) => Some(f),
                 _ => None,
             })
             .expect("fixture has a fn")
@@ -1285,12 +1285,12 @@ mod tests {
     // PLACEMENT DEVIATION (Option B, orchestrator-authorized): the design doc names
     // a `mutation::verus_anchor` block (forge is binary-only). Nested in the
     // existing `tests` module so the anti-pattern gate's `#[cfg(test)]` exemption
-    // covers it. `thermite-verified` is a forge DEV-dependency.
+    // covers it. `fluffy-verified` is a forge DEV-dependency.
     //
     // AC-11c — the f64↔INTEGER grid: over `killed ∈ 0..=20`, `scored ∈ 0..=20`,
     // assert the PRODUCTION f64 `MutationScore { killed, scored, survivor: None }
     // .meets_floor(0.60)` equals the VERUS-PROVED integer
-    // `thermite_verified::meets_floor_60(killed, scored)` for every grid point.
+    // `fluffy_verified::meets_floor_60(killed, scored)` for every grid point.
     // Expected = the proved integer spec (R-CHAR-3, never forge's own f64 output).
     // The verus proof is over the INTEGER property `scored == 0 ⟹ !pass` + the
     // cross-multiply; the f64↔integer agreement is THIS test's job (OQ-E).
@@ -1304,7 +1304,7 @@ mod tests {
     // =======================================================================
     mod verus_anchor {
         use super::*;
-        use thermite_verified::meets_floor_60;
+        use fluffy_verified::meets_floor_60;
 
         /// AC-11c — the f64↔integer grid over `0..=20 × 0..=20` at the default 0.60
         /// floor: the PRODUCTION f64 `meets_floor(0.60)` agrees with the VERUS-

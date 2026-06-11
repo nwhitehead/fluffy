@@ -13,18 +13,18 @@
 //!
 //!   - **a STRAIGHT-LINE body** (the frozen 2.2.1 subset — `let`/mutable-`let`/
 //!     assignment/`if`/sequencing/tail, NO loop as the last statement): lowers it via
-//!     `thermite_lower::lower_exec_body` (`P_production`, the artifact under test) and
+//!     `fluffy_lower::lower_exec_body` (`P_production`, the artifact under test) and
 //!     discharges the body state-refinement obligation `fn tv_body_wrap(..) ensures
 //!     result == <body_ref_state(body)> { <P_production> }`
-//!     (`thermite_tv::body_equivalence_obligation`) through `verus`.
+//!     (`fluffy_tv::body_equivalence_obligation`) through `verus`.
 //!   - **a v1 frozen-subset `while` loop** as the body's last statement (`loop-tv.md`
 //!     REQ-1: a single `while <cond>` with declared `inv`/`dec`, a straight-line
 //!     scalar body): discharges the THREE per-run loop obligations (ENTRY /
-//!     PRESERVATION / EXIT — `thermite_tv::{loop_entry_obligation,
+//!     PRESERVATION / EXIT — `fluffy_tv::{loop_entry_obligation,
 //!     loop_preservation_obligation, loop_exit_obligation}`), reusing the SHIPPED
 //!     `body_ref_state` single-iteration step.
 //!
-//! `thermite-tv` stays INDEPENDENT of `thermite-lower` (the N-version boundary,
+//! `fluffy-tv` stays INDEPENDENT of `fluffy-lower` (the N-version boundary,
 //! `exec-stmt-tv.md` AC-6): this forge module is the ONLY place the two encoders meet.
 //!
 //! ## The four-way verdict (R-HONEST-3 — a skip NEVER masks an infidelity)
@@ -59,20 +59,20 @@
 //!
 //! | REQ | Status | Evidence |
 //! |---|---|---|
-//! | exec-stmt-tv REQ-5 (forge `body_tv` plug-in point) | SHIPPED | `pub fn body_tv_file` walks each fn body; a STRAIGHT-LINE body lowers via `thermite_lower::lower_exec_body` + builds `thermite_tv::body_equivalence_obligation` + discharges through `verus` (the `discharge` helper, reusing `crate::check::ScratchDir` / #53). The four-way `BodyVerdict` (Faithful / Divergent / Unverifiable / Skipped) is REPORTED DISTINCTLY (R-HONEST-3). Non-test consumer: `cli::run_body_tv` (the `forge body-tv <file>` subcommand) — nonzero exit on Divergent, zero on Faithful/Skipped/Unverifiable. Verified by `forge/tests/body_tv.rs` (faithful straight-line → Faithful, mutated → Divergent, out-of-subset → Skipped) under real verus. This closes the `lower_exec_body` consumer loop (R-DEFER-1). |
-//! | loop-tv REQ-5 (the forge `body_tv` loop wiring — increment 2.2.2-iii) | SHIPPED | `body_tv_file` recognizes a v1 frozen-subset `while` loop as the body's last statement and discharges the THREE per-run obligations via `thermite_tv::{loop_entry_obligation, loop_preservation_obligation, loop_exit_obligation}` (`loop_body_tv` / `discharge_loop`); all-three-VERIFY → Faithful, any counterexample → Divergent, an OUT-of-v1 loop (`loop`-kind / `break` / mid-body `return` / nested / non-scalar / weak `inv`) → an honest `Unsupported` → Skipped with reason (NEVER Faithful, R-HONEST-3). Verified by `forge/tests/body_tv.rs` (faithful `while` → Faithful all three; broken-invariant → Divergent; `binary_search.th`'s `loop`-kind body → Skipped-with-reason). **#192:** the rlimit discriminator `run_obligation` consumes is now the SHARED `crate::tv_signal::is_rlimit_signal` (the #189 phrase set, centralized as the SOLE copy across the three TV phases — body_tv was the authority the drifted contract_tv / missing exec_tv copies are now unified onto). |
+//! | exec-stmt-tv REQ-5 (forge `body_tv` plug-in point) | SHIPPED | `pub fn body_tv_file` walks each fn body; a STRAIGHT-LINE body lowers via `fluffy_lower::lower_exec_body` + builds `fluffy_tv::body_equivalence_obligation` + discharges through `verus` (the `discharge` helper, reusing `crate::check::ScratchDir` / #53). The four-way `BodyVerdict` (Faithful / Divergent / Unverifiable / Skipped) is REPORTED DISTINCTLY (R-HONEST-3). Non-test consumer: `cli::run_body_tv` (the `forge body-tv <file>` subcommand) — nonzero exit on Divergent, zero on Faithful/Skipped/Unverifiable. Verified by `forge/tests/body_tv.rs` (faithful straight-line → Faithful, mutated → Divergent, out-of-subset → Skipped) under real verus. This closes the `lower_exec_body` consumer loop (R-DEFER-1). |
+//! | loop-tv REQ-5 (the forge `body_tv` loop wiring — increment 2.2.2-iii) | SHIPPED | `body_tv_file` recognizes a v1 frozen-subset `while` loop as the body's last statement and discharges the THREE per-run obligations via `fluffy_tv::{loop_entry_obligation, loop_preservation_obligation, loop_exit_obligation}` (`loop_body_tv` / `discharge_loop`); all-three-VERIFY → Faithful, any counterexample → Divergent, an OUT-of-v1 loop (`loop`-kind / `break` / mid-body `return` / nested / non-scalar / weak `inv`) → an honest `Unsupported` → Skipped with reason (NEVER Faithful, R-HONEST-3). Verified by `forge/tests/body_tv.rs` (faithful `while` → Faithful all three; broken-invariant → Divergent; `binary_search.th`'s `loop`-kind body → Skipped-with-reason). **#192:** the rlimit discriminator `run_obligation` consumes is now the SHARED `crate::tv_signal::is_rlimit_signal` (the #189 phrase set, centralized as the SOLE copy across the three TV phases — body_tv was the authority the drifted contract_tv / missing exec_tv copies are now unified onto). |
 
 use std::path::Path;
 use std::process::Command;
 
-use thermite_syntax::ast::{Block, FnItem, Item, LoopNode, PrimType, Stmt, Type};
+use fluffy_syntax::ast::{Block, FnItem, Item, LoopNode, PrimType, Stmt, Type};
 
-use thermite_tv::obligation::{
+use fluffy_tv::obligation::{
     body_equivalence_obligation, loop_entry_obligation, loop_exit_obligation,
     loop_preservation_obligation, BodyObligationFrame, BodyParamDecl, LoopObligationFrame,
     LoopParamDecl,
 };
-use thermite_tv::{loop_ref_obligations, BodyRefCtx};
+use fluffy_tv::{loop_ref_obligations, BodyRefCtx};
 
 use crate::check::{unique_scratch_dir, ScratchDir, DEFAULT_RLIMIT, DEFAULT_SOLVER_SEED};
 use crate::cli::ForgeError;
@@ -161,7 +161,7 @@ pub fn body_tv_file(path: &Path, seed: u64, rlimit: f64) -> Result<BodyTvReport,
         path: path.display().to_string(),
         source: e,
     })?;
-    let parsed = thermite_syntax::parse(&src);
+    let parsed = fluffy_syntax::parse(&src);
     if !parsed.is_clean() {
         return Err(ForgeError::Parse(parsed.errors));
     }
@@ -215,7 +215,7 @@ fn body_tv_fn(f: &FnItem, seed: u64, rlimit: f64, report: &mut BodyTvReport) {
 /// TV a straight-line fn body (REQ-5). Derives the obligation frame from the
 /// signature (params at their exec types, the fn return type as the result type, the
 /// source `req` as the well-formedness frame), lowers the body via
-/// `thermite_lower::lower_exec_body` (`P_production`), builds the body
+/// `fluffy_lower::lower_exec_body` (`P_production`), builds the body
 /// state-refinement obligation, and discharges it. A body the FRAME cannot be derived
 /// for (a richer-typed param, a non-scalar return) or that the reference encoder /
 /// lowerer does not cover (a non-scalar mutation, a re-shadow, a mid-body return) is
@@ -280,7 +280,7 @@ fn straight_line_body_tv(
     // under test, the non-test consumer of `lower_exec_body`). A body the EXEC body
     // lowering does not cover (a `Stmt::Loop` it cannot lower standalone, a non-scalar
     // construct) → honest Skip (out of the frozen straight-line subset), NOT a verdict.
-    let p_production = match thermite_lower::lower_exec_body(body) {
+    let p_production = match fluffy_lower::lower_exec_body(body) {
         Ok(p) => p,
         Err(e) => {
             report.results.push(BodyResult {
@@ -523,7 +523,7 @@ fn loop_body_ref_ctx(f: &FnItem) -> BodyRefCtx {
 /// Shape the production single-iteration loop-body lowering to the preservation
 /// obligation's `(cell0', cell1', …)`-returning step. The loop body is a straight-line
 /// `Block`, so its statement-by-statement lowering is the SHIPPED
-/// `thermite_lower::lower_exec_body` of the body PREFIX (the statements without a
+/// `fluffy_lower::lower_exec_body` of the body PREFIX (the statements without a
 /// tail); the stepped cells are then returned as the obligation's result tuple (a
 /// single cell is the bare cell, multiple cells a `(c0, c1)` tuple). A loop body the
 /// exec-body lowering does not cover is an honest Skip.
@@ -539,7 +539,7 @@ fn loop_step_production(
         stmts: loop_node.body.stmts.clone(),
         tail: None,
     };
-    let lowered = thermite_lower::lower_exec_body(&body_block).map_err(|e| {
+    let lowered = fluffy_lower::lower_exec_body(&body_block).map_err(|e| {
         format!(
             "production exec-body lowering does not cover this loop body (out of the \
              straight-line scalar subset): {e}"
@@ -1041,7 +1041,7 @@ pub const BODY_TV_DEFAULT_RLIMIT: f64 = DEFAULT_RLIMIT;
 
 // ---- the forge-level Divergent teeth (REQ-5; blocker #189) -----------------
 //
-// The obligation-layer teeth (`thermite-tv/tests/body_teeth.rs` / `loop_teeth.rs`)
+// The obligation-layer teeth (`fluffy-tv/tests/body_teeth.rs` / `loop_teeth.rs`)
 // prove a WRONG `P_production` -> a real verus error. They do NOT exercise the
 // FORGE-level step that MAPS that verus signal to a `BodyVerdict`: `discharge`'s
 // four-way classification. Over the corpus the faithful lowerer never produces a
@@ -1065,7 +1065,7 @@ pub const BODY_TV_DEFAULT_RLIMIT: f64 = DEFAULT_RLIMIT;
 #[cfg(test)]
 mod divergent_teeth {
     use super::*;
-    use thermite_syntax::ast::{BinOp, Expr};
+    use fluffy_syntax::ast::{BinOp, Expr};
 
     /// `true` iff a bare `verus` is spawnable (the SAME resolution `discharge` uses).
     /// SKIP LOUDLY otherwise so the teeth never silently pass.

@@ -1,0 +1,10 @@
+[package]
+name = "fluffy-skill"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+# REQ-2: depends on fluffy-spec (combinator registry) + fluffy-syntax (grammar).
+[dependencies]
+fluffy-syntax = { path = "../fluffy-syntax" }
+fluffy-spec = { path = "../fluffy-spec" }

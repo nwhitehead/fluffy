@@ -9,25 +9,25 @@ rust-version.workspace = true
 name = "forge"
 path = "src/main.rs"
 
-# REQ-2: depends on all three libs + thermite-skill.
+# REQ-2: depends on all three libs + fluffy-skill.
 [dependencies]
-thermite-syntax = { path = "../thermite-syntax" }
-thermite-spec = { path = "../thermite-spec" }
-thermite-lower = { path = "../thermite-lower" }
-thermite-skill = { path = "../thermite-skill" }
+fluffy-syntax = { path = "../fluffy-syntax" }
+fluffy-spec = { path = "../fluffy-spec" }
+fluffy-lower = { path = "../fluffy-lower" }
+fluffy-skill = { path = "../fluffy-skill" }
 # contract-TV (epic #139, #144): the INDEPENDENT contract-faithfulness reference
 # encoder + the per-clause Z3 equivalence obligation. forge is the ONLY place the
-# independent `thermite-tv` reference meets the production `thermite-lower`
+# independent `fluffy-tv` reference meets the production `fluffy-lower`
 # lowering (`contract_tv.rs` discharges `P_production <==> P_reference`);
-# `thermite-tv` itself stays free of any `thermite-lower` dep (the N-version
+# `fluffy-tv` itself stays free of any `fluffy-lower` dep (the N-version
 # independence boundary, AC-6).
-thermite-tv = { path = "../thermite-tv" }
+fluffy-tv = { path = "../fluffy-tv" }
 # #5: the certificate schema (`manifest.rs`) is serde-serialized to the §5.1
 # stable JSON; `check.rs` parses verus's `--output-json` summary with serde_json.
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # #8: the per-item content-addressed proof cache (`cache.rs`) hashes the four
-# verdict-determining inputs (lowered source + seed + verus version + thermite
+# verdict-determining inputs (lowered source + seed + verus version + fluffy
 # version) into a stable sha256 content address (`.design/forge/proof-cache.md`
 # REQ-1).
 sha2 = "0.10"
@@ -36,7 +36,7 @@ sha2 = "0.10"
 # core. A DEV-dependency only — the in-module `verus_anchor` tests in `degrade.rs`
 # (the ladder anti-cheat decision) and `sandbox.rs` (the seccomp allowlist
 # soundness) bind the PRODUCTION decision fns to the verus-proved plain-Rust mirrors
-# (`thermite_verified::ladder_action_*_tag` / `io_allow`) over their finite domains
+# (`fluffy_verified::ladder_action_*_tag` / `io_allow`) over their finite domains
 # (mechanism (c)). NOT a runtime dep: forge's production code does not consume it.
 [dev-dependencies]
-thermite-verified = { path = "../thermite-verified" }
+fluffy-verified = { path = "../fluffy-verified" }

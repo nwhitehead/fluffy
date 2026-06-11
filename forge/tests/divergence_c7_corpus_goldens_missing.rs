@@ -22,7 +22,7 @@
 //! `option_result_conformance.rs`, NOT against the design-mandated EXTERNAL cert oracle
 //! (`conformance/<name>.cert.json`) / golden lowering (`tests/golden/lower/
 //! <name>.verus.rs`). Per goal.md verification model (B) and R-CHAR-3, the deliverable
-//! for `forge`/`thermite-lower` is the certificate/lowering MATCHING a hand-authored
+//! for `forge`/`fluffy-lower` is the certificate/lowering MATCHING a hand-authored
 //! golden — an ephemeral temp program is not that oracle.
 //!
 //! The expected file SET below is the design AC's enumerated artifact list, NOT copied

@@ -2,15 +2,15 @@
 <!--
 tier: 3-component
 status: draft
-governs: thermite-syntax/src/ast.rs
-governs: thermite-syntax/src/parser.rs
-governs: thermite-spec/src/validator.rs
-governs: thermite-lower/src/lower.rs
+governs: fluffy-syntax/src/ast.rs
+governs: fluffy-syntax/src/parser.rs
+governs: fluffy-spec/src/validator.rs
+governs: fluffy-lower/src/lower.rs
 thesis-refs:
-  - thermite-design.md §4.1
-  - thermite-design.md §2.3
-  - thermite-design.md §7
-  - thermite-design.md Appendix A
+  - fluffy-design.md §4.1
+  - fluffy-design.md §2.3
+  - fluffy-design.md §7
+  - fluffy-design.md Appendix A
 -->
 
 ## Summary
@@ -64,11 +64,11 @@ Verification) before this contract was pinned.
 - **REQ-2 (`dec` MANDATORY for a recursive `fn`; the self-call validator
   rule):** A `fn` that calls itself (directly; mutual recursion is REQ-6) MUST
   carry a `dec` clause UNLESS its effect row contains `diverge`. The validator
-  (`thermite-spec/src/validator.rs`) detects a self-call in the fn body and, if
+  (`fluffy-spec/src/validator.rs`) detects a self-call in the fn body and, if
   `dec` is absent AND the fn is not `fx diverge`, emits a span-bearing
   `SpecError` (a structured error, NOT a silent non-terminating accept). This is
   the surface-level mirror of the Verus rule `recursive function must have a
-  decreases clause` (GROUNDED below) — Thermite reports it as its own diagnostic
+  decreases clause` (GROUNDED below) — Fluffy reports it as its own diagnostic
   so the user never reaches a raw Verus error. The `fx diverge` exemption is the
   SAME one #88 already wired for diverge loops: `lower_fn` emits
   `#[verifier::exec_allows_no_decreases_clause]` for a `fn_is_diverge` fn
@@ -76,7 +76,7 @@ Verification) before this contract was pinned.
   the decreases-check escape. Derived from §4.1 ("divergence requires `fx
   diverge`") + #88 (the diverge → L1 cap, mutation-exempt).
 
-- **REQ-3 (`fn` `decreases` lowering):** `lower_fn` in `thermite-lower/src/
+- **REQ-3 (`fn` `decreases` lowering):** `lower_fn` in `fluffy-lower/src/
   lower.rs` emits a `decreases <measure>` clause on a `fn` that carries `dec`,
   placed after the `requires`/`ensures` block and before the body `{` — the SAME
   position and the SAME measure-lowering helper used for `spec fn` (`spec_dec`)
@@ -148,19 +148,19 @@ Verification) before this contract was pinned.
   across the workspace MUST gain an arm — the SAME ripple class as ast.md's #92
   operators and #93 break/continue. The sites the builder MUST extend (non-test
   production; no `_`/panic fallthrough — `goal.md` R-APG-1):
-  - `thermite-syntax/src/parser.rs` — `parse_type_inner`'s `LParen` arm
+  - `fluffy-syntax/src/parser.rs` — `parse_type_inner`'s `LParen` arm
     (after `bump()`: if `RParen` → `Unit`; if a type then `,` → collect
     `Type::Tuple`; if a type then `)` → grouping/the inner type); `parse_primary`'s
     `(` arm (collect `Expr::Tuple` on a comma); `parse_postfix` for the `.N`
     projection.
-  - `thermite-lower/src/lower.rs` — `lower_type` (`Type::Tuple` arm),
+  - `fluffy-lower/src/lower.rs` — `lower_type` (`Type::Tuple` arm),
     `lower_expr` (`Expr::Tuple` + projection arms), and any `Type`/`Expr` walk.
-  - `thermite-lower/src/l1.rs` and `l2.rs` — the mirror exec (`l1`) and bounded
+  - `fluffy-lower/src/l1.rs` and `l2.rs` — the mirror exec (`l1`) and bounded
     (`l2`) lowering arms.
-  - `thermite-lower/src/effects.rs` — the `Expr` effect-walk (a tuple
+  - `fluffy-lower/src/effects.rs` — the `Expr` effect-walk (a tuple
     construction/projection contributes the UNION of its parts' effects; a
     projection is pure).
-  - `thermite-spec/src/validator.rs` — the `Type`/`Expr` walks (a tuple type is
+  - `fluffy-spec/src/validator.rs` — the `Type`/`Expr` walks (a tuple type is
     well-formed if its elements are; a projection `.0` in a contract is a flat
     built-in like `Field`, admitted inside the §4.2 cage).
   - `forge/src/mutation.rs` — the `Expr` walk (a tuple element / projection
@@ -168,7 +168,7 @@ Verification) before this contract was pinned.
   - `forge/src/vacuity.rs`, `forge/src/closure.rs`, `forge/src/review.rs`,
     `forge/src/check.rs`, `forge/src/strengthen.rs` — any exhaustive `Expr`/
     `Type` match gains the new arms (leaf descent).
-  - `thermite-skill/src/generate.rs` — a `SkillFragment` teaching tuple types,
+  - `fluffy-skill/src/generate.rs` — a `SkillFragment` teaching tuple types,
     construction, and `.N` projection (the tuple vocabulary the skill teaches —
     the skill-layer ripple).
 
@@ -242,10 +242,10 @@ is rejected there (no false L3).
 
 ## Verification
 
-`cargo test -p thermite-syntax` for the AST/parse shapes (the `FnItem.dec`
+`cargo test -p fluffy-syntax` for the AST/parse shapes (the `FnItem.dec`
 field, `Type::Tuple`/`Expr::Tuple`/projection nodes, the `(u64, u64)` parse, the
-`.0` projection parse); `cargo test -p thermite-spec` for the self-call
-validator rule (AC-3); and `forge`/`thermite-lower` conformance probes lowering
+`.0` projection parse); `cargo test -p fluffy-spec` for the self-call
+validator rule (AC-3); and `forge`/`fluffy-lower` conformance probes lowering
 each form to Verus and certifying (the END-TO-END grounding, AC-1/2/4/5/6).
 Expected cert fields are hand-derived (R-CHAR-3), never copied from the
 toolchain.
@@ -282,11 +282,11 @@ termination failure), and the tuple grounding shows the projection `ens` bites.
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (`fn` `dec` clause — AST + grammar) | SHIPPED | #108. `FnItem.dec: Option<Clause>` (`ast.rs`, mirroring `SpecFnItem.dec` but optional); `parse_fn` (`parser.rs`) parses an optional trailing `dec <expr>` AFTER `fx` (OQ-4 byte-stable slot) into `FnItem.dec`. Consumer: `thermite-lower::lower::lower_fn` (the `decreases` emission). Verified: `forge/tests/recursion_conformance.rs::recursive_fn_with_dec_certifies_l3` (real verus L3). |
-| REQ-2 (`dec` mandatory for recursive `fn`; self-call validator rule) | SHIPPED | #108. `validator.rs` `run`'s `Item::Fn` arm detects a direct self-call (`block_calls_name`) and emits `SpecError::MissingDecreases` when `dec.is_none() && !fn_is_diverge(f)`. The `fx diverge` exemption is honored (`fn_is_diverge`, mirroring `thermite-lower`'s) — a diverge fn recurses without `dec` and is L1-capped (#88). Consumer: `pub fn validate` → `forge::check`. Verified: `forge/tests/recursion_conformance.rs::self_call_without_dec_is_structured_error` (the MissingDecreases reject) + `diverge_recursion_without_dec_is_l1`. |
+| REQ-1 (`fn` `dec` clause — AST + grammar) | SHIPPED | #108. `FnItem.dec: Option<Clause>` (`ast.rs`, mirroring `SpecFnItem.dec` but optional); `parse_fn` (`parser.rs`) parses an optional trailing `dec <expr>` AFTER `fx` (OQ-4 byte-stable slot) into `FnItem.dec`. Consumer: `fluffy-lower::lower::lower_fn` (the `decreases` emission). Verified: `forge/tests/recursion_conformance.rs::recursive_fn_with_dec_certifies_l3` (real verus L3). |
+| REQ-2 (`dec` mandatory for recursive `fn`; self-call validator rule) | SHIPPED | #108. `validator.rs` `run`'s `Item::Fn` arm detects a direct self-call (`block_calls_name`) and emits `SpecError::MissingDecreases` when `dec.is_none() && !fn_is_diverge(f)`. The `fx diverge` exemption is honored (`fn_is_diverge`, mirroring `fluffy-lower`'s) — a diverge fn recurses without `dec` and is L1-capped (#88). Consumer: `pub fn validate` → `forge::check`. Verified: `forge/tests/recursion_conformance.rs::self_call_without_dec_is_structured_error` (the MissingDecreases reject) + `diverge_recursion_without_dec_is_l1`. |
 | REQ-3 (`fn` `decreases` lowering) | SHIPPED | #108. `lower_fn` (`lower.rs`) emits `decreases <spec_dec(f.dec)>` AFTER the `requires`/`ensures` block and BEFORE the body when `f.dec.is_some()` — the SAME `spec_dec` helper + position the recursive `spec fn` uses; a non-recursive fn (`dec = None`) emits NO `decreases` (byte-stable, AC-7). The self-call lowers as an ordinary `Expr::Call`. Consumer: `lower` (`Item::Fn`). Verified: `forge/tests/recursion_conformance.rs` (L3 + builds+runs); GROUNDED `decreases n` certifies L3. |
 | REQ-4 (termination bites) | SHIPPED | #108. GROUNDED with real verus end-to-end: non-decreasing (`dec n`, recurse on `n`) → `could not prove termination` (L0); no-`dec` → `MissingDecreases` (structured validator error, never reaching L3); `fx diverge` recursive fn → L1-capped (#88), NOT L0. The no-cheat guarantee (R-DEFER-9) holds — the decreases is the ONLY thing between the fn and L0. Consumer: `forge::check` ladder. Verified: `forge/tests/recursion_conformance.rs::nondecreasing_recursion_is_l0` + `self_call_without_dec_is_structured_error` + `diverge_recursion_without_dec_is_l1`. |
-| REQ-5 (`Type::Tuple` + `Expr::Tuple` + projection — AST) | SHIPPED | #109. `enum Type` += `Tuple(Vec<Type>)`; `enum Expr` += `Tuple(Vec<Expr>)` + the DEDICATED projection node `TupleProj { receiver: Box<Expr>, index: usize }` (OQ-1 RESOLVED → dedicated node, NOT an overloaded `Field` with a string `"0"` name: a tuple index is a `usize`). `parse_type_inner`'s `LParen` arm now disambiguates by the comma (`()` → `Unit`, `(T)` → grouping, `(T, U, …)` → `Tuple`); `parse_primary`'s `(` arm builds `Expr::Tuple` on a comma (`(e)` → grouping); `parse_postfix`'s `.` arm builds `Expr::TupleProj` when the token after `.` is an `Int`. Consumer: `thermite-lower::lower::lower_type`/`lower_expr` (→ Verus tuples). Verified: `forge/tests/tuples_conformance.rs::tuple_type_disambiguation_unit_grouping_tuple` + `tuple_expr_and_projection_nodes` (the node shapes + `()`/`(e)`/`(a,b)` disambiguation). |
+| REQ-5 (`Type::Tuple` + `Expr::Tuple` + projection — AST) | SHIPPED | #109. `enum Type` += `Tuple(Vec<Type>)`; `enum Expr` += `Tuple(Vec<Expr>)` + the DEDICATED projection node `TupleProj { receiver: Box<Expr>, index: usize }` (OQ-1 RESOLVED → dedicated node, NOT an overloaded `Field` with a string `"0"` name: a tuple index is a `usize`). `parse_type_inner`'s `LParen` arm now disambiguates by the comma (`()` → `Unit`, `(T)` → grouping, `(T, U, …)` → `Tuple`); `parse_primary`'s `(` arm builds `Expr::Tuple` on a comma (`(e)` → grouping); `parse_postfix`'s `.` arm builds `Expr::TupleProj` when the token after `.` is an `Int`. Consumer: `fluffy-lower::lower::lower_type`/`lower_expr` (→ Verus tuples). Verified: `forge/tests/tuples_conformance.rs::tuple_type_disambiguation_unit_grouping_tuple` + `tuple_expr_and_projection_nodes` (the node shapes + `()`/`(e)`/`(a,b)` disambiguation). |
 | REQ-6 (mutual recursion — DEFERRED) | NOT-STARTED | follow-up under #107 (honest scope pin, not a v1 REQ). v1 ships direct self-recursion only; a mutually-recursive pair reaches Verus and is rejected there (no false L3). Recorded so the critic does not classify it as a silent gap. |
 | REQ-7 (tuple arity — n-tuples, ≥ 2) | SHIPPED | #109. `Type::Tuple(Vec<Type>)`/`Expr::Tuple(Vec<Expr>)` carry any arity ≥ 2; the parser distinguishes by the comma (`()` → `Unit`, `(T)` → grouping/the inner, `(T, U, …)` → `Tuple`). Verified: `forge/tests/tuples_conformance.rs::ac6_three_tuple_certifies_l3` — a 3-tuple `(u64, u64, u64)` with `ens result.0 == 1 && result.1 == 2 && result.2 == 3` certifies L3 under real verus; `tuple_type_disambiguation_unit_grouping_tuple` pins `()` = `Unit` and `(u64)` = grouping (the inner type). |
 | REQ-8 (tuple lowering + exhaustive-match ripple) | SHIPPED | #109. `lower_type` += a `Type::Tuple` arm (→ Verus `(<t0>, …)`); `lower_expr` += `Expr::Tuple` (→ `(<e0>, …)`) + `Expr::TupleProj` (→ `<recv>.<index>`) arms; the SAME in `l1.rs` (exec mirror) + the `l1`/`l2` `lower_type`/label arms. The NEW variants' workspace ripple is CLOSED with honest leaf arms (no `_`/panic): `parser.rs`, `lower.rs` (lower_type/lower_expr + every `Type`/`Expr` walk: combinator/scheme/deref-call/Vec-elem/String-reach/mention collectors), `l1.rs` (8 sites), `l2.rs` (label), `effects.rs` (effect-walk = element union; projection pure), `validator.rs` (scan/cage/self-call walks — projection a flat §4.2-cage built-in like `Field`), `check.rs` (3), `mutation.rs` (scan/apply + the early-return zero-tuple synth, below), `vacuity.rs` (`result`-mention through projection — the load-bearing tuple-vacuity case), `closure.rs`, `review.rs` (callee-walk + render_type), `strengthen.rs` (render_expr), `generate.rs` (skill arms + inventories). A tuple-returning fn with no body mutation site (the GROUNDED `swap` body `(b, a)`) gets a synthesized zero-tuple early-return mutant (`mutation::zero_value_for`/`early_return_value`, the #48/#74/#80 pattern extended to the tuple class) so it is mutation-scoreable, NOT spuriously gated `WeakContract`/L0. Verified: `forge/tests/tuples_conformance.rs::ac4_swap_tuple_projection_certifies_l3` (L3, 1/1 killed) + `ac5_wrong_body_under_projection_ens_is_rejected` (wrong `(a, b)` → NOT L3, the projection `ens` bites, R-DEFER-9) + `req8_tuple_let_and_exec_projection_certifies_l3` (a tuple `let` + an EXEC projection → L3). |

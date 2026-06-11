@@ -1,6 +1,6 @@
-# A MAX-VERIFIED, runnable MULTI-LINE text editor (Thermite)
+# A MAX-VERIFIED, runnable MULTI-LINE text editor (Fluffy)
 
-`editor.th` is the keystone proof-of-the-pudding for Thermite (crosslink #125,
+`editor.th` is the keystone proof-of-the-pudding for Fluffy (crosslink #125,
 builds on #90, ref #83): a nano-like **multi-line** text editor whose **bug-prone
 logic — the editing heart, the line NAVIGATION + cursor LAYOUT math, the
 display-frame construction, AND the keystroke decode — is mechanically PROVEN**,
@@ -13,12 +13,12 @@ full-screen render that positions the cursor by ROW/COLUMN, and file load/save**
 The buffer is ONE `String` with `\n` bytes; the cursor is a byte offset, so the
 shipped edit core (`insert_str`/`backspace`/`move_left`/`move_right`) works
 unchanged over the multi-line text (a `\n` is just a byte). The ROW/COLUMN cursor
-math and the UP/DOWN navigation are VERIFIED Thermite (L3) — the navigation +
+math and the UP/DOWN navigation are VERIFIED Fluffy (L3) — the navigation +
 layout logic is proven, not trusted glue.
 
 ## The thesis: verified vs trusted, pushed as far as the language allows
 
-Thermite does not pretend the kernel can be proven — but it pushes the proof
+Fluffy does not pretend the kernel can be proven — but it pushes the proof
 boundary all the way down to the syscalls. The display logic and the input
 interpretation, the parts that are actually bug-prone, are VERIFIED.
 
@@ -56,7 +56,7 @@ precondition discharges for any formatted-number concat.
 | `raw_mode_off` | L1 boundary | `#[boundary("os::raw_mode_off")]` — restore the saved original termios; runs on the quit path so the terminal is never left in raw mode. A clean no-op when raw mode was never entered. |
 | `read_key_raw` | L1 boundary | `#[boundary("os::read_key_raw")]` — read one keystroke, returning the raw bytes PACKED into a u64 for `decode` (`b0` bits 0..9, `b1` 9..18, `b2` 18..27; an ESC reads the 2-byte arrow tail). `ens result <= 134_217_727` (the 27-bit packing width — an honest boundary bound). |
 | `write_frame` | L1 boundary | `#[boundary("os::write_frame")]` — write the rendered frame `String` to stdout and flush. `ens result <= 1`. |
-| `read_file` | L1 boundary | `#[boundary("os::read_file")]` — LOAD the initial buffer from the fixed demo file (`THERMITE_EDITOR_FILE` if set, else `/tmp/thermite_editor.txt`) via extern-C `std::fs::read`; the multi-line `\n` bytes are preserved. A missing file yields the EMPTY string (a fresh buffer) — the honest arm, no crash. `ens result.len() <= 1_000_000`. (#125) |
+| `read_file` | L1 boundary | `#[boundary("os::read_file")]` — LOAD the initial buffer from the fixed demo file (`FLUFFY_EDITOR_FILE` if set, else `/tmp/fluffy_editor.txt`) via extern-C `std::fs::read`; the multi-line `\n` bytes are preserved. A missing file yields the EMPTY string (a fresh buffer) — the honest arm, no crash. `ens result.len() <= 1_000_000`. (#125) |
 | `write_file` | L1 boundary | `#[boundary("os::write_file")]` — SAVE the buffer `String`'s bytes (incl. the `\n` line breaks) to the same fixed file on Ctrl-S, via `std::fs::write`. `ens result <= 1` (0 = ok, 1 = I/O error). (#125) |
 | `run` | L1 (partial correctness) | the `fx diverge` event loop. An event loop is **non-terminating by design**, so it cannot honestly claim L3 = TOTAL correctness. It caps at **L1 = partial correctness**: the loop runs under its always-active runtime contract checks, and the logic it drives (`decode`, `render_frame`, `insert_str`/`backspace`/`move_left`/`move_right`) is the L3-proven core its correctness rests on. The §7 mutation gate is exempt for a diverge fn — `run`'s shape is honestly weak, NOT a gamed one (R-DEFER-9). |
 
@@ -88,11 +88,11 @@ directly** — it self-sets raw mode via its own extern-C `termios` boundary (no
 cargo run -q -p forge -- build examples/editor/editor.th --entry run --out ./nano
 
 # run it INTERACTIVELY in a real terminal — type, arrows move, Ctrl-S saves, Ctrl-Q quits:
-THERMITE_EDITOR_FILE=mydoc.txt ./nano
+FLUFFY_EDITOR_FILE=mydoc.txt ./nano
 ```
 
 `./nano` is a self-contained executable: it puts the terminal in raw mode itself,
-loads `THERMITE_EDITOR_FILE` (empty/missing → a fresh buffer), and restores the
+loads `FLUFFY_EDITOR_FILE` (empty/missing → a fresh buffer), and restores the
 terminal on Ctrl-Q. It runs UNDER the default seccomp sandbox (no `--no-sandbox`):
 its `raw_mode_on`/`raw_mode_off` boundaries declare `fx term` (crosslink #106/#132),
 whose seccomp widening grants the `ioctl` the termios raw mode needs — so every
@@ -117,9 +117,9 @@ terminal on the way out.
 ### The MULTI-LINE keymap (#125)
 
 ```sh
-SAVE=/tmp/thermite_editor.txt
+SAVE=/tmp/fluffy_editor.txt
 # type "ab", ENTER (newline), "cd", UP arrow, Ctrl-S (save), Ctrl-Q (quit):
-printf 'ab\rcd\x1b[A\x13\x11' | THERMITE_EDITOR_FILE="$SAVE" <the-built-binary>
+printf 'ab\rcd\x1b[A\x13\x11' | FLUFFY_EDITOR_FILE="$SAVE" <the-built-binary>
 cat "$SAVE"   # -> ab\ncd   (the multi-line buffer, saved with its newline)
 ```
 

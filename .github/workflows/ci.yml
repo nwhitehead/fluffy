@@ -11,10 +11,10 @@ on:
 # CI runs on exactly the pinned toolchain (R-CODE-5 / design §5.3 determinism);
 # rustup also honors rust-toolchain.toml for the cargo invocations below.
 # The skill-budget gate (issue #7, REQ-7) runs the `--check-budget` step below:
-# `cargo run -p thermite-skill -- --check-budget` fails CI if the generated
-# THERMITE.skill.md exceeds the 6,000-token budget (design §2.2 / §10).
+# `cargo run -p fluffy-skill -- --check-budget` fails CI if the generated
+# FLUFFY.skill.md exceeds the 6,000-token budget (design §2.2 / §10).
 #
-# Verus is installed below so the L3 verification gate (thermite-lower's
+# Verus is installed below so the L3 verification gate (fluffy-lower's
 # verus-on-emitted tests) ACTUALLY RUNS in CI, not just locally (R-DEFER-6 —
 # verification is a hard gate). The pinned verus 0.2026.05.24.ecee80a bundles
 # the matching rust toolchain (1.95.0) + z3. The tests resolve verus via the
@@ -61,4 +61,4 @@ jobs:
         run: cargo fmt --all --check
 
       - name: skill budget gate (issue #7, design §2.2 / §10)
-        run: cargo run -p thermite-skill -- --check-budget
+        run: cargo run -p fluffy-skill -- --check-budget

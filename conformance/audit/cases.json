@@ -4,7 +4,7 @@
     { "name": "corpus_empty_tcb", "sources": ["conformance/sum.th"],
       "expect_project_level": "L3", "expect_project_scope": "end_to_end",
       "expect_tcb_slag": [], "expect_tcb_boundary": [],
-      "why": "sum/spec_sum are pure-Thermite, L3, end-to-end -> project L3 end-to-end; the TCB has NO slag and NO boundary (only the toolchain identity). The fiat-trusted base of a pure project is exactly the toolchain." },
+      "why": "sum/spec_sum are pure-Fluffy, L3, end-to-end -> project L3 end-to-end; the TCB has NO slag and NO boundary (only the toolchain identity). The fiat-trusted base of a pure project is exactly the toolchain." },
     { "name": "slag_boundary_tcb",
       "program": "#[slag(reason = \"hand-tuned\", owner = \"agent:x\", review = \"required\")] fn vendored(x: u32) -> u32 req x < 100 ens result == x fx pure { x } #[boundary(\"ext::ext_f\")] fn ext_f(x: u32) -> u32 req x < 100 ens result == x fx pure ;",
       "expect_tcb_slag": ["vendored"], "expect_tcb_boundary": ["ext_f"],

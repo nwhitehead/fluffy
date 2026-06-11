@@ -2,13 +2,13 @@
 <!--
 tier: 3-component
 status: draft
-governs: thermite-syntax/src/parser.rs
-governs: thermite-syntax/src/ast.rs
-governs: thermite-lower/src/lower.rs
+governs: fluffy-syntax/src/parser.rs
+governs: fluffy-syntax/src/ast.rs
+governs: fluffy-lower/src/lower.rs
 thesis-refs:
-  - thermite-design.md §4.1
-  - thermite-design.md §4.4
-  - thermite-design.md §2.3
+  - fluffy-design.md §4.1
+  - fluffy-design.md §4.4
+  - fluffy-design.md §2.3
 -->
 
 ## Summary
@@ -16,7 +16,7 @@ thesis-refs:
 C10 adds five binding/control-flow ergonomics that AI agents reach for
 constantly — tuple destructuring `let (x, y) = e`, `for i in 0..n` loops, match
 guards `x if cond =>`, or-patterns `1 | 2 =>`, and `if let` / `while let`. Each
-is **SUGAR** over machinery Thermite already ships and proves: `while`+`inv`/
+is **SUGAR** over machinery Fluffy already ships and proves: `while`+`inv`/
 `dec` (loop lowering, `lower_loop` in `lower.rs`), `match` (`lower_match`),
 tuple projection (`Expr::TupleProj`), and the ADT/`Option` exhaustiveness checker
 (`check_match_exhaustiveness` in `validator.rs`). The C10 principle, lifted from
@@ -64,7 +64,7 @@ already lower and verify.
 
 - **REQ-2 (`for i in 0..n` loops):** A `for` loop over a bounded integer range
   `lo..hi` is sugar over the SHIPPED `while`+`inv`/`dec` core. Surface:
-  ```thermite
+  ```fluffy
   for i in 0..n
     inv acc == i
   { acc = acc + 1; }
@@ -208,7 +208,7 @@ carry the new shape, which RIPPLES into the exhaustive matches:
   the L1 mirror in `l1.rs`, the `Expr`/`MatchArm` walks in `effects.rs`,
   `mutation.rs`, `vacuity.rs`, `closure.rs`, `review.rs`, `check.rs`, and the
   validator's `check_match_exhaustiveness` (a guarded arm covers NO cases). The
-  skill layer (`thermite-skill/src/generate.rs`) gains a guard fragment.
+  skill layer (`fluffy-skill/src/generate.rs`) gains a guard fragment.
 - **`Pattern::Or(Vec<Pattern>)` (REQ-4).** A NEW `Pattern` variant — this DOES
   break every exhaustive `match Pattern` in the workspace (`lower_pattern` in
   `lower.rs`, the validator's pattern walks, any `address.rs`/`effects.rs`
@@ -237,13 +237,13 @@ measure canonical — there is no agent choice to get wrong. A `for` whose user
 
 ## Verification
 
-`cargo test -p thermite-syntax` over parse fixtures asserting the new surface
+`cargo test -p fluffy-syntax` over parse fixtures asserting the new surface
 parses to the transient nodes (`Pattern::Tuple`, `Stmt::For`,
 `MatchArm.guard`, `Pattern::Or`, `Stmt::IfLet`/`WhileLet`) and the desugar
 rewrites them to the expected core nodes (hand-derived expected shapes,
-R-CHAR-3). `cargo test -p thermite-spec` asserts the exhaustiveness rules
+R-CHAR-3). `cargo test -p fluffy-spec` asserts the exhaustiveness rules
 (guarded arm → still non-exhaustive; or-pattern → covers its cases). The
-`thermite-lower` golden files (`tests/golden/lower/*`) assert the desugar emits
+`fluffy-lower` golden files (`tests/golden/lower/*`) assert the desugar emits
 the SAME Verus the hand-written core would — a `for` golden diffs against the
 equivalent `while` golden.
 

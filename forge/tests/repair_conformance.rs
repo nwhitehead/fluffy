@@ -1,5 +1,5 @@
 //! Conformance for the background proof-repair loop `forge repair` (issue #18,
-//! `.design/forge/proof-repair.md`; `thermite-design.md` §6, Appendix B). The
+//! `.design/forge/proof-repair.md`; `fluffy-design.md` §6, Appendix B). The
 //! DETERMINISTIC loop logic — the bounded escalation ladder, the upgrade path, the
 //! anti-cheat gate, bounded termination, and the environment-error propagation —
 //! is pinned HERMETICALLY by the unit tests in `forge/src/repair.rs` (the loop

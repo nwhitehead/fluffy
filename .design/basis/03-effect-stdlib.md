@@ -2,15 +2,15 @@
 <!--
 tier: 3-component
 status: draft
-governs: thermite-stdlib/src/effect/read.rs
-governs: thermite-stdlib/src/effect/write.rs
-governs: thermite-stdlib/src/effect/time.rs
+governs: fluffy-stdlib/src/effect/read.rs
+governs: fluffy-stdlib/src/effect/write.rs
+governs: fluffy-stdlib/src/effect/time.rs
 thesis-refs:
-  - thermite-design.md §1
-  - thermite-design.md §4.1
-  - thermite-design.md §8
-  - thermite-design.md §9
-  - thermite-design.md §6
+  - fluffy-design.md §1
+  - fluffy-design.md §4.1
+  - fluffy-design.md §8
+  - fluffy-design.md §9
+  - fluffy-design.md §6
 -->
 
 ## Summary
@@ -35,7 +35,7 @@ This is the §1 trust-relocation thesis discharged for I/O: **"verify anything" 
 build-resolution pass (#62 / #72) GROUNDED this against the real toolchain
 (`verus 0.2026.05.24`, `forge` built from this tree): every machine part the stdlib
 needs is already SHIPPED, and the centerpiece path runs end-to-end TODAY. Stage 3's
-deliverable is therefore (a) the `thermite-stdlib` crate of `#[boundary]` primitive
+deliverable is therefore (a) the `fluffy-stdlib` crate of `#[boundary]` primitive
 DECLARATIONS, (b) a `conformance/effect-stdlib` oracle pinning the COMPOSITION of
 the shipped pieces, and (c) — the one open question this pass RESOLVES — a precise,
 buildable v1 scope. See [v1 scope (PINNED)](#v1-scope-pinned) and the grounded
@@ -72,7 +72,7 @@ honest iff its outcome space is totally covered AND the caller resolves every ar
 - **The caller's exhaustive `match` is the Stage-1b validator + verus.** A caller
   that drops an arm of the primitive's `Option`/`Result`/user-enum return is
   REJECTED: for a USER enum at the validator (`NonExhaustiveMatch { missing }`,
-  `thermite-spec`), for built-in `Option` at verus (`E0004: non-exhaustive
+  `fluffy-spec`), for built-in `Option` at verus (`E0004: non-exhaustive
   patterns: None not covered`). Both are LOUD compile-time rejects (GROUNDED below).
 
 So outcome-coverage = (#16 boundary triage admits a closed-set `ens` but rejects a
@@ -87,7 +87,7 @@ is not `BoolLit(true)`) passes (a)/(b)/(c) cleanly, and the value-strength gates
 The honest claim about a syscall is a TOTALLY-COVERED outcome SET, not a strong
 world-promise — and the toolchain already checks exactly that.
 
-### Resolution 2 — `thermite-stdlib` structure + the v1 forge-build-link decision.
+### Resolution 2 — `fluffy-stdlib` structure + the v1 forge-build-link decision.
 
 **v1 = the verification + sandbox-derivation layer; the runnable foreign-body LINK
 is DEFERRED (OQ-4).** GROUNDED: `forge build --entry` of a program that actually
@@ -97,8 +97,8 @@ There is no `os::` crate to link, and writing real seccomp-confined syscall wrap
 is forward work (the `#57` design itself scopes "compiling the foreign BODIES so
 they run + are confined" as OUT, x86_64-Linux only). So:
 
-- **`thermite-stdlib/src/effect/{read,write,time}.rs`** hold the v1 effect-primitive
-  **`#[boundary("os::…")]` DECLARATIONS** (Thermite source the crate exports —
+- **`fluffy-stdlib/src/effect/{read,write,time}.rs`** hold the v1 effect-primitive
+  **`#[boundary("os::…")]` DECLARATIONS** (Fluffy source the crate exports —
   `.th` text or a `const &str` the skill embeds; the orchestrator settles the exact
   packaging, OQ-2). They are NOT yet the executable Rust syscall wrappers; the
   `"os::read_file"` target string is the foreign-target DATUM the L1 wrapper names
@@ -117,7 +117,7 @@ they run + are confined" as OUT, x86_64-Linux only). So:
   proves the per-effect confinement WITHOUT the live foreign-body link.
 
 The live foreign-body run (a real `read_file` syscall confined by the filter) is
-**v1.1 / OQ-4** — it needs the `thermite-stdlib` Rust wrappers + a `forge build`
+**v1.1 / OQ-4** — it needs the `fluffy-stdlib` Rust wrappers + a `forge build`
 link path, both forward work. v1 delivers the full VERIFICATION + ENUMERATION +
 CONFINEMENT-DERIVATION story, which is the §1/§9 honesty claim in its entirety.
 
@@ -142,11 +142,11 @@ orchestrator adds net/rand/alloc routes when v1.1 starts.
 
 | Layer | Deliverable | Mechanism (all SHIPPED) |
 |---|---|---|
-| **3a** | `thermite-stdlib` crate of the v1 `#[boundary("os::…")]` declarations (read/write/time) | `#16` boundary form (`parser.rs` `Semi`-body path; `ast.rs` `FnItem { boundary: Some, body: None }`) |
+| **3a** | `fluffy-stdlib` crate of the v1 `#[boundary("os::…")]` declarations (read/write/time) | `#16` boundary form (`parser.rs` `Semi`-body path; `ast.rs` `FnItem { boundary: Some, body: None }`) |
 | **3b** | `conformance/effect-stdlib/cases.json` pinning OUTCOME-COVERAGE: L1 boundary cert; compose-through to L3 + `to_boundary`; the missing-arm reject; the wrong-arm soundness reject; the TCB enumeration | `#16` `gate_fn` L1; `#52` `lower_external_body_fn` weave; Stage-1b exhaustive-match; `#17` `ToBoundary`; `#15` `AuditManifest.tcb` |
 | **3c** | the `forge build` sandbox-confinement DEMO (the `fx read(src)`-body + `--sandbox-self-test` pattern; exit 159 kill / allow-on-widen) | `#57` `sandbox::syscall_allowlist` over `transitive_fx` |
 
-No layer adds production `.rs` to forge/thermite-lower/thermite-spec — Stage 3 is a
+No layer adds production `.rs` to forge/fluffy-lower/fluffy-spec — Stage 3 is a
 stdlib + an oracle over the shipped pipeline.
 
 ## The unifying principle — handled-or-loud, on every OUTCOME (the EFFECT seam)
@@ -190,7 +190,7 @@ effects.
 Reproduced against `forge` built from this tree + `verus 0.2026.05.24` (scratch +
 forge temp removed per #53). The centerpiece source (`effect_demo.th`):
 
-```thermite
+```fluffy
 #[boundary("os::read_small")]
 fn read_small() -> Option<u64>
   req true
@@ -329,13 +329,13 @@ authoring pass: `error: external_body/assume_specification not allowed with
 logic, where `external_body` WOULD be a proof-dodge (the `#60`-style cheat R-DEFER-9
 forbids). An effect primitive is NOT core logic: it is a **declared trust
 boundary** — a `#[boundary]` fn whose body is genuinely foreign (the syscall), with
-no Thermite body to prove. For a boundary, `external_body` is the HONEST modeling of
+no Fluffy body to prove. For a boundary, `external_body` is the HONEST modeling of
 a foreign function (`#52` honesty argument, pinned hard):
 
 - It is emitted ONLY for a fn carrying the syntactic `#[boundary]` flag
   (`FnItem.boundary.is_some()` in `ast.rs`), already certified `Level::L1` +
   `boundary: true` by the §16 path (`Certificate::boundary_l1` in `manifest.rs`).
-  A regular Thermite fn is ALWAYS fully proved (`#52` REQ-1 / OQ-1 honesty gate).
+  A regular Fluffy fn is ALWAYS fully proved (`#52` REQ-1 / OQ-1 honesty gate).
 - The contract is L1-ENFORCED at runtime on every crossing (`#16` REQ-4, the
   `lower_boundary_fn_l1` wrapper in `l1.rs`: `req`-check → foreign call → `ens`-
   check), so a primitive that violates its assumed contract is caught at the
@@ -452,11 +452,11 @@ it lands with the `Net` family in v1.1.
   `#[boundary("<syscall-target>")] fn NAME(params) -> ret req … ens … fx <atom> ;`
   — the `#16` bodyless-boundary surface form (`FnItem { boundary: Some(_), body:
   None }` in `ast.rs`), a mandatory contract, a declared effect atom, and a `;`
-  body. Derived from `thermite-design.md` §9 + §4.1 + `#16`
+  body. Derived from `fluffy-design.md` §9 + §4.1 + `#16`
   (`.design/boundary/ffi-boundary.md` REQ-1/REQ-2). No new grammar — the stdlib
   reuses the boundary form verbatim. v1: read/write/time families.
 
-- **REQ-2 (the v1 primitive families — the stdlib):** the `thermite-stdlib` crate
+- **REQ-2 (the v1 primitive families — the stdlib):** the `fluffy-stdlib` crate
   declares the v1 families `read_file`/`read_stdin` (`Read`), `write_file`/`print`
   (`Write`), `now` (`Time`), each carrying its assumed contract + the effect atom +
   (via the `#57` table) its syscall allowlist. `Net`/`Alloc`/`Rand` are v1.1 (the
@@ -513,7 +513,7 @@ it lands with the `Net` family in v1.1.
   emitted for an effect primitive ONLY because it is a declared `#[boundary]` fn
   (`FnItem.boundary.is_some()`) — the honest foreign model, NOT a `#60`-style
   core-logic cheat. `--no-cheating` (which guards the core) BANS `external_body`;
-  the effect-primitive boundary is verified in default mode. A regular Thermite fn is
+  the effect-primitive boundary is verified in default mode. A regular Fluffy fn is
   always fully proved; no `external_body` is emitted for it. Derived from `#52`/`#60`
   honesty gate (`external_body iff a declared boundary/slag`) + `goal.md` R-DEFER-9.
 
@@ -575,7 +575,7 @@ Option<u64>`, computing, both arms handled:
 
 ## Architecture
 
-Stage 3 owns NO new mechanism — it is a `thermite-stdlib` crate of `#[boundary]`
+Stage 3 owns NO new mechanism — it is a `fluffy-stdlib` crate of `#[boundary]`
 declarations plus a `conformance/effect-stdlib` oracle over the SHIPPED
 `#16`/`#52`/`#57` pipeline. The full path, GROUNDED:
 
@@ -601,7 +601,7 @@ forge build --entry <fn> --sandbox-self-test
   │     a syscall outside the allowlist -> SIGSYS kill (exit 159)                   [#57, GROUNDED]
 ```
 
-- **The primitives** are `#[boundary("os::…")]` fns in `thermite-stdlib` (the v1
+- **The primitives** are `#[boundary("os::…")]` fns in `fluffy-stdlib` (the v1
   read/write/time families). The surface form is `#16`'s verbatim (`parse_attribute`
   + the `Semi`-body path in `parser.rs`; `FnItem { boundary: Some, body: None }` in
   `ast.rs`). The syscall-target string (`"os::read_file"`) is the foreign-target
@@ -615,7 +615,7 @@ forge build --entry <fn> --sandbox-self-test
 - **The honesty surface** is `#17`'s `AssuranceScope::ToBoundary` (in `closure.rs` /
   `manifest.rs`) + `#15`'s `AuditManifest.tcb` (in `forge/src/audit.rs`).
 
-Stage 3's only NEW artifacts are the primitive declarations (`thermite-stdlib`) and
+Stage 3's only NEW artifacts are the primitive declarations (`fluffy-stdlib`) and
 the `conformance/effect-stdlib` oracle. The Stage 5 hook: the
 composition-aggregation law (`05-composition.md`, OUT of scope here) aggregates
 assurance across exactly these boundaries.
@@ -644,7 +644,7 @@ assurance across exactly these boundaries.
 - **Honesty-gate test (AC-6):** assert the lowered string contains `external_body`
   IFF the woven dep carries `#[boundary]`, and the pure corpus emits none.
 - **Crate gauntlets (`goal.md` R-DEFER-6):** `cargo test -p forge`, `cargo test -p
-  thermite-lower`, `cargo test -p thermite-stdlib`, `cargo clippy -p <crate>
+  fluffy-lower`, `cargo test -p fluffy-stdlib`, `cargo clippy -p <crate>
   --all-targets -- -D warnings`, `cargo fmt --check`, plus the conformance corpus
   (`sum`/`binary_search` stay L3 + END-TO-END at the DEFAULT floor, AC-7).
 
@@ -665,7 +665,7 @@ assurance across exactly these boundaries.
   bypass does NOT leak to regular fns. GROUNDED end-to-end (see [Grounding](#grounding-the-full-path-real-forge-output)).
 
 - **OQ-2 (stdlib crate layout + skill budget):** where do the primitives live — a
-  `thermite-stdlib` crate of `.th` declarations the skill generator embeds (the
+  `fluffy-stdlib` crate of `.th` declarations the skill generator embeds (the
   LEANING), a built-in module, or `conformance/effect-stdlib/stdlib.th`? The §10
   skill is budgeted ≤6,000 tokens; the v1 three families (one attribute + one
   contract each, the `#16` minimal form) fit. The orchestrator settles the
@@ -685,7 +685,7 @@ assurance across exactly these boundaries.
   `os::` crate exists. v1 DELIVERS the verification + enumeration +
   confinement-derivation (all GROUNDED) and demonstrates confinement via the
   `fx`-declaring-body + `--sandbox-self-test` pattern; the LIVE foreign-body run
-  (real syscall wrappers in `thermite-stdlib` + a `forge build` link path,
+  (real syscall wrappers in `fluffy-stdlib` + a `forge build` link path,
   x86_64-Linux only) is v1.1. The CONTRACT + the TYPED effect + the ENUMERATED TCB
   are fully specifiable + verifiable in v1 regardless.
 
@@ -703,19 +703,19 @@ assurance across exactly these boundaries.
 # Effect-primitive standard library — verified, sandboxed #[boundary] syscall
 # primitives (basis Stage 3 v1, epic #62 / issue #72). Net/Rand/Alloc = v1.1.
 [[route]]
-crate_pattern = "thermite-stdlib/src/effect/read.rs"
+crate_pattern = "fluffy-stdlib/src/effect/read.rs"
 design = ".design/basis/03-effect-stdlib.md"
 reference = ["conformance/effect-stdlib"]
 conformance_ops = ["read_small_to_boundary", "read_doubled_l3", "audit_enumerates_tcb"]
 
 [[route]]
-crate_pattern = "thermite-stdlib/src/effect/write.rs"
+crate_pattern = "fluffy-stdlib/src/effect/write.rs"
 design = ".design/basis/03-effect-stdlib.md"
 reference = ["conformance/effect-stdlib"]
 conformance_ops = ["write_file_to_boundary"]
 
 [[route]]
-crate_pattern = "thermite-stdlib/src/effect/time.rs"
+crate_pattern = "fluffy-stdlib/src/effect/time.rs"
 design = ".design/basis/03-effect-stdlib.md"
 reference = ["conformance/effect-stdlib"]
 conformance_ops = ["now_to_boundary", "now_sandbox_clock_gettime"]
@@ -723,7 +723,7 @@ conformance_ops = ["now_to_boundary", "now_sandbox_clock_gettime"]
 
 The orchestrator authors `conformance/effect-stdlib/cases.json`, the
 `tests/golden/lower/effect-stdlib.verus.rs` golden, the routes above, and the
-`thermite-stdlib` crate scaffold. This doc does NOT author the oracle, the golden,
+`fluffy-stdlib` crate scaffold. This doc does NOT author the oracle, the golden,
 or the routes (R-DOC-1). The crate/file layout is a LEANING (OQ-2); the orchestrator
 settles it.
 
@@ -731,8 +731,8 @@ settles it.
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (effect-primitive declaration form) | NOT-STARTED | epic #62 / issue #72, Stage 3 v1. No `thermite-stdlib` crate and no `#[boundary("os::…")]` syscall primitive exists in the tree. The SHIPPED prerequisite form (`#16` `FnItem { boundary: Some, body: None }` in `ast.rs`; `parse_attribute` + the `Semi`-body path in `parser.rs`) parses + certifies a `#[boundary("os::now")]` decl to L1 TODAY (GROUNDED: `forge check` → `L1, boundary: true, boundary_target: os::now`), but no syscall primitive is declared against it. |
-| REQ-2 (v1 primitive families — read/write/time) | NOT-STARTED | epic #62 / issue #72. The `enum Effect` atoms (`Read(path)`/`Write(path)`/`Time` in `ast.rs`) exist and parse (`fx read(input)`/`fx time`, `parse_effect` in `parser.rs`), and the §57 fx→syscall table maps each (GROUNDED: `read(src)` → 27 syscalls, `time` → 25 incl. `clock_gettime` 228), but no `read_file`/`write_file`/`now` primitive family is declared in a `thermite-stdlib` crate. |
+| REQ-1 (effect-primitive declaration form) | NOT-STARTED | epic #62 / issue #72, Stage 3 v1. No `fluffy-stdlib` crate and no `#[boundary("os::…")]` syscall primitive exists in the tree. The SHIPPED prerequisite form (`#16` `FnItem { boundary: Some, body: None }` in `ast.rs`; `parse_attribute` + the `Semi`-body path in `parser.rs`) parses + certifies a `#[boundary("os::now")]` decl to L1 TODAY (GROUNDED: `forge check` → `L1, boundary: true, boundary_target: os::now`), but no syscall primitive is declared against it. |
+| REQ-2 (v1 primitive families — read/write/time) | NOT-STARTED | epic #62 / issue #72. The `enum Effect` atoms (`Read(path)`/`Write(path)`/`Time` in `ast.rs`) exist and parse (`fx read(input)`/`fx time`, `parse_effect` in `parser.rs`), and the §57 fx→syscall table maps each (GROUNDED: `read(src)` → 27 syscalls, `time` → 25 incl. `clock_gettime` 228), but no `read_file`/`write_file`/`now` primitive family is declared in a `fluffy-stdlib` crate. |
 | REQ-3 (boundary honest iff TOTAL OUTCOME-COVERAGE — EMERGENT, no new code) | NOT-STARTED | epic #62 / issue #72. The RESOLUTION is EMERGENT + fully GROUNDED (`verus 0.2026.05.24`): a boundary `ens true` → `EnsIsTrivial` reject; a closed-set `ens match result { … }` → L1; a both-arms-handled caller → L3 + `to_boundary`; the wrong-arm negative → `postcondition not satisfied`; the missing-arm → `NonExhaustiveMatch`/`E0004`. NO new validator rule and NO vacuity-exemption fix is needed (the feared wrong-reject does not occur). But no primitive contract is declared and no `conformance/effect-stdlib` test PINS the composition yet. |
 | REQ-4 (typed effect + `external_body` lowering) | NOT-STARTED | epic #62 / issue #72. The SHIPPED `#52` `lower_external_body_fn` (in `lower.rs`) + `check::item_subprogram` weave and the SHIPPED row-subsumption (`effect-subsumption.md`) compose a boundary into a caller's L3 proof TODAY (GROUNDED: `read_doubled` → `L3` + `to-the-boundary (via read_small)` at `--mutation-floor 0`), but no effect primitive is declared to be woven. |
 | REQ-5 (runtime-sandbox-DERIVED — confined to its syscalls) | NOT-STARTED | epic #62 / issue #72. The SHIPPED `#57` `sandbox::syscall_allowlist` over `transitive_fx` (in `forge/src/sandbox.rs`) + the fx→syscall table DERIVE + enforce the confinement TODAY (GROUNDED: `fx read(src)` → 27 syscalls incl. `openat`, the `--sandbox-self-test` probe allowed; `fx pure` → 23, probe `SIGSYS`-killed exit 159), but no effect primitive program exercises it via the oracle. The live `os::` foreign-body link is DEFERRED (OQ-4; `forge build` of a real boundary CALL `rustc`-fails `E0433`). |

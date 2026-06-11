@@ -3,7 +3,7 @@
 //! with `review <file> [--json] [--reviewer <cmd>]` and asserts the emitted
 //! `ReviewArtifact` / `*.review.json` record against the HAND-DERIVED oracle
 //! (R-CHAR-3 — expected values trace to `conformance/review/cases.json` +
-//! `conformance/sum.th` + `thermite-design.md` §7, NEVER copied from forge's own
+//! `conformance/sum.th` + `fluffy-design.md` §7, NEVER copied from forge's own
 //! output):
 //!
 //! - `corpus_sum` (`forge review conformance/sum.th --json`): `sum` is

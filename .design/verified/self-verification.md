@@ -2,15 +2,15 @@
 <!--
 tier: 3-component
 status: active (REQ-5 `subsumes` + REQ-7 `ladder_action` + REQ-8 `syscall_allowlist` all SHIPPED via mechanism (c), verus `19 verified, 0 errors`; epic #60 open for the remaining REQ-2 Tier-1 targets — cache_key/triage/kill_ratio/is_strictly_stronger/boundary-gate)
-governs: thermite-verified/src/lib.rs (the verified core — `subsumes` + `ladder_action` + `io_allow` all proved + anchored; the REQ-2 set to be ported, epic #60)
+governs: fluffy-verified/src/lib.rs (the verified core — `subsumes` + `ladder_action` + `io_allow` all proved + anchored; the REQ-2 set to be ported, epic #60)
 thesis-refs:
-  - thermite-design.md §6   (Verus is the L3 prover)
-  - thermite-design.md §9   (the TCB is slag ∪ boundary ∪ the toolchain itself)
-  - thermite-design.md §7   (the vacuity battery — soundness of the gate)
-  - thermite-design.md §5.2 (the gate degrades, never blocks — the anti-cheat ladder)
-  - thermite-design.md §4.1 (the fx row is a runtime contract — the sandbox)
+  - fluffy-design.md §6   (Verus is the L3 prover)
+  - fluffy-design.md §9   (the TCB is slag ∪ boundary ∪ the toolchain itself)
+  - fluffy-design.md §7   (the vacuity battery — soundness of the gate)
+  - fluffy-design.md §5.2 (the gate degrades, never blocks — the anti-cheat ladder)
+  - fluffy-design.md §4.1 (the fx row is a runtime contract — the sandbox)
 governs-by-delegation:
-  - thermite-lower/src/effects.rs   (the FIRST target — `subsumes`)
+  - fluffy-lower/src/effects.rs   (the FIRST target — `subsumes`)
   - forge/src/degrade.rs            (`run_ladder` — counterexample-never-degrades; the `ladder_action` decision core, REQ-7)
   - forge/src/cache.rs              (`cache_key` — content addressing)
   - forge/src/vacuity.rs            (`triage` — §7.1 structural checks)
@@ -21,16 +21,16 @@ governs-by-delegation:
 
 ## Summary
 
-This component makes the Thermite **toolchain verify itself**. Today the toolchain is
+This component makes the Fluffy **toolchain verify itself**. Today the toolchain is
 plain Rust; a bug in its *soundness-critical pure core* is not a crash, it is a **false
 certificate** — a wrong `subsumes` answer mints a `pure` certificate for an effectful
 function. `goal.md` (§9) names the trusted computing base as "exactly (slag blocks ∪
 boundary contracts ∪ **the toolchain itself**)". This component SHRINKS that TCB: it
 ports the soundness-critical pure decision functions (**Tier 1**) into the Verus
 fragment with real `requires`/`ensures` contracts, proves them with the same Verus
-prover that `thermite-design.md` §6 names as the L3 rung, and has the toolchain
+prover that `fluffy-design.md` §6 names as the L3 rung, and has the toolchain
 **delegate** to the verified code — so the code that runs IS the code that was proved.
-This is true self-verification: Thermite uses its own L3 prover on its own kernel.
+This is true self-verification: Fluffy uses its own L3 prover on its own kernel.
 
 The first proven increment is `effects::subsumes` (the effect-subsumption decision
 function). This iteration adds the next two highest-value finite-domain targets via the
@@ -40,16 +40,16 @@ SAME proven mechanism (c): **(REQ-7)** the degrade-ladder **anti-cheat** (a
 allowlist is MONOTONE in the effect set). Tier 2 (full functional correctness of
 `lower` — verified-compiler territory) and Tier 3 (I/O / `Command`-spawning / heavy-std)
 are explicitly OUT: Tier 3 is the trusted floor, sealed behind
-`#[verifier::external_body]` (Verus's analog of Thermite's own `#[slag]`/`#[boundary]`),
+`#[verifier::external_body]` (Verus's analog of Fluffy's own `#[slag]`/`#[boundary]`),
 assumed-by-contract.
 
-> **THREE TIER-1 INCREMENTS SHIPPED.** The verified crate (`thermite-verified`) holds three
+> **THREE TIER-1 INCREMENTS SHIPPED.** The verified crate (`fluffy-verified`) holds three
 > proved soundness-critical cores: `effects::subsumes` (REQ-5), the degrade-ladder
 > anti-cheat `ladder_action` (REQ-7), and the seccomp `io_allow` soundness (REQ-8) — all
-> proved by real `verus --no-cheating --crate-type=lib thermite-verified/src/lib.rs`
+> proved by real `verus --no-cheating --crate-type=lib fluffy-verified/src/lib.rs`
 > (**19 verified, 0 errors**) and anchored to the toolchain via mechanism (c): a
 > verus-verified core + a plain-Rust mirror + an exhaustive impl==spec equivalence test
-> (`subsumes` 65536 pairs in `thermite-lower`; `ladder_action` the 3+3 verdict enum +
+> (`subsumes` 65536 pairs in `fluffy-lower`; `ladder_action` the 3+3 verdict enum +
 > `io_allow` the 256 fx-masks in forge's in-module `verus_anchor` blocks — Option B, since
 > forge is binary-only). REQ-1/3/4/5/6/7/8 are SHIPPED; REQ-2 (the remaining FIVE Tier-1
 > fns) is NOT-STARTED, tracked under epic **#60**. The grounding sections (A/B) record the
@@ -60,7 +60,7 @@ assumed-by-contract.
 | Tier | What | This epic | Verus treatment |
 |---|---|---|---|
 | **Tier 1** | Soundness-critical PURE decision fns (a bug = a false certificate) | **IN — the focus** | ported into `verus!{}` with real `requires`/`ensures`, GENUINELY proved |
-| **Tier 2** | Full functional correctness of `lower` (AST→Verus-Rust) | **OUT (research-scale)** | acknowledged, not attempted — this is verified-compiler territory (`thermite-design.md` §11 "Thermite is not a proof assistant") |
+| **Tier 2** | Full functional correctness of `lower` (AST→Verus-Rust) | **OUT (research-scale)** | acknowledged, not attempted — this is verified-compiler territory (`fluffy-design.md` §11 "Fluffy is not a proof assistant") |
 | **Tier 3** | I/O, `Command`-spawning (rustc/verus/kani), fs, heavy-std | **OUT (assumed floor)** | `#[verifier::external_body]` / `external` — the trusted boundary, assumed-by-contract |
 
 ### Tier-1 target list (the soundness-critical pure core)
@@ -93,11 +93,11 @@ Three candidate mechanisms were considered; the `subsumes` grounding run settled
   deps on the install's `vstd`/`builtin`/`builtin_macros` crates, which themselves inherit
   `workspace.lints` from the Verus workspace root and so fail `cargo metadata` outside that
   workspace (OQ-1). Out for v1.
-- **(b) a dedicated `thermite-verified` crate** — the Tier-1 pure fns live in `verus!{}` +
+- **(b) a dedicated `fluffy-verified` crate** — the Tier-1 pure fns live in `verus!{}` +
   `vstd`, verified by standalone `verus`, and the toolchain DELEGATES to it. REJECTED for
   v1: the cross-crate *linking* of verified metadata into the toolchain build (`--export`/
   `--import`) proved infeasible (OQ-2).
-- **(c) a verified REFERENCE in `thermite-verified/src/lib.rs`** verified standalone by
+- **(c) a verified REFERENCE in `fluffy-verified/src/lib.rs`** verified standalone by
   `verus` (the `verus!{}` body behind `#[cfg(verus_keep_ghost)]`), + a plain-Rust mirror
   the toolchain runs, + a conformance test that the toolchain's impl matches the verified
   spec over the ENUMERATED finite input domain (R-CHAR-3). **CHOSEN and SHIPPED** for
@@ -113,7 +113,7 @@ tags); REQ-8's is the 2^8 fx-atom masks (the same enumeration style as `subsumes
 ## Requirements
 
 - **REQ-1 (self-verification architecture):** A verified core exists as a `verus!{}` body,
-  verified by the same Verus prover that is Thermite's L3 rung (`thermite-design.md` §6),
+  verified by the same Verus prover that is Fluffy's L3 rung (`fluffy-design.md` §6),
   via mechanism (c) (a verified reference + impl==spec conformance test). The chosen
   mechanism is recorded with its build/verify commands. Derived from §6 + §9.
 - **REQ-2 (remaining Tier-1 targets + porting pattern):** The remaining soundness-critical
@@ -150,7 +150,7 @@ tags); REQ-8's is the 2^8 fx-atom masks (the same enumeration style as `subsumes
   `ladder_action` so the proved decision drives the real control flow, and is anchored by
   an exhaustive equivalence test over the verdict enum (3 L3 tags × 3 L2 tags) binding the
   PRODUCTION decision (R-CHAR-3). Derived from `.design/forge/degrade-ladder.md` REQ-2 +
-  `thermite-design.md` §5.2 + `goal.md` R-DEFER-9 / R-CODE-4. **NOT-STARTED** (grounded
+  `fluffy-design.md` §5.2 + `goal.md` R-DEFER-9 / R-CODE-4. **NOT-STARTED** (grounded
   below; epic #60).
 
 - **REQ-8 (seccomp allowlist SOUNDNESS verified + anchored):** The `fx`-atom-set →
@@ -165,7 +165,7 @@ tags); REQ-8's is the 2^8 fx-atom masks (the same enumeration style as `subsumes
   production `syscall_allowlist` is anchored by exhaustive equivalence over the 2^8
   fx-atom-masks (the same enumeration style as `subsumes`' 65536), binding the PRODUCTION
   fn to the proved bitset spec (R-CHAR-3). Derived from `.design/forge/runtime-sandbox.md`
-  REQ-3 + `thermite-design.md` §4.1. **NOT-STARTED** (grounded below; epic #60).
+  REQ-3 + `fluffy-design.md` §4.1. **NOT-STARTED** (grounded below; epic #60).
 
 ## Acceptance criteria
 
@@ -174,7 +174,7 @@ tags); REQ-8's is the 2^8 fx-atom masks (the same enumeration style as `subsumes
 - **AC-2 (non-triviality — breaking the impl fails):** Mutating the verified `subsumes`
   body makes the SAME run report `errors: 1`. GROUNDED: the broken variant reports `7
   verified, 1 errors`.
-- **AC-3 (behavior preserved):** After matching, `cargo test -p thermite-lower --test
+- **AC-3 (behavior preserved):** After matching, `cargo test -p fluffy-lower --test
   effects` passes with **0 failures**. Baseline GROUNDED: 14 passed, 0 failed.
 - **AC-4 (conformance — impl == verified spec):** A conformance test enumerates the 8-atom
   bitset domain (2^8 × 2^8 pairs) and asserts `effects::subsumes` == the verified spec
@@ -225,11 +225,11 @@ tags); REQ-8's is the 2^8 fx-atom masks (the same enumeration style as `subsumes
 
 ## Architecture
 
-The verified core is a `verus!{}` body in `thermite-verified/src/lib.rs` (mechanism (c)),
+The verified core is a `verus!{}` body in `fluffy-verified/src/lib.rs` (mechanism (c)),
 gated behind `#[cfg(verus_keep_ghost)]` so a normal `cargo build` skips it and only the
 `verus` driver compiles it. Verus's surface is a Rust subset plus `spec`/`proof`/`exec`
 modes; an `exec fn` carrying `ensures` is verified to satisfy it for ALL inputs (the L3
-guarantee, `thermite-design.md` §6). The Tier-1 functions are pure, so they fit the `exec`
+guarantee, `fluffy-design.md` §6). The Tier-1 functions are pure, so they fit the `exec`
 fragment after a representation port.
 
 **`subsumes` (REQ-5).** `EffectKind` (8 atoms) → a `u8` bitset; `subsumes` is the mask test
@@ -282,9 +282,9 @@ only the Tier-3 floor in it — the TCB shrinks, which is the point of §9.
 
 - **The verus invocation (grounded, CI-able):** `verus --no-cheating --crate-type=lib
   src/lib.rs` for the verified core; the gauntlet step gates on `verified: N, errors: 0`
-  (REQ-6 / AC-6), run by `thermite-verified/tests/verus_verify.rs` (skip-LOUD if verus
+  (REQ-6 / AC-6), run by `fluffy-verified/tests/verus_verify.rs` (skip-LOUD if verus
   absent, temp-dir cwd so no scratch lands in the tree, #53).
-- **Behavior preservation:** `cargo test -p thermite-lower --test effects` (AC-3);
+- **Behavior preservation:** `cargo test -p fluffy-lower --test effects` (AC-3);
   `cargo test -p forge degrade::tests` (AC-7d); `cargo test -p forge sandbox::tests` +
   the `sandbox_conformance` oracle (AC-8d).
 - **Non-triviality:** a CI mutation-sanity check that each deliberately-broken core fails
@@ -313,9 +313,9 @@ $ verus --no-cheating effects_verus_broken.rs
 verification results:: 7 verified, 1 errors   (postcondition not satisfied)
 ```
 
-Behavior-preservation baseline: `cargo test -p thermite-lower --test effects` → **14
+Behavior-preservation baseline: `cargo test -p fluffy-lower --test effects` → **14
 passed, 0 failed**. This is the SHIPPED increment; the in-tree proof + 65536-pair anchor
-are permanent (`thermite-verified/src/lib.rs`, `thermite-lower/tests/effects_verified.rs`).
+are permanent (`fluffy-verified/src/lib.rs`, `fluffy-lower/tests/effects_verified.rs`).
 
 ### Grounding A (REAL verus run — `ladder_action`, REQ-7, the anti-cheat)
 
@@ -413,9 +413,9 @@ representations. (Scratch verus files written to `/tmp` and removed, #53.)
 
 ## Routes to add (orchestrator — NOT done here; no Edit to routes)
 
-The verified crate is routed: `thermite-verified/src/lib.rs` → this doc. For REQ-7/REQ-8 the
+The verified crate is routed: `fluffy-verified/src/lib.rs` → this doc. For REQ-7/REQ-8 the
 builder will touch (orchestrator adds/extends routes as needed):
-- `thermite-verified/src/lib.rs` (EXTEND — add the `ladder_action` + `syscall_allowlist`
+- `fluffy-verified/src/lib.rs` (EXTEND — add the `ladder_action` + `syscall_allowlist`
   verus cores + their plain-Rust mirrors, behind the same `#[cfg(verus_keep_ghost)]` split).
 - `forge/src/degrade.rs` (extract `ladder_action_l3`/`ladder_action_l2` and delegate
   `run_ladder`'s `match` to them — REQ-7; route references this doc).
@@ -424,7 +424,7 @@ builder will touch (orchestrator adds/extends routes as needed):
 - the equivalence tests: `forge/tests/ladder_action_verified.rs` (the 3×3 verdict
   enumeration) and `forge/tests/sandbox_verified.rs` (the 2^8 fx-mask enumeration), each
   binding the PRODUCTION fn to the verified spec (R-CHAR-3).
-- `thermite-verified/tests/verus_verify.rs` (EXTEND — assert the new cores verify + add the
+- `fluffy-verified/tests/verus_verify.rs` (EXTEND — assert the new cores verify + add the
   two non-triviality mutation checks).
 
 ## REQ status
@@ -439,21 +439,21 @@ porting (no separate blocker filed — #60 is the tracker).
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (self-verification architecture) | SHIPPED | `verus_core` in `thermite-verified/src/lib.rs` (the `verus!{}` body, verified by `verus`, Thermite's L3 rung §6); mechanism (c) landed + recorded; `tests/verus_verify.rs` runs `verus --no-cheating` → 8 verified, 0 errors. |
+| REQ-1 (self-verification architecture) | SHIPPED | `verus_core` in `fluffy-verified/src/lib.rs` (the `verus!{}` body, verified by `verus`, Fluffy's L3 rung §6); mechanism (c) landed + recorded; `tests/verus_verify.rs` runs `verus --no-cheating` → 8 verified, 0 errors. |
 | REQ-2 (remaining Tier-1 targets) | NOT-STARTED | epic #60. The remaining FIVE Tier-1 fns (`cache_key`, `triage`, `kill_ratio`/`meets_floor`, `is_strictly_stronger`, the boundary gate) remain plain Rust, ported one at a time via mechanism (c). |
-| REQ-3 (Tier-2/Tier-3 boundaries) | SHIPPED | `thermite-verified` has NO I/O and NO `external_body`/`external` (AC-5 grep: zero in `src/`); the Tier-1 core carries a real `ensures`, reaching no Tier-3 floor. Tier 2 acknowledged, not attempted. |
+| REQ-3 (Tier-2/Tier-3 boundaries) | SHIPPED | `fluffy-verified` has NO I/O and NO `external_body`/`external` (AC-5 grep: zero in `src/`); the Tier-1 core carries a real `ensures`, reaching no Tier-3 floor. Tier 2 acknowledged, not attempted. |
 | REQ-4 (honesty — genuine proof) | SHIPPED | `verus --no-cheating` on the core; `ensures result == spec_subsumes(..)` non-vacuous (negating the body → `7 verified, 1 errors`, `tests/verus_verify.rs::broken_subsumes_fails_verification`). The REQ-7/REQ-8 groundings ALSO each demonstrate non-vacuity (Grounding A: `2 verified, 1 errors`; Grounding B: `14 verified, 1 errors` ×2). |
-| REQ-5 (`subsumes` verified + matched) | SHIPPED | `verus_core::subsumes` proved over the 9-atom `u16` bitset (WIDENED `u8`→`u16` for the #106 `Term` atom; the `(callee & !caller)==0` test bounded to the `< 512` domain so it agrees with the 9-way `spec_subsumes` conjunction) (+ three lattice-law `proof fn`s); `thermite_verified::subsumes_masks` (the plain mirror) consumed by `thermite_lower::effects::subsumes`; matched by the 262144-pair (512×512) exhaustive equivalence test (mechanism (c), AC-4, 0 mismatches); the `effects` tests still pass (AC-3). |
-| REQ-6 (CI-able verus-verify gauntlet step) | SHIPPED | `thermite-verified/tests/verus_verify.rs` runs real `verus --no-cheating --crate-type=lib src/lib.rs` (skip-loud if verus absent) and asserts `verified, 0 errors`; a core fn that fails to verify is a HARD test failure (R-DEFER-6). |
-| REQ-7 (degrade anti-cheat verified + anchored) | SHIPPED | epic #60. `verus_core::ladder_action_l3`/`ladder_action_l2` proved in-tree (the anti-cheat `ensures` `l3_is_counterexample(v) ==> (r is HardFail) && !is_degrade(r)` + the L2 analog + the global `anti_cheat_holds_for_all_verdicts` proof); `verus --no-cheating thermite-verified/src/lib.rs` → **19 verified, 0 errors**. The plain mirrors `thermite_verified::ladder_action_l3_tag`/`ladder_action_l2_tag` (+ `LadderAction`/`is_degrade`) are consumed by `forge::degrade::ladder_action_l3`/`ladder_action_l2`, and `run_ladder` now BRANCHES on the returned `LadderAction` (the proved decision drives the control flow, OQ-5). Anchored in-module (Option B — forge is binary-only): `degrade::verus_anchor` asserts the production decision == the proved tag over every verdict (3 L3 + 3 L2) AND the OQ-5 observable outcome (a `Counterexample` → hard-fail cert, no degrade stamp, `attempt_l2`/`attempt_l1` NOT invoked). Non-vacuity: `tests/verus_verify.rs::broken_ladder_action_counterexample_degrades_fails` (a `Counterexample`→`DegradeToL1` mutant fails the anti-cheat `ensures`). The existing `counterexample_never_degrades`/`l2_counterexample_never_drops_to_l1` still pass. |
-| REQ-8 (seccomp allowlist soundness verified + anchored) | SHIPPED | epic #60 / #106. `verus_core::io_allow` (+ `widen`/`io_allow_exec`/`widen_exec`) proved in-tree over the 9-atom `u16` fx-mask (WIDENED `u8`→`u16` for the #106 `Term` atom) with the four soundness lemmas — `pure_has_no_io` (`io_allow(0)==0`), `non_widening_atoms_have_no_io` (now incl. the `Term` bit 8), `monotone` (subset on the syscall-mask), `io_allow_within_io_bits` (deny-by-default, bits 0..5) — `verus --no-cheating` → `27 verified, 0 errors`. The plain mirror `thermite_verified::io_allow` (+ `widen` + the 5 `SYS_*` bit constants) is anchored to `forge::sandbox::syscall_allowlist` over ALL 512 fx-masks by `sandbox::verus_anchor::syscall_allowlist_matches_proved_io_allow_over_all_512_masks` (membership over openat/socket/connect/getrandom/clock_gettime == the proved `io_allow` bits, R-CHAR-3). The #106 `Term` atom (bit 8) is NON-widening (`widen(8)==0`) — a terminal-control `ioctl` grant, NOT io-sensitive (runtime-sandbox.md REQ-7/OQ-5), so the soundness bitset is unaffected. OQ-6: verus proves soundness over the 5 sensitive syscalls only; the dense `BASELINE_SYSCALLS` stays `sandbox_conformance`-grounded. Non-vacuity: `tests/verus_verify.rs::broken_widen_leaks_openat_fails_pure_no_io` + `broken_io_allow_xor_fails_monotone`. The existing `sandbox_conformance` + `pure_baseline_excludes_io_syscalls` still pass. |
+| REQ-5 (`subsumes` verified + matched) | SHIPPED | `verus_core::subsumes` proved over the 9-atom `u16` bitset (WIDENED `u8`→`u16` for the #106 `Term` atom; the `(callee & !caller)==0` test bounded to the `< 512` domain so it agrees with the 9-way `spec_subsumes` conjunction) (+ three lattice-law `proof fn`s); `fluffy_verified::subsumes_masks` (the plain mirror) consumed by `fluffy_lower::effects::subsumes`; matched by the 262144-pair (512×512) exhaustive equivalence test (mechanism (c), AC-4, 0 mismatches); the `effects` tests still pass (AC-3). |
+| REQ-6 (CI-able verus-verify gauntlet step) | SHIPPED | `fluffy-verified/tests/verus_verify.rs` runs real `verus --no-cheating --crate-type=lib src/lib.rs` (skip-loud if verus absent) and asserts `verified, 0 errors`; a core fn that fails to verify is a HARD test failure (R-DEFER-6). |
+| REQ-7 (degrade anti-cheat verified + anchored) | SHIPPED | epic #60. `verus_core::ladder_action_l3`/`ladder_action_l2` proved in-tree (the anti-cheat `ensures` `l3_is_counterexample(v) ==> (r is HardFail) && !is_degrade(r)` + the L2 analog + the global `anti_cheat_holds_for_all_verdicts` proof); `verus --no-cheating fluffy-verified/src/lib.rs` → **19 verified, 0 errors**. The plain mirrors `fluffy_verified::ladder_action_l3_tag`/`ladder_action_l2_tag` (+ `LadderAction`/`is_degrade`) are consumed by `forge::degrade::ladder_action_l3`/`ladder_action_l2`, and `run_ladder` now BRANCHES on the returned `LadderAction` (the proved decision drives the control flow, OQ-5). Anchored in-module (Option B — forge is binary-only): `degrade::verus_anchor` asserts the production decision == the proved tag over every verdict (3 L3 + 3 L2) AND the OQ-5 observable outcome (a `Counterexample` → hard-fail cert, no degrade stamp, `attempt_l2`/`attempt_l1` NOT invoked). Non-vacuity: `tests/verus_verify.rs::broken_ladder_action_counterexample_degrades_fails` (a `Counterexample`→`DegradeToL1` mutant fails the anti-cheat `ensures`). The existing `counterexample_never_degrades`/`l2_counterexample_never_drops_to_l1` still pass. |
+| REQ-8 (seccomp allowlist soundness verified + anchored) | SHIPPED | epic #60 / #106. `verus_core::io_allow` (+ `widen`/`io_allow_exec`/`widen_exec`) proved in-tree over the 9-atom `u16` fx-mask (WIDENED `u8`→`u16` for the #106 `Term` atom) with the four soundness lemmas — `pure_has_no_io` (`io_allow(0)==0`), `non_widening_atoms_have_no_io` (now incl. the `Term` bit 8), `monotone` (subset on the syscall-mask), `io_allow_within_io_bits` (deny-by-default, bits 0..5) — `verus --no-cheating` → `27 verified, 0 errors`. The plain mirror `fluffy_verified::io_allow` (+ `widen` + the 5 `SYS_*` bit constants) is anchored to `forge::sandbox::syscall_allowlist` over ALL 512 fx-masks by `sandbox::verus_anchor::syscall_allowlist_matches_proved_io_allow_over_all_512_masks` (membership over openat/socket/connect/getrandom/clock_gettime == the proved `io_allow` bits, R-CHAR-3). The #106 `Term` atom (bit 8) is NON-widening (`widen(8)==0`) — a terminal-control `ioctl` grant, NOT io-sensitive (runtime-sandbox.md REQ-7/OQ-5), so the soundness bitset is unaffected. OQ-6: verus proves soundness over the 5 sensitive syscalls only; the dense `BASELINE_SYSCALLS` stays `sandbox_conformance`-grounded. Non-vacuity: `tests/verus_verify.rs::broken_widen_leaks_openat_fails_pure_no_io` + `broken_io_allow_xor_fails_monotone`. The existing `sandbox_conformance` + `pure_baseline_excludes_io_syscalls` still pass. |
 
 ---
 
 # FINAL Tier-1 batch (epic #60) — the remaining finite-domain anti-cheat/honesty gates
 
 This batch ports the LAST three tractable Tier-1 targets via the SAME mechanism (c)
-(a `verus!{}`-verified spec in `thermite-verified` + an exhaustive/equivalence test
+(a `verus!{}`-verified spec in `fluffy-verified` + an exhaustive/equivalence test
 binding the production fn). Each is a soundness-critical PURE decision whose wrong
 answer is a false certificate; each is GROUNDED below with a REAL `verus --no-cheating`
 run (the port + the 0-errors count + a non-triviality mutant that FAILS). After this
@@ -467,7 +467,7 @@ blocker is filed (#60 is the tracker, per the constraint).
 
 - **REQ-9 (boundary HONESTY gate verified + anchored — Target C, the §9 composition
   anti-cheat):** The `lower_fn` external_body gate (`f.boundary.is_some() ||
-  f.slag.is_some()`, `thermite-lower/src/lower.rs`) is ported into the verified
+  f.slag.is_some()`, `fluffy-lower/src/lower.rs`) is ported into the verified
   `verus!{}` body as a 2-bool predicate `should_emit_external_body(has_boundary,
   has_slag)` carrying TWO real `ensures`: **(1)** `r ==
   spec_should_emit_external_body(has_boundary, has_slag)` where the spec is the
@@ -479,7 +479,7 @@ blocker is filed (#60 is the tracker, per the constraint).
   gate is anchored by an exhaustive equivalence test over the 4 `(has_boundary, has_slag)`
   combinations binding the PRODUCTION dispatch decision (which arm `lower_fn` takes) to the
   proved predicate (R-CHAR-3). Derived from `.design/lower/boundary-composition.md`
-  composition REQ-1 + `thermite-design.md` §9 + `goal.md` R-DEFER-9. **NOT-STARTED**
+  composition REQ-1 + `fluffy-design.md` §9 + `goal.md` R-DEFER-9. **NOT-STARTED**
   (grounded below; epic #60).
 
 - **REQ-10 (project LEVEL AGGREGATION verified + anchored — Target D, no over-claim,
@@ -498,7 +498,7 @@ blocker is filed (#60 is the tracker, per the constraint).
   input level (R-CHAR-3). NOTE the scope aggregation (`project_scope`: end-to-end iff ALL
   end-to-end) factors cleanly as a SEPARATE finite predicate — see OQ-D below; this REQ
   pins the LEVEL min (the over-claim soundness story). Derived from
-  `.design/forge/degrade-ladder.md` REQ-5/REQ-6 + `thermite-design.md` §5.2 + `goal.md`
+  `.design/forge/degrade-ladder.md` REQ-5/REQ-6 + `fluffy-design.md` §5.2 + `goal.md`
   R-DEFER-9. **NOT-STARTED** (grounded below; epic #60).
 
 - **REQ-11 (mutation FLOOR gate verified + anchored — Target E, #48 anti-Goodhart, §7):**
@@ -517,7 +517,7 @@ blocker is filed (#60 is the tracker, per the constraint).
   every grid point (R-CHAR-3). The load-bearing soundness property — `scored == 0 ⟹ !pass`
   — is verus-proved (integer-only); the equivalence test is the f64↔integer anchor.
   Derived from `.design/forge/mutation-scoring.md` REQ-5 (the #48 0/0 gate) +
-  `thermite-design.md` §7 + `goal.md` R-DEFER-9. **NOT-STARTED** (grounded below; epic
+  `fluffy-design.md` §7 + `goal.md` R-DEFER-9. **NOT-STARTED** (grounded below; epic
   #60).
 
 ## Acceptance criteria (this batch)
@@ -580,7 +580,7 @@ blocker is filed (#60 is the tracker, per the constraint).
 
 **`should_emit_external_body` (REQ-9) — the §9 composition honesty gate.** The production
 gate is the single boolean `f.boundary.is_some() || f.slag.is_some()` test at the head of
-`lower_fn` (`thermite-lower/src/lower.rs`) that routes to `lower_external_body_fn` (which
+`lower_fn` (`fluffy-lower/src/lower.rs`) that routes to `lower_external_body_fn` (which
 emits `#[verifier::external_body]` + the unweakened signature). The finite domain is the
 2×2 `(has_boundary, has_slag)` bool square — tiny but soundness-critical (a wrong `true` on
 `(false, false)` launders a lying REGULAR body into an assumed-L3 signature, §9). The verus
@@ -675,7 +675,7 @@ exhaustively checkable in the verus fragment:
 | Function | Soundness role | Why NOT verus-verified (honest) |
 |---|---|---|
 | `cache::cache_key` (`forge/src/cache.rs`, §5.3) | content-addressing — a collision/under-mix serves a stale cert for changed inputs | **INFEASIBLE in verus.** The key is a SHA-256 over the canonicalized inputs; modeling SHA-256's collision resistance is a cryptographic assumption, not an exhaustively-checkable finite predicate. The soundness rests on the hash primitive (a Tier-3-style trusted floor), empirically grounded by the cache's hit/miss conformance, not provable here. |
-| `vacuity::triage` structural battery (`forge/src/vacuity.rs`, §7.1) | a vacuous/trivial contract must not pass the gate | **NOT exhaustively-checkable (Tier-2-adjacent).** Triage is an AST-walk over UNBOUNDED programs (arbitrary `req`/`ens` expression trees); its input domain is infinite and structural, not a fixed-width finite lattice. Verifying it is verified-compiler / verified-static-analysis territory (Tier 2, §11 "Thermite is not a proof assistant"). Grounded by the §7.1 triage conformance corpus. |
+| `vacuity::triage` structural battery (`forge/src/vacuity.rs`, §7.1) | a vacuous/trivial contract must not pass the gate | **NOT exhaustively-checkable (Tier-2-adjacent).** Triage is an AST-walk over UNBOUNDED programs (arbitrary `req`/`ens` expression trees); its input domain is infinite and structural, not a fixed-width finite lattice. Verifying it is verified-compiler / verified-static-analysis territory (Tier 2, §11 "Fluffy is not a proof assistant"). Grounded by the §7.1 triage conformance corpus. |
 | `mutation::generate` enumeration (`forge/src/mutation.rs`) | the frozen mutant set must be complete + deterministic | **NOT exhaustively-checkable (Tier-2-adjacent).** `generate` is an AST-walk emitting mutants over an unbounded body; like `triage` its domain is infinite/structural. Determinism is grounded by the same-input double-run conformance, completeness by the frozen-family tests — empirical, not verus. (NOTE: the mutation FLOOR gate — the finite numeric decision — IS verified, REQ-11; only the unbounded ENUMERATION is out.) |
 | `strengthen::is_strictly_stronger` (`forge/src/strengthen.rs`, §7) | a non-stronger candidate must not be suggested as stronger | Carried under REQ-2; it compares two contract expression trees (structural, unbounded domain — Tier-2-adjacent), so it is NOT a finite-lattice port. Honestly out of the finite-domain batch. |
 
@@ -687,11 +687,11 @@ claiming otherwise would be the dishonesty R-DEFER-9 forbids.
 
 ## Files the builder will touch (this batch — orchestrator adds/extends routes)
 
-- `thermite-verified/src/lib.rs` (EXTEND — add the C/D/E verus cores + their plain-Rust
+- `fluffy-verified/src/lib.rs` (EXTEND — add the C/D/E verus cores + their plain-Rust
   mirrors behind the same `#[cfg(verus_keep_ghost)]` split: `should_emit_external_body`,
   `aggregate_level`/`Level`/`min2`/`rank`, `meets_floor_60`/`spec_meets_floor_60`).
-- `thermite-lower/src/lower.rs` (anchor the `lower_fn` external_body gate to the proved
-  predicate — REQ-9). NOTE: `thermite-lower` HAS a lib, so its equivalence test CAN be an
+- `fluffy-lower/src/lower.rs` (anchor the `lower_fn` external_body gate to the proved
+  predicate — REQ-9). NOTE: `fluffy-lower` HAS a lib, so its equivalence test CAN be an
   EXTERNAL `tests/boundary_gate_verified.rs` (the 4-combination enumeration), unlike forge.
 - `forge/src/manifest.rs` (anchor `AssuranceManifest::aggregate` to the proved fold-min —
   REQ-10) and `forge/src/mutation.rs` (anchor `MutationScore::meets_floor` to the proved
@@ -699,7 +699,7 @@ claiming otherwise would be the dishonesty R-DEFER-9 forbids.
   `#[cfg(test)]` `verus_anchor` blocks (Option B — the same pattern REQ-7/REQ-8 used):
   `manifest::verus_anchor` (the exhaustive `Level`-list enumeration) and
   `mutation::verus_anchor` (the `0..=20 × 0..=20` f64↔integer grid).
-- `thermite-verified/tests/verus_verify.rs` (EXTEND — assert the new cores verify + add the
+- `fluffy-verified/tests/verus_verify.rs` (EXTEND — assert the new cores verify + add the
   three non-triviality mutation checks: `broken_should_emit_external_body_true_fails`,
   `broken_aggregate_max_fails_le_all`, `broken_meets_floor_drops_scored_guard_fails`, using
   the existing `assert_mutation_fails` helper).
@@ -738,14 +738,14 @@ claiming otherwise would be the dishonesty R-DEFER-9 forbids.
 ## REQ status (this batch)
 
 The prior increments (REQ-1/3/4/5/6/7/8) stay SHIPPED. REQ-9/10/11 are now **SHIPPED
-in-tree**: the C/D/E verus cores landed in `thermite-verified/src/lib.rs` (verified by real
-`verus --no-cheating --crate-type=lib thermite-verified/src/lib.rs` → **26 verified, 0
+in-tree**: the C/D/E verus cores landed in `fluffy-verified/src/lib.rs` (verified by real
+`verus --no-cheating --crate-type=lib fluffy-verified/src/lib.rs` → **26 verified, 0
 errors**, up from 19), each anchored to the production fn by mechanism (c). REQ-2's
 finite-domain Tier-1 set is now EXHAUSTED (see the Tier-1 coverage boundary). Epic **#60**
 owns the porting (no separate blocker — #60 is the tracker).
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-9 (boundary HONESTY gate — Target C) | SHIPPED | epic #60. `verus_core::should_emit_external_body` proved (`ensures r == has_boundary \|\| has_slag` + the soundness corollary `(!has_boundary && !has_slag) ==> !r` + the global `regular_fn_never_external_body` proof); `verus --no-cheating thermite-verified/src/lib.rs` → 26 verified, 0 errors. The plain mirror `thermite_verified::should_emit_external_body` is consumed by `thermite_lower::lower::lower_fn`'s gate, anchored by the OBSERVABLE-dispatch test `thermite-lower/tests/boundary_gate_verified.rs` (the emitted source carries `#[verifier::external_body]` IFF the proved predicate, over the 4 (boundary,slag) combos; the (false,false) regular fn carries NONE). Non-vacuity: `tests/verus_verify.rs::broken_should_emit_external_body_true_fails` (exec body → `true` fails the corollary). The existing `composition_conformance` tests still pass. |
-| REQ-10 (project LEVEL AGGREGATION — Target D) | SHIPPED | epic #60. `verus_core::aggregate_level` (the `Seq<Level>` fold-min seeded at L3) proved with `aggregate_le_all` (D1: ≤ every fn — the §5.2 over-claim bound) + `aggregate_is_attained` (D2: == the min); the plain mirror `thermite_verified::aggregate_level` (+ `Level`/`min2`/`rank`) anchors `forge::manifest::AssuranceManifest::aggregate` over ALL 341 `Level` lists (len 0..=4) by `manifest::tests::verus_anchor` (Option B, forge binary-only): `aggregate(certs).project == Certified(proved_min)` AND headline ≤ every level. Non-vacuity: `tests/verus_verify.rs::broken_aggregate_max_fails_le_all` (`min2` → MAX, an over-claim, fails D1). The existing `aggregate_headline_is_min_over_functions` (AC-5) still passes. The scope aggregation (OQ-D) factors cleanly but is left as the optional companion. |
-| REQ-11 (mutation FLOOR gate — Target E, #48) | SHIPPED | epic #60. `verus_core::meets_floor_60` (INTEGER cross-multiply `scored > 0 && killed*100 >= scored*60`, `u128` exec widening, NO float) proved with the `scored == 0 ==> !r` #48 `ensures` + the global `zero_scored_never_passes` proof; the plain mirror `thermite_verified::meets_floor_60` anchors the production f64 `MutationScore::meets_floor(0.60)` over the `0..=20 × 0..=20` grid by `mutation::tests::verus_anchor`. OQ-E RESULT: the f64↔integer grid AGREES on EVERY cell (0 divergences over all 441 points — the cross-multiply is the exact rational comparison, the f64 boundary like 12/20==0.60 matches; no masking). Non-vacuity: `tests/verus_verify.rs::broken_meets_floor_drops_scored_guard_fails` (drop the `scored > 0` guard fails the #48 `ensures`). The existing #48 test `empty_score_is_below_floor` (0/0 gated) still passes. |
+| REQ-9 (boundary HONESTY gate — Target C) | SHIPPED | epic #60. `verus_core::should_emit_external_body` proved (`ensures r == has_boundary \|\| has_slag` + the soundness corollary `(!has_boundary && !has_slag) ==> !r` + the global `regular_fn_never_external_body` proof); `verus --no-cheating fluffy-verified/src/lib.rs` → 26 verified, 0 errors. The plain mirror `fluffy_verified::should_emit_external_body` is consumed by `fluffy_lower::lower::lower_fn`'s gate, anchored by the OBSERVABLE-dispatch test `fluffy-lower/tests/boundary_gate_verified.rs` (the emitted source carries `#[verifier::external_body]` IFF the proved predicate, over the 4 (boundary,slag) combos; the (false,false) regular fn carries NONE). Non-vacuity: `tests/verus_verify.rs::broken_should_emit_external_body_true_fails` (exec body → `true` fails the corollary). The existing `composition_conformance` tests still pass. |
+| REQ-10 (project LEVEL AGGREGATION — Target D) | SHIPPED | epic #60. `verus_core::aggregate_level` (the `Seq<Level>` fold-min seeded at L3) proved with `aggregate_le_all` (D1: ≤ every fn — the §5.2 over-claim bound) + `aggregate_is_attained` (D2: == the min); the plain mirror `fluffy_verified::aggregate_level` (+ `Level`/`min2`/`rank`) anchors `forge::manifest::AssuranceManifest::aggregate` over ALL 341 `Level` lists (len 0..=4) by `manifest::tests::verus_anchor` (Option B, forge binary-only): `aggregate(certs).project == Certified(proved_min)` AND headline ≤ every level. Non-vacuity: `tests/verus_verify.rs::broken_aggregate_max_fails_le_all` (`min2` → MAX, an over-claim, fails D1). The existing `aggregate_headline_is_min_over_functions` (AC-5) still passes. The scope aggregation (OQ-D) factors cleanly but is left as the optional companion. |
+| REQ-11 (mutation FLOOR gate — Target E, #48) | SHIPPED | epic #60. `verus_core::meets_floor_60` (INTEGER cross-multiply `scored > 0 && killed*100 >= scored*60`, `u128` exec widening, NO float) proved with the `scored == 0 ==> !r` #48 `ensures` + the global `zero_scored_never_passes` proof; the plain mirror `fluffy_verified::meets_floor_60` anchors the production f64 `MutationScore::meets_floor(0.60)` over the `0..=20 × 0..=20` grid by `mutation::tests::verus_anchor`. OQ-E RESULT: the f64↔integer grid AGREES on EVERY cell (0 divergences over all 441 points — the cross-multiply is the exact rational comparison, the f64 boundary like 12/20==0.60 matches; no masking). Non-vacuity: `tests/verus_verify.rs::broken_meets_floor_drops_scored_guard_fails` (drop the `scored > 0` guard fails the #48 `ensures`). The existing #48 test `empty_score_is_below_floor` (0/0 gated) still passes. |

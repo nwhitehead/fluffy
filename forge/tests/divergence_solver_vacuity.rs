@@ -1,5 +1,5 @@
 //! ADVERSARIAL critic probes for forge's SOLVER-backed tautology +
-//! vacuous-precondition checks (issue #13, `thermite-design.md` §7 steps 2-3,
+//! vacuous-precondition checks (issue #13, `fluffy-design.md` §7 steps 2-3,
 //! `.design/forge/solver-vacuity.md`).
 //!
 //! The CRUX these tests guard is the dangerous direction: a FALSE POSITIVE —
@@ -13,7 +13,7 @@
 //! different unsat `req` than the fixtures) and the authority (AC-2 / AC-3) says
 //! they must be detected — so the gate is not neutered.
 //!
-//! R-CHAR-3: every expected value traces to `thermite-design.md` §7 ("is `ens`
+//! R-CHAR-3: every expected value traces to `fluffy-design.md` §7 ("is `ens`
 //! provable from `req` + types WITHOUT the body" → reject; "is `req`
 //! satisfiable" → reject when not) and `.design/forge/solver-vacuity.md`
 //! AC-1/AC-2/AC-3 + the "Resolved" vacuity-first ordering — NEVER literal-copied
@@ -128,7 +128,7 @@ fn cause(c: &Value) -> Option<&str> {
 // Authority: `.design/forge/solver-vacuity.md` AC-1 ("verus FAILS to prove `ens`
 // for an arbitrary result" → tautology=false; "verus FAILS to prove
 // `assert(false)` under a satisfiable `req`" → vacuous_precondition=false → L3);
-// `thermite-design.md` §7 ("a function does not certify until its contract
+// `fluffy-design.md` §7 ("a function does not certify until its contract
 // certifies" — but a NON-degenerate contract MUST be allowed to certify).
 // ===========================================================================
 

@@ -5,10 +5,10 @@ status: draft
 governs: forge/src/session.rs  (NOT YET CREATED — greenfield; see "Route" below)
 also-hardens: forge/src/cache.rs  (the concurrency-safe primitives this contract demonstrates)
 thesis-refs:
-  - thermite-design.md §9   (composition — trust invariant under composition)
-  - thermite-design.md §1.5 (locality — an edit's blast radius is its block)
-  - thermite-design.md §5.3 (content-addressed per-item cache — an edit to f cannot invalidate g's certificate unless g references f)
-  - thermite-design.md §13  (v0.5 — multi-agent Forge sessions)
+  - fluffy-design.md §9   (composition — trust invariant under composition)
+  - fluffy-design.md §1.5 (locality — an edit's blast radius is its block)
+  - fluffy-design.md §5.3 (content-addressed per-item cache — an edit to f cannot invalidate g's certificate unless g references f)
+  - fluffy-design.md §13  (v0.5 — multi-agent Forge sessions)
 crosslink: #20 (the final kernel/roadmap issue; v0.5). builds on #8 (per-item proof cache).
 status-note: ALL REQs SHIPPED under #20. The cache PRIMITIVES this contract rests on
   (atomic store, miss-on-torn load, per-item locality keys) shipped under #8/#49; #20
@@ -24,7 +24,7 @@ status-note: ALL REQs SHIPPED under #20. The cache PRIMITIVES this contract rest
 ## Summary
 
 A **multi-agent Forge session** is N agents each running `forge check` / `forge repair`
-on their own items against a **shared project proof cache** (`target/thermite-proof-cache/`),
+on their own items against a **shared project proof cache** (`target/fluffy-proof-cache/`),
 with **no central coordinator**. The filesystem cache (concurrency-safe) plus
 content-addressed per-item locality (§5.3) *is* the coordination: concurrent `forge`
 processes never corrupt the cache nor read a torn entry, and an edit by agent A to item
@@ -89,7 +89,7 @@ OUT:
   from §5.3 ("an edit to `f` cannot invalidate `g`'s certificate unless `g`'s contract
   references `f`'s contract") + §1.5 + §9 (composition independence).
 - **REQ-6 (session semantics — no central coordinator).** A multi-agent session is *defined*
-  as N independent `forge` invocations over the shared `target/thermite-proof-cache/`
+  as N independent `forge` invocations over the shared `target/fluffy-proof-cache/`
   (resolved by `check::resolve_cache_dir`, overridable via `FORGE_CACHE_DIR`). The
   coordination substrate is the filesystem cache (REQ-1..4) + content-addressed locality
   (REQ-5); there is no forge daemon, no lock server, no agent registry. Concurrent
@@ -155,10 +155,10 @@ filesystem. Each agent runs an ordinary `forge check` (`check::check_file` →
 `check::check_file_with_options`). That pipeline already:
 
 - resolves a single shared cache dir per run (`resolve_cache_dir in check.rs`,
-  `target/thermite-proof-cache/` via `default_cache_dir in cache.rs`, overridable with
+  `target/fluffy-proof-cache/` via `default_cache_dir in cache.rs`, overridable with
   `FORGE_CACHE_DIR`); and
 - per item (§5.3), computes a content-address key over the item's **own** isolated lowered
-  sub-program (`item_subprogram in check.rs` → `thermite_lower::lower`), consults the cache
+  sub-program (`item_subprogram in check.rs` → `fluffy_lower::lower`), consults the cache
   (`load in cache.rs`) before spawning verus, and stores the verdict (`store in cache.rs`)
   on a miss.
 
@@ -191,7 +191,7 @@ multi-agent contract over them and demands the demonstration tests that #20 owns
 
 ### Why locality holds for the multi-agent case (§5.3 / §1.5 / §9)
 
-`cache::cache_key` hashes exactly `(lowered_src, seed, verus_version, thermite_version)` plus
+`cache::cache_key` hashes exactly `(lowered_src, seed, verus_version, fluffy_version)` plus
 the check-schema version — and `lowered_src` is the item's **own** isolated sub-program from
 `item_subprogram in check.rs`. For a `fn`, that sub-program is `[the file's spec fns] + this
 fn` — it does **not** contain a sibling `fn`'s body. So:

@@ -9,7 +9,7 @@
       "why": "all_positive = for_all(l, |x| x > 0) lowers to the generated for_all_list (a bool-collapsing fold); verus verifies." }
   ],
   "multiplier": {
-    "note": "The prove-once-instantiate engine (REQ + fold_bound). The GENERATED law fold_bound_list carries the structural induction ONCE; an instance bound (sum_list(l) <= len_list(l) * MAX) is proven by CITING the law with NO fresh decreases/match/recursion. The builder must reproduce the design's grounded form (9 verified, 0 errors) as a thermite-lower test: the instance proof cites fold_bound_list and contains no recursion. Negative control: dropping the per-node premise FAILS verus (the induction is real, not vacuous).",
+    "note": "The prove-once-instantiate engine (REQ + fold_bound). The GENERATED law fold_bound_list carries the structural induction ONCE; an instance bound (sum_list(l) <= len_list(l) * MAX) is proven by CITING the law with NO fresh decreases/match/recursion. The builder must reproduce the design's grounded form (9 verified, 0 errors) as a fluffy-lower test: the instance proof cites fold_bound_list and contains no recursion. Negative control: dropping the per-node premise FAILS verus (the induction is real, not vacuous).",
     "expect_grounded": "verus --no-cheating on the generated fold_list + fold_bound_list + the sum_list instance citing the law -> N verified, 0 errors; the negative control (per-node premise dropped) -> 1 error."
   },
   "reject": [

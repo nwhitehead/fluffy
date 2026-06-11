@@ -1,5 +1,5 @@
 //! `forge/src/audit.rs` — the AUDIT MANIFEST v1, the project-level TRUST
-//! DELIVERABLE (`thermite-design.md` §6/§8/§9, issue #15). `thermite-design.md`
+//! DELIVERABLE (`fluffy-design.md` §6/§8/§9, issue #15). `fluffy-design.md`
 //! §6: "The certificate attached to a build artifact lists every function's
 //! level, every `#[slag]` block, and the contract-quality scores from §7. This
 //! manifest **is** the deliverable's trust statement." This module is that
@@ -11,7 +11,7 @@
 //! The manifest is a PURE PROJECTION of the per-fn [`Certificate`] collection
 //! `forge check` already produced (`manifest.rs`), the project
 //! [`AssuranceManifest`] aggregate (`manifest.rs`, #10/#17), and the toolchain
-//! identity (verus version + thermite version). It computes NO verdict — it never
+//! identity (verus version + fluffy version). It computes NO verdict — it never
 //! re-runs verus, re-scores mutants, or re-classifies a closure (REQ-4). Its
 //! centerpiece is the §9 ENUMERABLE TRUSTED COMPUTING BASE ([`Tcb`]): exactly
 //! (every `#[slag]` block ∪ every `#[boundary]` contract ∪ the toolchain itself).
@@ -33,7 +33,7 @@
 use std::process::Command;
 
 use serde::{Deserialize, Serialize};
-use thermite_syntax::{Contract, EffectRow, Item, Program};
+use fluffy_syntax::{Contract, EffectRow, Item, Program};
 
 use crate::cli::ForgeError;
 use crate::manifest::{
@@ -159,9 +159,9 @@ impl ProjectAssuranceSection {
 }
 
 /// The §9 ENUMERABLE TRUSTED COMPUTING BASE (REQ-3) — the manifest centerpiece
-/// and the R-DEFER-9 honesty surface. `thermite-design.md` §9: the TCB is
+/// and the R-DEFER-9 honesty surface. `fluffy-design.md` §9: the TCB is
 /// "exactly (slag blocks ∪ boundary contracts ∪ the toolchain itself)". For a
-/// pure-Thermite project the slag and boundary lists are EMPTY and only the
+/// pure-Fluffy project the slag and boundary lists are EMPTY and only the
 /// [`Toolchain`] remains — the §9 "verified, period" state, mechanically
 /// witnessed (the irreducible base every artifact trusts).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -249,7 +249,7 @@ pub struct SlagBlock {
 }
 
 /// One `#[boundary]` contract in the §9 TCB (REQ-3) — a foreign (unproven) body
-/// whose Thermite contract is enforced at the crossing (L1). Carries the foreign
+/// whose Fluffy contract is enforced at the crossing (L1). Carries the foreign
 /// `target` and the enforced `req`/`ens`/`fx` (§9 per-function contracts).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BoundaryContract {
@@ -276,26 +276,26 @@ pub struct BoundaryContract {
 pub struct Toolchain {
     /// The `verus` version (the SMT prover that discharged the L3 obligations).
     pub verus: String,
-    /// The `thermite`/`forge` version (the toolchain that lowered + drove the
+    /// The `fluffy`/`forge` version (the toolchain that lowered + drove the
     /// proofs). `env!("CARGO_PKG_VERSION")` — deterministic at compile time.
-    pub thermite: String,
+    pub fluffy: String,
 }
 
 impl Toolchain {
-    /// The thermite/forge version — the crate version at compile time (R-CODE-5,
-    /// no wall-clock). Identical to `check::THERMITE_VERSION` (the same
+    /// The fluffy/forge version — the crate version at compile time (R-CODE-5,
+    /// no wall-clock). Identical to `check::FLUFFY_VERSION` (the same
     /// `CARGO_PKG_VERSION` the proof cache keys on).
-    pub const THERMITE_VERSION: &'static str = env!("CARGO_PKG_VERSION");
+    pub const FLUFFY_VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
     /// Build the toolchain identity from a resolved verus version string (REQ-3).
     /// The caller (`cli::run_audit`) sources the verus version deterministically
     /// (the `VERUS_VERSION` pin, else `verus --version` — the same order
-    /// `check::resolve_verus_version` uses for the proof cache). The thermite
+    /// `check::resolve_verus_version` uses for the proof cache). The fluffy
     /// version is the compile-time crate version.
     pub fn new(verus: impl Into<String>) -> Self {
         Toolchain {
             verus: verus.into(),
-            thermite: Self::THERMITE_VERSION.to_string(),
+            fluffy: Self::FLUFFY_VERSION.to_string(),
         }
     }
 }
@@ -403,7 +403,7 @@ mod tests {
         Toolchain::new("verus-test-0.0")
     }
 
-    // REQ-1/REQ-4: a pure-Thermite cert collection projects to all-L3 rows + an
+    // REQ-1/REQ-4: a pure-Fluffy cert collection projects to all-L3 rows + an
     // empty slag/boundary TCB (only the toolchain). Mirrors the corpus_empty_tcb
     // oracle shape (the live oracle is asserted in tests/audit_conformance.rs).
     #[test]
@@ -421,7 +421,7 @@ mod tests {
             "pure project: no boundary contracts"
         );
         assert_eq!(m.tcb.toolchain.verus, "verus-test-0.0");
-        assert_eq!(m.tcb.toolchain.thermite, Toolchain::THERMITE_VERSION);
+        assert_eq!(m.tcb.toolchain.fluffy, Toolchain::FLUFFY_VERSION);
         assert_eq!(
             m.project_assurance.level,
             ProjectAssurance::Certified(Level::L3)

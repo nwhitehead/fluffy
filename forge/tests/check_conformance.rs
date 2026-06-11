@@ -13,7 +13,7 @@
 //! surface end to end.
 //!
 //! These checks RUN VERUS. If verus is absent they SKIP LOUDLY (mirroring
-//! `thermite-lower/tests/lower_conformance.rs`'s Option-resolve + eprintln-skip)
+//! `fluffy-lower/tests/lower_conformance.rs`'s Option-resolve + eprintln-skip)
 //! — never panic on a missing solver. `tests/` is not anti-pattern-gated, so
 //! `unwrap`/`expect` are fine here.
 

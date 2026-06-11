@@ -24,7 +24,7 @@
 //!     OUTSIDE any loop body is a structured `SyntaxError`, never a panic; a
 //!     `break;` nested inside an `if` WITHIN a loop is accepted.
 //!
-//! NON-VACUITY (R-DEFER-9 / `thermite-design.md` §7): the terminating L3 probes
+//! NON-VACUITY (R-DEFER-9 / `fluffy-design.md` §7): the terminating L3 probes
 //! observe the loop through a tight `ens result == <value>` pinned by a loop
 //! invariant, so the §7 mutation battery bites (a wrong body is killed); the §7
 //! vacuity gate (which rejects `ens true`) is respected. The L0 probes are L0
@@ -243,7 +243,7 @@ fn continue_not_decreasing_measure_is_l0() {
 // ---------------------------------------------------------------------------
 
 /// A loop whose body may `break` early; the post-break fact `result == 5` follows
-/// from the invariant `c == 5` that holds AT the break point (a v0.1 Thermite
+/// from the invariant `c == 5` that holds AT the break point (a v0.1 Fluffy
 /// `inv` lowers to a PLAIN Verus `invariant`, which Verus checks at break too —
 /// REQ-12(c) / OQ-5 policy (ii)). The break exits cleanly; the `Stmt::Break`
 /// lowers to a native Verus `break;`. Tight `ens result == 5` → §7 bites → L3.
@@ -359,11 +359,11 @@ fn diverge_loop_with_break_and_continue_caps_at_l1() {
 /// analogous to the mandatory-clause rule), not a verification rule.
 #[test]
 fn break_or_continue_outside_a_loop_is_a_structured_error_not_a_panic() {
-    use thermite_syntax::parser::SyntaxError;
+    use fluffy_syntax::parser::SyntaxError;
 
     let break_top =
         "fn f(n: u64) -> u64\n  req true\n  ens result == 0\n  fx pure\n{\n  break;\n  0\n}\n";
-    let r = thermite_syntax::parse(break_top);
+    let r = fluffy_syntax::parse(break_top);
     assert!(
         !r.is_clean(),
         "a top-level `break;` (no enclosing loop) must be a parse error: {:?}",
@@ -380,7 +380,7 @@ fn break_or_continue_outside_a_loop_is_a_structured_error_not_a_panic() {
 
     let continue_top =
         "fn g(n: u64) -> u64\n  req true\n  ens result == 0\n  fx pure\n{\n  continue;\n  0\n}\n";
-    let r2 = thermite_syntax::parse(continue_top);
+    let r2 = fluffy_syntax::parse(continue_top);
     assert!(
         r2.errors
             .iter()
@@ -397,7 +397,7 @@ fn break_or_continue_outside_a_loop_is_a_structured_error_not_a_panic() {
 /// AC-8). A `continue;` likewise.
 #[test]
 fn break_and_continue_inside_a_loop_parse_cleanly_as_stmt_nodes() {
-    use thermite_syntax::ast::{Item, Stmt};
+    use fluffy_syntax::ast::{Item, Stmt};
 
     let prog = "fn f(n: u64) -> u64\n  \
                   req true\n  ens result == 0\n  fx pure\n{\n  \
@@ -408,7 +408,7 @@ fn break_and_continue_inside_a_loop_parse_cleanly_as_stmt_nodes() {
                       if i == 4 {\n      continue;\n    }\n    \
                       i = i + 1;\n  }\n  \
                     0\n}\n";
-    let r = thermite_syntax::parse(prog);
+    let r = fluffy_syntax::parse(prog);
     assert!(
         r.is_clean(),
         "a `break;`/`continue;` nested in an `if` inside a loop body parses cleanly \

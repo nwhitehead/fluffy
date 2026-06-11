@@ -6,7 +6,7 @@
 //! `forge build --entry` injects (ON BY DEFAULT) a seccomp-bpf filter-install
 //! prelude into the generated `main`, BEFORE the entry runs; the allowlist is the
 //! entry's transitive `fx` projection. A syscall off the allowlist → `SIGSYS` →
-//! the process is killed (exit 159 = 128+SIGSYS(31)). PURE Thermite has no I/O
+//! the process is killed (exit 159 = 128+SIGSYS(31)). PURE Fluffy has no I/O
 //! surface, so the kill is DEMONSTRATED via `--sandbox-self-test` (an `openat`
 //! probe AFTER the filter): denied under a `pure` filter, allowed under `read(_)`.
 //!

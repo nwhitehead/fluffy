@@ -8,7 +8,7 @@ needed to CERTIFY.
 
 ## What is proven
 
-```thermite
+```fluffy
 fn fields(s: String, sep: u64) -> Vec<String>
   req true
   ens result.len() == 1 + count_sep(s, sep)    // the EXACT piece count
@@ -58,8 +58,8 @@ error[E0425]: cannot find function `contains_sub` in this scope
 ```
 
 Same class as the calculator's gap: `forge build` lowers every function's contract
-to a runtime `thermite_check!`, and `fields`/`has_sep` name the **C5 spec fns**
-`count_sep` / `contains_sub`, which `thermite-lower`'s `emit_string_runtime_l1`
+to a runtime `fluffy_check!`, and `fields`/`has_sep` name the **C5 spec fns**
+`count_sep` / `contains_sub`, which `fluffy-lower`'s `emit_string_runtime_l1`
 does **not** emit an L1 runnable form for (only C4's numfmt spec fns got one). This
 belongs to the **C5 / #102 build-side cluster** (the L1 mirror of the C5 contract
 spec fns `count_sep` / `sep_free` / `occurs_at` / `contains_sub`). When that L1

@@ -4,12 +4,12 @@
 //! forms (`\r`, `\0`, `\xNN` — the ANSI/control bytes the editor needs). This test
 //! certifies, against the REAL verus binary, that each escape decodes to its
 //! control byte and that byte flows end-to-end through the existing `String`
-//! literal lowering (`thermite-lower::lower` `Expr::StrLit` → byte-`push`) so that
+//! literal lowering (`fluffy-lower::lower` `Expr::StrLit` → byte-`push`) so that
 //! `"\x1b".byte_at(0) == 27`, `"\r".byte_at(0) == 13`, `"\0".byte_at(0) == 0`
 //! certify L3 (`.design/basis/07-strings.md` REQ-6 escape table + REQ-2 byte model,
-//! `thermite-design.md` §6 ladder: a fully-discharged real-verus proof is L3).
+//! `fluffy-design.md` §6 ladder: a fully-discharged real-verus proof is L3).
 //!
-//! NON-VACUITY (R-DEFER-9 / `thermite-design.md` §7): the control byte is observed
+//! NON-VACUITY (R-DEFER-9 / `fluffy-design.md` §7): the control byte is observed
 //! through a `result == (n == <CODE>)` contract — body `LIT.byte_at(0) == n` — so a
 //! deliberately-wrong body (`return false`, or a different byte) is KILLED by the
 //! §7 mutation battery (the proof requires the literal byte to be EXACTLY the

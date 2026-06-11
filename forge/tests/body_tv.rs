@@ -32,8 +32,8 @@ use std::process::Command;
 
 use serde_json::Value;
 
-use thermite_syntax::ast::{BinOp, Block, Expr, Stmt};
-use thermite_tv::obligation::{body_equivalence_obligation, BodyObligationFrame, BodyParamDecl};
+use fluffy_syntax::ast::{BinOp, Block, Expr, Stmt};
+use fluffy_tv::obligation::{body_equivalence_obligation, BodyObligationFrame, BodyParamDecl};
 
 fn forge_bin() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_forge"))

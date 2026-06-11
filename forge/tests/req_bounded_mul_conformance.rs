@@ -3,7 +3,7 @@
 //! with `check --json` over a temp `.th` fixture and asserts the certificate
 //! `level`. This is the cert-oracle end of the #196 fix: the lowerer emits the
 //! req-bounded-mul `by(nonlinear_arith)` aid (pinned in
-//! `thermite-lower/tests/req_bounded_mul_aid.rs`) and verus, run by forge,
+//! `fluffy-lower/tests/req_bounded_mul_aid.rs`) and verus, run by forge,
 //! discharges the overflow obligation → L3.
 //!
 //! Mirrors `forge/tests/check_conformance.rs`: drive the binary, parse JSON,

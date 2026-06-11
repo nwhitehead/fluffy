@@ -1,4 +1,4 @@
-//! Divergence pin (#127): `callee_takes_string_byteview` (`thermite-lower/src/lower.rs`)
+//! Divergence pin (#127): `callee_takes_string_byteview` (`fluffy-lower/src/lower.rs`)
 //! gates the `String -> s.data@` byte-view rewrite on a FIXED callee NAME set
 //! (`parse_le`/`parse_be`/`all_digits`/`is_digit`/`occurs_at`/`contains_sub`/
 //! `count_sep`/`sep_free` — the generated C4/C5/C7 defs). A USER-DEFINED `spec fn`
@@ -13,7 +13,7 @@
 //! (`byte_at`/`len` over a `&String` param) MUST lower correctly and certify L3".
 //! The contract is SHAPE-derived ("the SHAPE-derived set whose spec-position
 //! `.len()`/`.byte_at(i)`/`.slice(..)` rewrite to the wrapper's SPEC accessors"),
-//! NOT name-derived. `thermite-design.md` §6 — L3 == fully-discharged real-verus
+//! NOT name-derived. `fluffy-design.md` §6 — L3 == fully-discharged real-verus
 //! proof. The #126 commit's own claim ("Keyed on the callee NAME (these names are
 //! reserved by the generated defs — no user collision in v0.1)") is the unproven
 //! assumption this test refutes: a user spec-fn name lives in the user namespace and

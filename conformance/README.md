@@ -1,4 +1,4 @@
-# Thermite conformance corpus
+# Fluffy conformance corpus
 
 This directory is the **cert oracle**: the external truth the `acto-critic`
 anchors divergence claims to, in place of the upstream a translation fork
@@ -9,13 +9,13 @@ upstream").
 
 ```
 conformance/
-  <name>.th          a Thermite program (the input to `forge check`)
+  <name>.th          a Fluffy program (the input to `forge check`)
   <name>.cert.json   the GOLDEN certificate `forge check <name>.th` must emit
   README.md          this file
 ```
 
 A future `tests/golden/lower/<name>.verus.rs` holds the golden **lowering**
-(the exact Verus source `thermite-lower` must emit). Those are NOT authored
+(the exact Verus source `fluffy-lower` must emit). Those are NOT authored
 yet — see "Forward-declared" below.
 
 ## The cert-oracle contract
@@ -36,7 +36,7 @@ emit a certificate whose fields **match the golden cert**, with two rules:
    field becomes a LIVE assertion when its producing component lands. The
    golden cert is the target; the toolchain grows into it.
 
-Expected values trace to `thermite-design.md` or are hand-derived from it —
+Expected values trace to `fluffy-design.md` or are hand-derived from it —
 **never** copied from `forge`'s own output (`goal.md` R-CHAR-3). A test that
 asserts the toolchain's output equals itself is itself a divergence.
 
@@ -44,8 +44,8 @@ asserts the toolchain's output equals itself is itself a divergence.
 
 | Program | Source | Golden cert | Provenance |
 |---|---|---|---|
-| `sum.th` | verbatim | `sum.cert.json` | `thermite-design.md` Appendix A (program + certificate excerpt) |
-| `binary_search.th` | verbatim | — (not yet) | `thermite-design.md` §4.1 (program) |
+| `sum.th` | verbatim | `sum.cert.json` | `fluffy-design.md` Appendix A (program + certificate excerpt) |
+| `binary_search.th` | verbatim | — (not yet) | `fluffy-design.md` §4.1 (program) |
 
 `binary_search` has no golden cert yet: the design gives its program but not
 a certificate, and its `mutants_killed` value is not specified. Authoring a
@@ -64,9 +64,9 @@ lowering fixture only.
 
 ## How the corpus is consumed
 
-- **thermite-syntax / parser (#3)** — `*.th` are parse fixtures (round-trip,
+- **fluffy-syntax / parser (#3)** — `*.th` are parse fixtures (round-trip,
   per-item recovery, semantic addressing).
-- **thermite-lower (#4)** — `*.th` lower to the golden Verus files (once
+- **fluffy-lower (#4)** — `*.th` lower to the golden Verus files (once
   authored).
 - **forge check (#5)** — `forge check <name>.th` emits a cert compared to
   `<name>.cert.json` under the contract above. This is the gate referenced

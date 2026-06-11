@@ -1,21 +1,21 @@
-# Thermite Surface Grammar (the canonical anchor)
+# Fluffy Surface Grammar (the canonical anchor)
 <!--
 tier: 3-component
 status: draft
-governs: thermite-syntax (the whole surface grammar; the parser is its executable form)
+governs: fluffy-syntax (the whole surface grammar; the parser is its executable form)
 thesis-refs:
-  - thermite-design.md §4.1
-  - thermite-design.md §4.2
-  - thermite-design.md §4.3
-  - thermite-design.md §4.4
-  - thermite-design.md §2 (pillar 3, "one way to do everything")
-  - thermite-design.md §8
-  - thermite-design.md Appendix A
+  - fluffy-design.md §4.1
+  - fluffy-design.md §4.2
+  - fluffy-design.md §4.3
+  - fluffy-design.md §4.4
+  - fluffy-design.md §2 (pillar 3, "one way to do everything")
+  - fluffy-design.md §8
+  - fluffy-design.md Appendix A
 -->
 
 ## Summary
 
-This is the canonical EBNF for the Thermite v0.1 surface language: exactly the
+This is the canonical EBNF for the Fluffy v0.1 surface language: exactly the
 constructs in the two conformance programs (`conformance/sum.th`,
 `conformance/binary_search.th`) and §4, plus the primitive-completeness additions
 (#91/#92: char/hex/binary literals and the integer operators `% << >> & | ^ !`;
@@ -326,7 +326,7 @@ removed-construct negatives (AC-3), NEW fixtures for the literal forms (AC-5),
 the operator precedence (AC-6), and `break`/`continue` parse + in-loop-rule
 fixtures (AC-8). The partiality / value semantics (AC-7, and the radix/char value
 equalities) AND the break/continue verification semantics (AC-8's §7 part) are
-GROUNDED end-to-end through `forge`/`thermite-lower` certifying real Verus (see
+GROUNDED end-to-end through `forge`/`fluffy-lower` certifying real Verus (see
 `ast.md` Verification — the `% / << >> & | ^ !` and `'A'`/`0x1b`/`0b101` probes;
 and `verus-lowering.md` Verification — the continue+invariant L3, invariant-
 violating-continue L0, break early-exit L3, and diverge-loop break L1 probes).
@@ -347,7 +347,7 @@ No standalone grammar binary; the parser is the executable grammar.
 | REQ-7 (pattern grammar) | SHIPPED | `parse_pattern`/`parse_slice_pattern`/`parse_path_pattern`. |
 | REQ-8 (type grammar) | SHIPPED | `parse_type` covers prims/`&T`/`&mut T`/`&[T]`/`Name<T>`. |
 | REQ-9 (effect-row grammar) | SHIPPED | `parse_effect_row`/`parse_effect`. |
-| REQ-10 (operator precedence pinned, #92) | SHIPPED | the ladder realizes the pinned standard-Rust precedence: `* / %` > `+ -` > `<< >>` > `&` > `^` > `\|` > comparison > `&&` > `\|\|`, with prefix `!` tighter than all binaries. Tests `modulo_binds_tighter_than_add`, `shift_binds_looser_than_add`, `not_binds_tighter_than_bitand`, `bitand_binds_tighter_than_bitor` (`thermite-syntax/tests/operators_parse.rs`). GROUNDED: `a % b + 1` groups `(a%b)+1`, verus-certified (`forge/tests/operators_conformance.rs::precedence_rem_binds_tighter_than_add`). |
+| REQ-10 (operator precedence pinned, #92) | SHIPPED | the ladder realizes the pinned standard-Rust precedence: `* / %` > `+ -` > `<< >>` > `&` > `^` > `\|` > comparison > `&&` > `\|\|`, with prefix `!` tighter than all binaries. Tests `modulo_binds_tighter_than_add`, `shift_binds_looser_than_add`, `not_binds_tighter_than_bitand`, `bitand_binds_tighter_than_bitor` (`fluffy-syntax/tests/operators_parse.rs`). GROUNDED: `a % b + 1` groups `(a%b)+1`, verus-certified (`forge/tests/operators_conformance.rs::precedence_rem_binds_tighter_than_add`). |
 | REQ-11 (`break`/`continue` loop-control, #93) | NOT-STARTED | open prereq blocker #93. The grammar has NO `BreakStmt`/`ContinueStmt` production today (`parse_block`'s dispatch in `parser.rs` has no `Break`/`Continue` arm), so `break;` parses as a no-op identifier-expression statement. #93 must add the keywords (`lexer.md` REQ-10), the `Stmt::Break`/`Continue` AST variants (`ast.md` REQ-12), the parser arms + in-loop check (`parser.md` REQ-10), and the Verus-native lowering + verification semantics (`verus-lowering.md` REQ-12, GROUNDED there: continue+invariant L3, invariant-violating-continue L0, break early-exit L3, diverge-loop break L1). |
 
 ## Open questions (for the orchestrator before the builder runs)

@@ -2,11 +2,11 @@
 <!--
 tier: 3-component
 status: draft
-governs: forge/src/goal_repl.rs (future), forge/src/cli.rs (verb dispatch), thermite-syntax/src/parser.rs (hole token, future)
+governs: forge/src/goal_repl.rs (future), forge/src/cli.rs (verb dispatch), fluffy-syntax/src/parser.rs (hole token, future)
 thesis-refs:
-  - thermite-design.md §5
-  - thermite-design.md §5.1
-  - thermite-design.md Appendix B
+  - fluffy-design.md §5
+  - fluffy-design.md §5.1
+  - fluffy-design.md Appendix B
 -->
 
 ## Summary
@@ -30,7 +30,7 @@ contract the new verbs satisfy and pins their v1 scope honestly.
   and mutation scoring (`check::mutation_score`) that ALREADY run inside the gate
   as a standalone verb that reports the §7 anti-Goodhart battery for one item or
   the whole file, WITHOUT re-defining any verdict. A thin VIEW over the existing
-  per-item pipeline. Derived from `thermite-design.md` §7 + Appendix B
+  per-item pipeline. Derived from `fluffy-design.md` §7 + Appendix B
   (`forge battery [item]   run vacuity battery + mutation scoring`).
 
 - REQ-2 (`forge goal <item>` — goal-state render): render the goal state for an
@@ -42,7 +42,7 @@ contract the new verbs satisfy and pins their v1 scope honestly.
   an item with open holes renders `holes: ?N : <position>`. Derived from §5/§5.1.
 
 - REQ-3 (`forge edit <addr> --replace <code>` — semantic edit by address): locate
-  a node by its stable semantic address (`thermite_syntax::address::resolve`),
+  a node by its stable semantic address (`fluffy_syntax::address::resolve`),
   splice the replacement SOURCE TEXT at that node's span IN THE FILE, re-emit the
   file, and re-check the affected item, printing the new goal state. Derived from
   §4.3 + Appendix B (`forge edit <addr> --replace <code>   semantic edit by
@@ -93,7 +93,7 @@ contract the new verbs satisfy and pins their v1 scope honestly.
   failed".
 
 - AC-4 (edit by address): `forge edit binary_search.loop#1.inv#2 --replace "<text>"`
-  resolves the address via `thermite_syntax::address::resolve` against
+  resolves the address via `fluffy_syntax::address::resolve` against
   `conformance/binary_search.th`, splices the new clause at that span, and the
   re-emitted file re-parses to the SAME address set with the new `inv#2` text. A
   bad address (`binary_search.loop#9`, in `conformance/address/binary_search.addresses.json`
@@ -117,7 +117,7 @@ contract the new verbs satisfy and pins their v1 scope honestly.
 The component is a thin REPL/view layer (`forge/src/goal_repl.rs`-ish) over three
 SHIPPED substrates, plus one parser/validator extension.
 
-**Substrate 1 — semantic addressing (SHIPPED).** `thermite_syntax::address` is the
+**Substrate 1 — semantic addressing (SHIPPED).** `fluffy_syntax::address` is the
 operand layer for `edit`/`fill`. `pub fn resolve in address.rs` maps an address
 string to an `AddressEntry { addr, kind, surface_keyword, text }` or a structured
 `AddressError` (`Malformed` / `NotFound`), and `pub fn addresses_of in address.rs`
@@ -189,7 +189,7 @@ body-position-only `?N` token (REQ-4). The minimal v1:
   example / open-hole shapes), the battery view (equals the in-gate verdict), the
   address-splice (round-trips to the same address set), and the hole short-circuit
   (a holed item is non-certifying, never lowered).
-- `cargo test -p thermite-syntax` — the `Hole(N)` lexer token, the body-position-
+- `cargo test -p fluffy-syntax` — the `Hole(N)` lexer token, the body-position-
   only parse acceptance + the expression/clause-position parse REJECTION, and the
   `<fn>.?N` address enumeration.
 - Conformance: `conformance/goal/binary_search.dialogue.json` (AC-6, the §5.1
@@ -197,9 +197,9 @@ body-position-only `?N` token (REQ-4). The minimal v1:
   scenario; `conformance/sum.cert.json` anchors the battery view (AC-1) and the
   discharged goal render (AC-2); `conformance/address/binary_search.addresses.json`
   `must_error[]` anchors the bad-address path (AC-4).
-- Gauntlet (R-DEFER-6): `cargo test -p forge`, `cargo test -p thermite-syntax`,
-  `cargo clippy -p forge -p thermite-syntax --all-targets -- -D warnings`,
-  `cargo fmt --check`, plus the conformance corpus where `forge`/`thermite-lower`
+- Gauntlet (R-DEFER-6): `cargo test -p forge`, `cargo test -p fluffy-syntax`,
+  `cargo clippy -p forge -p fluffy-syntax --all-targets -- -D warnings`,
+  `cargo fmt --check`, plus the conformance corpus where `forge`/`fluffy-lower`
   is touched.
 
 ## Increment plan
@@ -214,7 +214,7 @@ The build is sequential (R-DEFER-7); the three increments are ordered by depende
   loop address, splices the replacement at its span, re-emits + re-checks. No holes
   yet. Discharges REQ-3 (and AC-4).
 - **(iii) holes + `forge fill`** — the research spike: the `?N` lexer/parser token
-  (thermite-syntax), the open-hole validator short-circuit (forge check), the
+  (fluffy-syntax), the open-hole validator short-circuit (forge check), the
   `<fn>.?N` address, and the REPL fill loop. Discharges REQ-4, REQ-5, REQ-6 (and
   AC-5, AC-6 — the §5.1 golden dialogue).
 
@@ -230,7 +230,7 @@ across all three increments.
 | Substrate: the §7 battery inside the gate | SHIPPED | `vacuity::triage` + `vacuity_solver::solver_vacuity_check` + `fn mutation_score` in `check.rs` (kill-ratio vs `mutation::MUTATION_FLOOR`) all run per item inside `pub fn check_file_with_options`. Non-test consumer: `fn run_check` in `cli.rs` (the gate result drives the exit code). `forge battery` (REQ-1) exposes it standalone; the substrate is shipped + anchored to `conformance/sum.cert.json` (`mutants 17/18`). |
 | REQ-1 (`forge battery [item]`) | SHIPPED | `Command::Battery` in `cli.rs` → `run_battery` → `goal_repl::render_battery`, a VIEW over each cert's `contract_quality` (the §7 verdicts the gate computed; NO accessor — the cert already carries them separably, AC-1 satisfied as a view). Verified: `forge/tests/goal_repl.rs::battery_view_matches_check_verdicts` — non-vacuous booleans anchored to `conformance/sum.cert.json` (oracle fields), the kill-ratio asserted CROSS-VERB (battery == check, since the ratio is oracle-EXCLUDED per `conformance/README.md` — the golden `17/18` is illustrative, the live tool computes `7/7`; R-CHAR-3). |
 | REQ-2 (`forge goal <item>`) | SHIPPED | `Command::Goal` in `cli.rs` → `run_goal` → `goal_repl::render_goal`, the §5.1 four-part render (given/want from the re-parsed contract; per-obligation status + concrete counterexample from `cert.obligations`; a clean L3 cert → `ALL GOALS DISCHARGED`). Holes (`?N`) NOT rendered (increment iii). Verified: `forge/tests/goal_repl.rs::goal_render_discharged_for_sum` (AC-2) + the unit `goal_render_counterexample` (AC-3, the §5.1 `lo=3,hi=3,mid=3` witness shape). |
-| REQ-3 (`forge edit <addr> --replace`) | SHIPPED | `Command::Edit` in `cli.rs` → `run_edit` → `goal_repl::edit_file`: resolves via `thermite_syntax::address::resolve`, finds the addressed node's byte span (`span_of_address`, mirroring `addresses_of`'s traversal since `AddressEntry` carries no span), splices the replacement SOURCE TEXT at that span, writes the file, re-parses + re-checks the item, prints the new goal state. v1 splices an `inv`/`dec`/`loop`/`fn` span; a bad address → structured `ForgeError::Usage` (no panic). Verified: `forge/tests/goal_repl.rs::edit_splices_clause_and_rechecks` (AC-4 round-trip) + `edit_bad_address_is_honest_error` (the `must_error[]` bad-address path, file left untouched). |
+| REQ-3 (`forge edit <addr> --replace`) | SHIPPED | `Command::Edit` in `cli.rs` → `run_edit` → `goal_repl::edit_file`: resolves via `fluffy_syntax::address::resolve`, finds the addressed node's byte span (`span_of_address`, mirroring `addresses_of`'s traversal since `AddressEntry` carries no span), splices the replacement SOURCE TEXT at that span, writes the file, re-parses + re-checks the item, prints the new goal state. v1 splices an `inv`/`dec`/`loop`/`fn` span; a bad address → structured `ForgeError::Usage` (no panic). Verified: `forge/tests/goal_repl.rs::edit_splices_clause_and_rechecks` (AC-4 round-trip) + `edit_bad_address_is_honest_error` (the `must_error[]` bad-address path, file left untouched). |
 | REQ-4 (body-position hole `?N` — parser) | SHIPPED | The `?N` HOLE token (`lexer::TokKind::Hole(u32)` + `lex_hole` — `?` + a digit run; a bare `?` is a stray-char diagnostic, no `?`-operator §2.3) + parser acceptance in EXEC-fn-body statement position ONLY (`parse_block`'s `TokKind::Hole` arm → `parse_hole`, gated by `Parser.fn_body_depth > 0` incremented around the exec-fn body parse in `parse_fn`, NOT a `spec fn` body) + the AST form (`struct Hole { number, span }` + `FnItem.holes: Vec<Hole>`, document order — PURELY ADDITIVE, NO new `Stmt` variant so the workspace `match Stmt` is untouched) + the `<fn>.?N` address (`address::AddrKind::Hole`, emitted in `addresses_of`, accepted in `validate_segments`). A `?N` in a `spec fn`/expr/clause/signature is a structured `SyntaxError::HoleOutsideFnBody` / unexpected-token error, never a panic. Non-test consumer: `forge::goal_repl::render_goal_item` (the §5.1 `holes:` section) + `span_of_address` (the fill splice target). Verified: `forge/tests/goal_repl_fill.rs::fn_body_hole_parses_clean_and_records_the_hole` (clean holed AST, one `?0`), `holes_in_nested_blocks_are_accepted_in_document_order`, `hole_outside_fn_body_statement_position_is_a_structured_parse_error_not_a_panic` (AC-5 parser half), `hole_address_resolves_and_bad_hole_address_is_structured_error`. |
 | REQ-5 (open-hole validator — never certifies) | SHIPPED | `forge::check`'s per-item loop short-circuits a holed `FnItem` (any `f.holes`) to a non-certified `Certificate::rejected` (`Level::L0`) with a `RejectReason { cause: "OpenHole", detail: <every `<fn>.?N` address + the first open goal> }` BEFORE the #6 gate / lowering / verus — the SAME short-circuit shape the vacuity gate / mutual-recursion reject uses (`RejectReason` reused, NO new variant needed: cause is a string). A holed item NEVER reaches verus, never certifies. `render_goal` surfaces it as the §5.1 open GOAL. Non-test consumer: the `forge check`/`forge goal` exit path (`cli::run_check`/`run_goal`). Verified: `forge/tests/goal_repl_fill.rs::holed_item_never_certifies_open_hole_l0_no_verus` (AC-5 — `forge check --json` reports L0 `OpenHole`, runs WITHOUT verus since the short-circuit precedes it). |
 | REQ-6 (`forge fill <addr> <code>`) | SHIPPED | `Command::Fill` in `cli.rs` → `run_fill` → `goal_repl::fill_hole`: a SPECIALIZATION of `edit_file` whose address names a `?N` hole — resolves `<fn>.?N` (a non-hole address is an honest `ForgeError::Usage` directing to `edit`), splices `code` at the hole's `?N` token span (reusing the increment-(ii) `splice`), re-emits, re-parses, re-checks the item, and prints the new GOAL STATE (which may surface NEW holes the fill introduced — the §5.1 loop). Verified: `forge/tests/goal_repl_fill.rs::fill_introducing_new_holes_re_presents_them` (the §5.1 `fill ?0 … ?1 ?2` step), `fill_on_a_non_hole_address_is_an_honest_error`, `fill_closing_the_hole_certifies_l3` (verus L3 terminal), and `ac6_binary_search_dialogue_structural_oracle` (AC-6 — the full §5.1 dialogue, structural oracle from `conformance/goal/binary_search.dialogue.json`). |

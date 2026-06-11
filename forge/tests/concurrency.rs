@@ -1,5 +1,5 @@
 //! `forge/tests/concurrency.rs` — the MULTI-AGENT FORGE SESSION guarantee suite
-//! (`.design/forge/multi-agent.md` AC-1..AC-7; `thermite-design.md` §13 v0.5,
+//! (`.design/forge/multi-agent.md` AC-1..AC-7; `fluffy-design.md` §13 v0.5,
 //! §5.3 locality, §9 composition, §1.5 blast-radius). This is the #20 deliverable:
 //! the multi-agent capability is EMERGENT from the already-shipping concurrency-safe
 //! primitives — `cache::store`'s atomic temp-sibling + `rename` publish (#8) and
@@ -40,7 +40,7 @@
 //! their non-verus halves.
 //!
 //! Expected verdicts trace to `conformance/sum.cert.json` and the `binary_search`
-//! oracle (`thermite-design.md` §13 — L3, pure), NEVER copied from forge's own
+//! oracle (`fluffy-design.md` §13 — L3, pure), NEVER copied from forge's own
 //! output (`goal.md` R-CHAR-3). `tests/` is not anti-pattern-gated, so
 //! `unwrap`/`expect` are fine here.
 
@@ -246,7 +246,7 @@ fn count_tmp_siblings(cache_dir: &Path) -> usize {
 
 /// The corpus items whose golden L3 verdict is the EXTERNAL oracle for the
 /// multi-agent guarantee: `sum` (`conformance/sum.cert.json`: L3, pure) and
-/// `binary_search` (the `binary_search` oracle: L3, pure — `thermite-design.md` §13).
+/// `binary_search` (the `binary_search` oracle: L3, pure — `fluffy-design.md` §13).
 const CORPUS_FILES: &[&str] = &["sum.th", "binary_search.th"];
 const CORPUS_ORACLE: &[(&str, &str)] = &[("sum", "L3"), ("binary_search", "L3")];
 

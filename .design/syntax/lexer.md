@@ -1,19 +1,19 @@
-# Thermite Lexer (tokenization)
+# Fluffy Lexer (tokenization)
 <!--
 tier: 3-component
 status: draft
-governs: thermite-syntax/src/lexer.rs
+governs: fluffy-syntax/src/lexer.rs
 thesis-refs:
-  - thermite-design.md §4.3
-  - thermite-design.md §4.4
-  - thermite-design.md §8
-  - thermite-design.md §2 (pillar 3)
+  - fluffy-design.md §4.3
+  - fluffy-design.md §4.4
+  - fluffy-design.md §8
+  - fluffy-design.md §2 (pillar 3)
 -->
 
 ## Summary
 
-The lexer turns Thermite source text into a flat token stream consumed by the
-recursive-descent parser (`parser.md`). Thermite has **no significant
+The lexer turns Fluffy source text into a flat token stream consumed by the
+recursive-descent parser (`parser.md`). Fluffy has **no significant
 whitespace** (§4.3); whitespace and `//` comments are insignificant separators.
 The token set is exactly what the surface grammar (`surface-grammar.md`) needs
 — no more (pillar 3, §2). The lexer is the first stage; it does not enforce
@@ -176,7 +176,7 @@ This doc is GREENFIELD / FORWARD-LOOKING: no lexer code exists. Every REQ is
   (`parser.md` REQ-10). Before #93 the words lexed as plain identifiers, so a
   `break;` statement parsed as an identifier-expression no-op; reserving them is
   the first step of the surface support. They take NO operand at the lexer level
-  (Thermite `break`/`continue` are labelless and value-less — `break;` /
+  (Fluffy `break`/`continue` are labelless and value-less — `break;` /
   `continue;`, never `break expr` or a loop label). Derived from §4.1 (the loop
   model) and `surface-grammar.md` REQ-11.
 
@@ -260,13 +260,13 @@ are `SyntaxError` values (REQ-8), the crate's own error type.
 
 ## Verification
 
-`cargo test -p thermite-syntax` over lexer unit fixtures derived from the corpus:
+`cargo test -p fluffy-syntax` over lexer unit fixtures derived from the corpus:
 token-stream snapshots for `sum.th`/`binary_search.th` (AC-1, AC-3, AC-4), the
 `1_000_000` value + raw assertions (AC-2/AC-2b), a `#[slag]` fixture (AC-5),
 stray/malformed-literal negative fixtures (AC-6), NEW radix/char fixtures
 asserting `0x1b`→27 / `0b101`→5 / `'A'`→65 with their raws (AC-7, AC-8), and a
 NEW `break`/`continue`-keyword fixture (AC-9). The END-TO-END value grounding
-(AC-7/AC-8's L3 claims) is discharged by `forge`/`thermite-lower` conformance
+(AC-7/AC-8's L3 claims) is discharged by `forge`/`fluffy-lower` conformance
 probes that lower a fn returning each literal with a NON-VACUOUS `ens result ==
 <decimal>` and certify at L3 (the §7 vacuity gate rejects `ens true`); a
 wrong-code `ens` lands L0. Expected token streams / values are hand-derived from
@@ -313,7 +313,7 @@ and GROUNDED in `verus-lowering.md` (#93) — see that doc's Verification sectio
   escapes; in v1 a char IS a byte. Recorded; not a blocker. The validator/lower
   (downstream) must treat the resulting `IntLit` as `u8`-typed in a char context
   — flagged for the builder, owned by #92.
-- **OQ-3 (`break`/`continue` are labelless + value-less, #93):** Thermite has no
+- **OQ-3 (`break`/`continue` are labelless + value-less, #93):** Fluffy has no
   loop labels and no `break expr` (the editor's event loop only needs `break;` /
   `continue;`). The lexer therefore produces a bare `Break`/`Continue` token with
   no following operand; the parser consumes a trailing `;` (`parser.md` REQ-10).

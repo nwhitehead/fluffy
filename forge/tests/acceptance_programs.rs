@@ -37,11 +37,11 @@
 //! THE GAP NOW CLOSED (crosslink #104, the C5/#102 + C7/#95 build-side cluster): the
 //! C5/C7 CONTRACT spec fns — `count_sep`, `sep_free`, `occurs_at`, `contains_sub`,
 //! `all_digits`, `is_digit`, the free `parse_u64`, and `parse_be` in a C7
-//! (non-numfmt) context — now HAVE an L1 runnable EXEC twin in `thermite-lower`'s
+//! (non-numfmt) context — now HAVE an L1 runnable EXEC twin in `fluffy-lower`'s
 //! `emit_string_runtime_l1` (the C5 block gated on `program_uses_string_search`, the
 //! C7 block on `program_uses_parse`; each twin computes the same value as its spec
 //! body over the runtime `Vec<u8>`). Because `forge build` lowers EVERY fn in a file
-//! to its always-active runtime `thermite_check!`, a program whose contracts name a
+//! to its always-active runtime `fluffy_check!`, a program whose contracts name a
 //! C5/C7 spec fn now resolves the named fn and builds. The formatter (C4) is
 //! unaffected; the calculator's parse front-end and the parser's count-bound entry
 //! now BUILD + RUN. The `forge check` ladder is unchanged (L3 — the SPEC twins +
@@ -54,7 +54,7 @@
 //!
 //! R-CHAR-3: expected levels trace to `.design/basis/07-strings.md` REQ-8 (the
 //! round-trip), REQ-13/REQ-15 (the predicate / count-bound), `.design/basis/
-//! 09-option-result.md` (the Option sum), and `thermite-design.md` §6 (L3 == a
+//! 09-option-result.md` (the Option sum), and `fluffy-design.md` §6 (L3 == a
 //! fully-discharged real-verus proof) — NEVER copied from forge's own output. The
 //! decimal byte values (52,50 / 48 / 49,48… / 97,98,99) are the ASCII design
 //! constant. The build-gap error string is the rustc diagnostic for the un-lowered
@@ -223,13 +223,13 @@ fn build_run_fixture(tag: &str, program: &str, entry: &str) -> String {
 /// scored by `forge check`, so its L3 is established by verus on the lowering (the
 /// `string_search_conformance.rs` precedent). R-CODE-4: the status is checked.
 fn verus_on_lowered(tag: &str, program: &str) -> (bool, String) {
-    let parsed = thermite_syntax::parse(program);
+    let parsed = fluffy_syntax::parse(program);
     assert!(
         parsed.is_clean(),
         "[{tag}] surface must parse: {:?}",
         parsed.errors
     );
-    let verus_src = thermite_lower::lower(&parsed.program)
+    let verus_src = fluffy_lower::lower(&parsed.program)
         .unwrap_or_else(|e| panic!("[{tag}] lower must succeed: {e:?}"));
     let rs = std::env::temp_dir().join(format!(
         "forge_accept_verus_{tag}_{}.rs",
@@ -259,7 +259,7 @@ fn verus_on_lowered(tag: &str, program: &str) -> (bool, String) {
 
 /// (a) `format(n) ens parse_be(result) == n` certifies L3 — the C4 round-trip.
 /// AUTHORITY: `.design/basis/07-strings.md` REQ-8 (the round-trip is the gold
-/// standard, GROUNDED `17 verified, 0 errors`); `thermite-design.md` §6 (L3 == a
+/// standard, GROUNDED `17 verified, 0 errors`); `fluffy-design.md` §6 (L3 == a
 /// discharged verus proof).
 #[test]
 fn formatter_round_trip_certifies_l3() {
@@ -334,7 +334,7 @@ fn formatter_builds_and_runs_each_value() {
 /// (a) `add(a, b)` (parse two digit strings + add) certifies L3 with the PINNED sum
 /// contract, AND the arithmetic core `add_vals`/`add_2_3` certify L3. AUTHORITY:
 /// `.design/basis/07-strings.md` REQ-9 + `.design/basis/09-option-result.md` (the
-/// C7 parse round-trip + Option + spec-match-in-ens); `thermite-design.md` §6.
+/// C7 parse round-trip + Option + spec-match-in-ens); `fluffy-design.md` §6.
 #[test]
 fn calculator_sum_contract_certifies_l3() {
     if !verus_present() {
@@ -362,7 +362,7 @@ fn calculator_sum_contract_certifies_l3() {
 /// Built from a minimal derived program (the Option + `+` core in isolation); the
 /// full `calc.th` now builds + runs end-to-end too (#104,
 /// `calculator_string_parse_builds_and_runs_end_to_end`). AUTHORITY: the `add_vals`
-/// sum contract; `thermite-design.md` §6 (L1 runtime-checked build).
+/// sum contract; `fluffy-design.md` §6 (L1 runtime-checked build).
 #[test]
 fn calculator_arithmetic_core_builds_and_runs() {
     // The arithmetic core in isolation (Option + `+`, NO parse_u64) — the half of
@@ -388,8 +388,8 @@ fn calculator_arithmetic_core_builds_and_runs() {
 /// THE GAP NOW CLOSED (crosslink #104) — `forge build calc.th` (the FULL file,
 /// including the STRING-PARSE front-end `add`) now COMPILES + RUNS end-to-end. The
 /// C7 contract spec fns (`all_digits` / `parse_be` / the free `parse_u64`) now have
-/// an L1 (runtime/build) EXEC twin (`thermite-lower::emit_string_runtime_l1`'s C7
-/// block, gated on `program_uses_parse`), so the always-active `thermite_check!`s
+/// an L1 (runtime/build) EXEC twin (`fluffy-lower::emit_string_runtime_l1`'s C7
+/// block, gated on `program_uses_parse`), so the always-active `fluffy_check!`s
 /// `add`'s `req`/`ens` lower to resolve. The calculator composes end-to-end: the
 /// arithmetic core entries build alongside `add`'s now-runnable contracts and RUN →
 /// `add_2_3` prints `Some(5)` (2+3), `add_100_200` prints `Some(300)` (100+200).
@@ -399,12 +399,12 @@ fn calculator_arithmetic_core_builds_and_runs() {
 /// twins, flipping it to assert the build SUCCEEDS — the forcing function fired.)
 ///
 /// AUTHORITY: `.design/basis/07-strings.md` REQ-9 + `09-option-result.md` (the C7
-/// parse spec fns) + the L1-EXEC-TWIN note; `thermite-design.md` §6 (L1 build —
+/// parse spec fns) + the L1-EXEC-TWIN note; `fluffy-design.md` §6 (L1 build —
 /// every fn lowers to its always-active runtime check). The sum bytes (5 / 300) are
 /// the arithmetic design constant (R-CHAR-3): 2+3==5, 100+200==300.
 #[test]
 fn calculator_string_parse_builds_and_runs_end_to_end() {
-    // `forge build` lowers EVERY fn in calc.th to its runtime `thermite_check!`;
+    // `forge build` lowers EVERY fn in calc.th to its runtime `fluffy_check!`;
     // `add`'s `req`/`ens` name `all_digits`/`parse_be` and its body calls the free
     // `parse_u64`, all of which now have an L1 exec twin (#104) — so the FULL file
     // compiles and the runnable entries build + run from the same lowering.
@@ -447,7 +447,7 @@ fn calculator_string_parse_builds_and_runs_end_to_end() {
 /// (a.1) `has_sep(s, sep) ens result == contains_sub(s, sep)` certifies L3 via the
 /// FULL §7-mutation-scored `forge check` ladder (the C5 substring predicate is real
 /// teeth). AUTHORITY: `.design/basis/07-strings.md` REQ-13 (GROUNDED `14 verified,
-/// 0 errors`; a broken predicate FAILS); `thermite-design.md` §6.
+/// 0 errors`; a broken predicate FAILS); `fluffy-design.md` §6.
 #[test]
 fn parser_contains_predicate_certifies_l3() {
     if !verus_present() {
@@ -522,8 +522,8 @@ fn parser_split_core_builds_and_runs_three_pieces() {
 /// parse_lines.th` (the FULL file, including the `fields` count-bound + `has_sep`
 /// substring contracts) now COMPILES + RUNS. The C5 contract spec fns (`count_sep`
 /// / `contains_sub` / `sep_free` / `occurs_at`) now have an L1 exec twin
-/// (`thermite-lower::emit_string_runtime_l1`'s C5 block, gated on
-/// `program_uses_string_search`), so the always-active `thermite_check!`s of
+/// (`fluffy-lower::emit_string_runtime_l1`'s C5 block, gated on
+/// `program_uses_string_search`), so the always-active `fluffy_check!`s of
 /// `fields`/`has_sep` resolve. The runnable `split_abc` builds alongside them + RUNS
 /// → 3 pieces ([97],[98],[99] == "a","b","c") for "a,b,c" split on ',' (byte 44).
 ///
@@ -531,7 +531,7 @@ fn parser_split_core_builds_and_runs_three_pieces() {
 /// an expected build failure; #104 emitted the missing L1 exec twins, flipping it.)
 ///
 /// AUTHORITY: `.design/basis/07-strings.md` REQ-13/REQ-15 (the C5 spec fns) + the
-/// L1-EXEC-TWIN note; `thermite-design.md` §6. The byte values 97/98/99 are the
+/// L1-EXEC-TWIN note; `fluffy-design.md` §6. The byte values 97/98/99 are the
 /// ASCII design constant (R-CHAR-3): 'a'=97,'b'=98,'c'=99.
 #[test]
 fn parser_builds_and_runs_end_to_end() {

@@ -6,7 +6,7 @@
 //! adds a proof rule, weakens an obligation, or launders a verification path
 //! (R-DEFER-9). These run against the two EXTERNAL truths the toolchain does not
 //! author for itself: the built `forge` binary's certificate ladder (`forge
-//! check`, real verus) and the `thermite_spec::validate` exhaustiveness checker.
+//! check`, real verus) and the `fluffy_spec::validate` exhaustiveness checker.
 //!
 //! Pins the C10 deliverables (`.design/basis/11-ergonomics.md`):
 //!
@@ -32,7 +32,7 @@
 //! R-CHAR-3: expected levels trace to `.design/basis/11-ergonomics.md`
 //! AC-1..AC-6 (the GROUNDED forms: tuple `2 verified, 0 errors`; for `2
 //! verified` / bad-inv `invariant not satisfied`; guarded-only `non-exhaustive
-//! patterns`; or-pattern exhaustive; if-let/while-let L3) + `thermite-design.md`
+//! patterns`; or-pattern exhaustive; if-let/while-let L3) + `fluffy-design.md`
 //! §6 ladder semantics (L3 == a fully-discharged real-verus proof), NEVER copied
 //! from the toolchain's own output. The validator-reject expectations
 //! (`NonExhaustiveMatch { missing }`) are hand-derived from REQ-3/REQ-4.
@@ -41,7 +41,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use serde_json::Value;
-use thermite_spec::{validate, SpecError};
+use fluffy_spec::{validate, SpecError};
 
 fn forge_bin() -> PathBuf {
     PathBuf::from(env!("CARGO_BIN_EXE_forge"))
@@ -138,8 +138,8 @@ fn req1_tuple_destructuring_certifies_l3() {
 /// `_`-element drops its `let`. Pure AST-shape pin (no verus).
 #[test]
 fn req1_tuple_destructure_desugars_to_temp_plus_projections() {
-    use thermite_syntax::{Expr, Item, Stmt};
-    let parsed = thermite_syntax::parse(
+    use fluffy_syntax::{Expr, Item, Stmt};
+    let parsed = fluffy_syntax::parse(
         "fn f(a: u64, b: u64) -> u64\n  req true\n  ens result == a\n  fx pure\n{ let (x, _) = g(a, b);\n x }\n",
     );
     assert!(parsed.is_clean(), "must parse: {:?}", parsed.errors);
@@ -228,7 +228,7 @@ fn req2_bad_for_inv_is_l0() {
 /// decreases — the agent cannot get it wrong (§2.3 one-way).
 #[test]
 fn req2_user_dec_on_for_is_rejected() {
-    let parsed = thermite_syntax::parse(
+    let parsed = fluffy_syntax::parse(
         "fn count(n: u64) -> u64\n  req true\n  ens result == n\n  fx pure\n{ let mut acc: u64 = 0;\n for i in 0..n inv acc == i dec n - i { acc = acc + 1; }\n acc }\n",
     );
     assert!(
@@ -274,7 +274,7 @@ fn req3_guarded_match_certifies_l3() {
 /// `Some` arm). Hand-derived expectation (R-CHAR-3).
 #[test]
 fn req3_guarded_only_arm_is_non_exhaustive() {
-    let parsed = thermite_syntax::parse(
+    let parsed = fluffy_syntax::parse(
         "enum Maybe { Yes(u64), No } fn f(m: Maybe) -> u64 req true ens result == result fx pure { match m { Yes(v) if v < 10 => v, No => 0 } }",
     );
     assert!(parsed.is_clean(), "must parse: {:?}", parsed.errors);
@@ -334,7 +334,7 @@ fn req4_or_pattern_certifies_l3() {
 #[test]
 fn req4_or_pattern_exhaustive_via_union() {
     // The union `Yes(_) | No` closes the match → validates clean.
-    let exhaustive = thermite_syntax::parse(
+    let exhaustive = fluffy_syntax::parse(
         "enum Maybe { Yes(u64), No } fn f(m: Maybe) -> u64 req true ens result == result fx pure { match m { Yes(_) | No => 0 } }",
     );
     assert!(exhaustive.is_clean(), "must parse: {:?}", exhaustive.errors);
@@ -346,7 +346,7 @@ fn req4_or_pattern_exhaustive_via_union() {
     );
 
     // A strict subset `A | B` over `{A, B, C}` still leaves `C` uncovered.
-    let subset = thermite_syntax::parse(
+    let subset = fluffy_syntax::parse(
         "enum Tri { A, B, C } fn f(t: Tri) -> u64 req true ens result == result fx pure { match t { A | B => 0 } }",
     );
     assert!(subset.is_clean(), "must parse: {:?}", subset.errors);
@@ -421,8 +421,8 @@ fn req5_while_let_certifies_l3() {
 /// SHIPPED `Expr::Is` discriminant (NOT a `loop`+`break`). Pure AST-shape pin.
 #[test]
 fn req5_while_let_desugars_to_while_is_variant() {
-    use thermite_syntax::{Expr, Item, LoopKind, Stmt};
-    let parsed = thermite_syntax::parse(
+    use fluffy_syntax::{Expr, Item, LoopKind, Stmt};
+    let parsed = fluffy_syntax::parse(
         "fn drain(start: Option<u64>) -> u64\n  req true\n  ens result <= 1\n  fx pure\n{ let mut cur: Option<u64> = start;\n let mut c: u64 = 0;\n while let Some(_) = cur inv c <= 1 dec 1 - c { cur = None; }\n c }\n",
     );
     assert!(parsed.is_clean(), "must parse: {:?}", parsed.errors);

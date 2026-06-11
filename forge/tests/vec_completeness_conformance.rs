@@ -19,7 +19,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-// ---- verus driver (shared shape with thermite-lower collections_conformance) --
+// ---- verus driver (shared shape with fluffy-lower collections_conformance) --
 
 fn verus_bin() -> Option<PathBuf> {
     if let Ok(p) = std::env::var("VERUS_BIN") {
@@ -66,8 +66,8 @@ fn verify(crate_name: &str, emitted: &str) -> Option<(bool, String)> {
     run_verus(&tmp)
 }
 
-fn parse_src(src: &str, label: &str) -> thermite_syntax::ast::Program {
-    let parsed = thermite_syntax::parse(src);
+fn parse_src(src: &str, label: &str) -> fluffy_syntax::ast::Program {
+    let parsed = fluffy_syntax::parse(src);
     assert!(
         parsed.errors.is_empty(),
         "{label} must parse clean: {:?}",
@@ -78,7 +78,7 @@ fn parse_src(src: &str, label: &str) -> thermite_syntax::ast::Program {
 
 fn lower_l3(src: &str, label: &str) -> String {
     let program = parse_src(src, label);
-    thermite_lower::lower(&program).unwrap_or_else(|e| panic!("{label} L3 lowering failed: {e}"))
+    fluffy_lower::lower(&program).unwrap_or_else(|e| panic!("{label} L3 lowering failed: {e}"))
 }
 
 fn assert_no_cheats(emitted: &str, name: &str) {

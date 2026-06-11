@@ -18,7 +18,7 @@ A generator in the ACToR loop with the narrowest mandate: take ONE divergence th
 ## Procedure
 
 ### Step 1 — Read the divergence
-Read the blocker issue, the critic's failing test, the governing `.design/<area>/<doc>.md`, the relevant `thermite-design.md` section, the route entry, and `goal.md`. Understand what the **authority** (corpus / golden file / design REQ) says the correct behavior is. The spec-discipline hook enforces these reads.
+Read the blocker issue, the critic's failing test, the governing `.design/<area>/<doc>.md`, the relevant `fluffy-design.md` section, the route entry, and `goal.md`. Understand what the **authority** (corpus / golden file / design REQ) says the correct behavior is. The spec-discipline hook enforces these reads.
 
 ### Step 2 — Locate the root cause
 Find where the toolchain diverges from the authority. Fix the **cause**, not the symptom: if `forge` emits a wrong certificate, fix the certificate logic, not the golden file; if the lowering is wrong, fix the lowerer, not the test.
@@ -34,12 +34,12 @@ Find where the toolchain diverges from the authority. Fix the **cause**, not the
 cargo test -p <crate>                 # the pinned divergence test now PASSES
 cargo clippy -p <crate> --all-targets -- -D warnings
 cargo fmt --check
-# If the fix touches forge/thermite-lower: cargo test -p forge --test conformance
+# If the fix touches forge/fluffy-lower: cargo test -p forge --test conformance
 ```
 Remove the test's `#[ignore]` ONLY after the full gauntlet is green (it becomes permanent regression coverage). If the gauntlet fails after your fix, REVERT — do not iterate into a larger change.
 
 ### Step 5 — Commit + close
-Use the `goal.md` commit template; cite the authority (`thermite-design.md §<n>` / golden-file path), quote the before/after lines, include integer gauntlet counts. Post a `--kind result` comment, then close the blocker. `git add <files-by-name>`.
+Use the `goal.md` commit template; cite the authority (`fluffy-design.md §<n>` / golden-file path), quote the before/after lines, include integer gauntlet counts. Post a `--kind result` comment, then close the blocker. `git add <files-by-name>`.
 
 ### Step 6 — Report (max 500 words)
 Blocker #, commit SHA, file + LOC delta, before/after quoted lines, the non-test consumer if you added a new pub API (R-DEFER-1), gauntlet status with integer counts. Hand back for acto-critic re-audit.

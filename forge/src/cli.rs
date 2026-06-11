@@ -3,8 +3,8 @@
 //! dispatches `forge new <name>` and `forge check [<file>] [--json]`, renders the
 //! certificate as human-readable text or (under `--json`) the §5.1 structured
 //! JSON, and owns [`ForgeError`] — the BOUNDARY error that aggregates each driven
-//! crate's error (`thermite_syntax::SyntaxError`, `thermite_spec::SpecError`,
-//! `thermite_lower::LowerError`) plus driver-native verus/io/usage variants.
+//! crate's error (`fluffy_syntax::SyntaxError`, `fluffy_spec::SpecError`,
+//! `fluffy_lower::LowerError`) plus driver-native verus/io/usage variants.
 //!
 //! Governing design: `.design/forge/cli.md`.
 //!
@@ -24,15 +24,15 @@
 //! |---|---|---|
 //! | degrade-ladder REQ-5/REQ-6 (display the project assurance) | SHIPPED | `run_check` computes `manifest::AssuranceManifest::aggregate(&certs)` and `render_assurance` prints the project headline (the min-over-functions, or `FAILED` when any fn does not certify) + the per-fn `lowered-assurance` flags (§5.2 "displayed on every build"). The headline also drives the exit code (REQ-5). |
 //! | REQ-6 (no panics; Result discipline) | SHIPPED | every fallible path returns `Result<_, ForgeError>`; no `unwrap`/`expect`/`panic!` outside `#[cfg(test)]`; verus exit status inspected in `check.rs`. |
-//! | REQ-7 (`forge new` scaffold) | SHIPPED | `scaffold_project` writes `forge.toml` + `forge.lock` (pinned seed, §5.3) + `THERMITE.skill.pin`; refuses a non-empty target (`ForgeError::Usage`). |
+//! | REQ-7 (`forge new` scaffold) | SHIPPED | `scaffold_project` writes `forge.toml` + `forge.lock` (pinned seed, §5.3) + `FLUFFY.skill.pin`; refuses a non-empty target (`ForgeError::Usage`). |
 
 use std::fmt;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use thermite_lower::LowerError;
-use thermite_spec::SpecError;
-use thermite_syntax::SyntaxError;
+use fluffy_lower::LowerError;
+use fluffy_spec::SpecError;
+use fluffy_syntax::SyntaxError;
 
 use crate::audit::{self, AuditManifest};
 use crate::build::{self, BuildManifest, BuildTarget, CrateType};
@@ -62,13 +62,13 @@ pub const EXIT_ENVIRONMENT: u8 = 2;
 /// per-crate errors; it composes them at the driver boundary.
 #[derive(Debug)]
 pub enum ForgeError {
-    /// Parse stage failed (`thermite_syntax`).
+    /// Parse stage failed (`fluffy_syntax`).
     Parse(Vec<SyntaxError>),
-    /// Spec validation failed (`thermite_spec`).
+    /// Spec validation failed (`fluffy_spec`).
     Spec(Vec<SpecError>),
-    /// Effect-check failed (`thermite_lower::check_effects`).
+    /// Effect-check failed (`fluffy_lower::check_effects`).
     Effects(Vec<LowerError>),
-    /// Lowering failed (`thermite_lower::lower`).
+    /// Lowering failed (`fluffy_lower::lower`).
     Lower(LowerError),
     /// The `verus` binary was not found on `PATH` — an ENVIRONMENT error, NOT a
     /// verification failure (REQ-6 / `.design/forge/check.md` REQ-6).
@@ -286,12 +286,12 @@ enum Command {
         json: bool,
         reviewer: Option<String>,
     },
-    /// `forge build <file> [--entry <fn>] [--out <PATH>] [--json]` — lower a Thermite
+    /// `forge build <file> [--entry <fn>] [--out <PATH>] [--json]` — lower a Fluffy
     /// program to executable Rust and compile it with `rustc` into a contract-checked
     /// artifact (issue #56; `.design/forge/build.md` REQ-1). Default → a compiled
     /// library (`rlib`); `--entry <fn>` → a runnable executable whose generated `main`
     /// calls `fn` with deterministic synthesized inputs (REQ-3), so the always-active
-    /// `thermite_check!`s are observable at runtime (the #57 hook). `--out <PATH>` /
+    /// `fluffy_check!`s are observable at runtime (the #57 hook). `--out <PATH>` /
     /// `-o <PATH>` (#128; REQ-7) places the compiled artifact at a user-named,
     /// runnable path (`./<PATH>`) instead of the awkward /tmp output path.
     Build {
@@ -321,7 +321,7 @@ enum Command {
     /// folded into `forge check`, which stays fast): for each `req`/`ens`/loop-
     /// `inv`/`dec` clause it discharges the per-clause Z3 equivalence obligation
     /// `P_production <==> P_reference` (the production lowering vs the INDEPENDENT
-    /// `thermite-tv` reference encoder) through verus, reporting each clause
+    /// `fluffy-tv` reference encoder) through verus, reporting each clause
     /// faithful or DIVERGENT (a real lowering-fidelity finding). `--generated [N]`
     /// ALSO runs the off-corpus generated clause space (REQ-3, the corpus-bound
     /// escape; default N = [`TV_GENERATED_DEFAULT_N`]).
@@ -383,7 +383,7 @@ enum Command {
     Battery { file: PathBuf, item: Option<String> },
     /// `forge edit <file> <addr> --replace <code>` — a semantic edit by address
     /// (#193 increment (ii); `.design/forge/goal-repl.md` REQ-3). Resolves the
-    /// stable semantic address (`thermite_syntax::address::resolve`), splices the
+    /// stable semantic address (`fluffy_syntax::address::resolve`), splices the
     /// `--replace <code>` SOURCE TEXT at the addressed node's byte span IN THE FILE,
     /// re-emits, re-checks the affected item, and prints the new GOAL STATE. v1 edits
     /// a loop `inv`/`dec` clause (the addressable forms semantic-addressing pins); a
@@ -1090,7 +1090,7 @@ fn dispatch(args: &[String]) -> Result<ExitCode, ForgeError> {
     match parse_args(args)? {
         Command::New { name } => {
             scaffold_project(Path::new(&name))?;
-            println!("created Thermite project `{name}`");
+            println!("created Fluffy project `{name}`");
             Ok(ExitCode::SUCCESS)
         }
         Command::Check {
@@ -1175,7 +1175,7 @@ fn run_battery(file: &Path, item: Option<&str>) -> Result<ExitCode, ForgeError> 
 
 /// Run `forge edit <file> <addr> --replace <code>`: a semantic edit by address
 /// (#193 increment (ii); `.design/forge/goal-repl.md` REQ-3). Resolves the address
-/// via `thermite_syntax::address::resolve`, splices the replacement source text at
+/// via `fluffy_syntax::address::resolve`, splices the replacement source text at
 /// the addressed node's span IN THE FILE, re-emits, re-checks the affected item,
 /// and prints the new GOAL STATE.
 ///
@@ -1302,14 +1302,14 @@ fn run_audit(file: &Path, json: bool) -> Result<ExitCode, ForgeError> {
         path: file.display().to_string(),
         source: e,
     })?;
-    let parsed = thermite_syntax::parse(&src);
+    let parsed = fluffy_syntax::parse(&src);
     if !parsed.is_clean() {
         return Err(ForgeError::Parse(parsed.errors));
     }
 
     // The toolchain identity (the irreducible §9 TCB residue): the verus version
     // (the same deterministic sourcing the proof cache uses) + the compile-time
-    // thermite version. `check_file` already required verus, so resolving the
+    // fluffy version. `check_file` already required verus, so resolving the
     // version adds no requirement.
     let verus_version = audit::resolve_verus_version()?;
     let toolchain = audit::Toolchain::new(verus_version);
@@ -1459,7 +1459,7 @@ fn run_review(
 ///
 /// `forge build` does NOT itself RUN the produced `--entry` executable: running is
 /// left to the consumer / the conformance test (which exercises the runtime
-/// `thermite_check!` + seccomp behavior directly). This keeps `forge build` a pure
+/// `fluffy_check!` + seccomp behavior directly). This keeps `forge build` a pure
 /// build-and-report step; observing the runtime check fire / the seccomp kill is the
 /// test's job (`build_conformance::ens_violation_fires_at_runtime`,
 /// `sandbox_conformance`).
@@ -2104,8 +2104,8 @@ fn render_audit(manifest: &AuditManifest) -> String {
         }
     }
     out.push_str(&format!(
-        "  toolchain: verus={} thermite={}\n",
-        manifest.tcb.toolchain.verus, manifest.tcb.toolchain.thermite
+        "  toolchain: verus={} fluffy={}\n",
+        manifest.tcb.toolchain.verus, manifest.tcb.toolchain.fluffy
     ));
     out
 }
@@ -2267,8 +2267,8 @@ pub fn scaffold_project(target: &Path) -> Result<(), ForgeError> {
     )?;
     // Skill pin (Appendix B).
     write_file(
-        &target.join("THERMITE.skill.pin"),
-        "# pin the THERMITE.skill.md version this project was authored against\nskill = \"v0.1\"\n",
+        &target.join("FLUFFY.skill.pin"),
+        "# pin the FLUFFY.skill.md version this project was authored against\nskill = \"v0.1\"\n",
     )?;
     Ok(())
 }
@@ -2587,9 +2587,9 @@ mod tests {
     // information lost at the boundary (R-CODE-4 "never swallow").
     #[test]
     fn aggregation_preserves_inner_diagnostics() {
-        // Drive a real parse error through thermite_syntax so the wrapped
+        // Drive a real parse error through fluffy_syntax so the wrapped
         // SyntaxError's Display text survives into ForgeError's Display.
-        let parsed = thermite_syntax::parse("fn (");
+        let parsed = fluffy_syntax::parse("fn (");
         assert!(!parsed.is_clean(), "`fn (` must be a parse error");
         let inner_text = parsed
             .errors
@@ -2626,7 +2626,7 @@ mod tests {
         scaffold_project(&dir).expect("scaffold");
         assert!(dir.join("forge.toml").exists());
         assert!(dir.join("forge.lock").exists());
-        assert!(dir.join("THERMITE.skill.pin").exists());
+        assert!(dir.join("FLUFFY.skill.pin").exists());
         let lock = std::fs::read_to_string(dir.join("forge.lock")).expect("read lock");
         assert!(lock.contains("seed ="), "lockfile pins the solver seed");
         // No-clobber: a second scaffold over the now-non-empty dir is a Usage err.

@@ -1,7 +1,7 @@
 # Address-resolution oracle (`conformance/address/`)
 
 The hand-derived expected semantic addresses for the corpus programs — the
-external anchor for `thermite-syntax/src/address.rs` (issue #3), per
+external anchor for `fluffy-syntax/src/address.rs` (issue #3), per
 `.design/syntax/semantic-addressing.md`.
 
 ## Contract
@@ -21,6 +21,6 @@ enclosing item) is defined in `.design/syntax/semantic-addressing.md`. The
 
 ## R-CHAR-3
 
-Expected values here are derived from `thermite-design.md` §4.3 + the verbatim
+Expected values here are derived from `fluffy-design.md` §4.3 + the verbatim
 `.th` source. They are NEVER copied from `address.rs`'s output. A test that
 asserts `address.rs` agrees with itself is itself a divergence.

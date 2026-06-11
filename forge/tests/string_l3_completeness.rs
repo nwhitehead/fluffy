@@ -6,19 +6,19 @@
 //! exercised by `conformance/string_demo.th`:
 //!
 //!   GAP 1 — `slice`'s exec-position arg coercion. The `TString` wrapper's index
-//!   accessor `slice(lo: usize, hi: usize)` takes `usize`, but a Thermite surface
+//!   accessor `slice(lo: usize, hi: usize)` takes `usize`, but a Fluffy surface
 //!   index is commonly a `u64` (`s.slice(0, k)` with `k: u64`). Verus does NO
 //!   implicit `u64 -> usize` narrowing, so the un-coerced arg produced
 //!   `error[E0308]: expected usize, found u64` -> L0. The fix coerces a non-literal
 //!   index arg of BOTH string index intrinsics (`byte_at`/`slice`) with `as usize`
-//!   (`thermite-lower::lower` `lower_expr` MethodCall exec arm + `is_usize_cast`).
+//!   (`fluffy-lower::lower` `lower_expr` MethodCall exec arm + `is_usize_cast`).
 //!
 //!   GAP 2 — the `TString` wrapper def woven into the per-item sub-program when a
 //!   `String`/`Type::String` is REACHABLE as a struct/enum FIELD type (not just a
 //!   fn param/return). `struct Buf { text: String, .. }`'s field lowered to `pub
 //!   text: TString` but the per-item sub-program did not EMIT the wrapper def
 //!   (`error[E0425]: cannot find type TString`) -> L0. The fix extends
-//!   `thermite-lower::lower::program_uses_string` to scan struct/enum field types
+//!   `fluffy-lower::lower::program_uses_string` to scan struct/enum field types
 //!   and fn-local `let` annotations (the whole String-reachability class), and
 //!   rewrites a `String` FIELD receiver's `.len()`/`.byte_at(i)` to the wrapper SPEC
 //!   fns in spec position (the fn-signature `Ctx::string_fields` + the struct-`inv`
@@ -30,7 +30,7 @@
 //!
 //! R-CHAR-3: expected levels trace to `.design/basis/07-strings.md` REQ-4 (the
 //! bounded `slice` `ens result.len() == hi - lo`, the `concat` length identity, the
-//! no-OOB `byte_at`, the `well_formed` capacity invariant) and `thermite-design.md`
+//! no-OOB `byte_at`, the `well_formed` capacity invariant) and `fluffy-design.md`
 //! §6 ladder semantics (L3 == a fully-discharged real-verus proof; L0 == an
 //! undischarged obligation), NEVER copied from forge's own output. The negative
 //! (insufficient-bound slice -> NOT laundered to L3) pins non-vacuity (R-DEFER-9).
@@ -110,7 +110,7 @@ fn cert_for<'a>(certs: &'a [Value], item: &str) -> &'a Value {
 /// `req self.well_formed() && lo <= hi && hi <= len, ens result.len() == hi - lo`.
 /// The `req s.len() <= 1_000_000` establishes `s.well_formed()` (the CAP bound, the
 /// SAME headroom `join`'s `req` establishes for `concat`'s `well_formed`); `k <=
-/// s.len()` discharges `hi <= len`. `thermite-design.md` §6: a fully-discharged
+/// s.len()` discharges `hi <= len`. `fluffy-design.md` §6: a fully-discharged
 /// verus proof is L3. The `fx alloc` is the constructing slice copy (REQ-4).
 #[test]
 fn gap1_slice_u64_arg_coerces_and_certifies_l3() {
@@ -260,7 +260,7 @@ fn gap2_fn_reading_string_field_len_certifies_l3() {
 ///
 /// AUTHORITY: `.design/basis/07-strings.md` REQ-4 (slice requires
 /// `self.well_formed()`) + AC-4 / R-DEFER-9 (a missing bound is caught, not
-/// laundered). `thermite-design.md` §7 (the battery catches vacuity).
+/// laundered). `fluffy-design.md` §7 (the battery catches vacuity).
 #[test]
 fn gap1_slice_precondition_is_load_bearing() {
     if !verus_present() {

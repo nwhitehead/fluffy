@@ -2,14 +2,14 @@
 <!--
 tier: 3-component
 status: draft
-governs: thermite-spec/src/validator.rs
-governs: thermite-syntax/src/ast.rs
-governs: thermite-lower/src/lower.rs
+governs: fluffy-spec/src/validator.rs
+governs: fluffy-syntax/src/ast.rs
+governs: fluffy-lower/src/lower.rs
 thesis-refs:
-  - thermite-design.md §1
-  - thermite-design.md §4.1
-  - thermite-design.md §6
-  - thermite-design.md §9
+  - fluffy-design.md §1
+  - fluffy-design.md §4.1
+  - fluffy-design.md §6
+  - fluffy-design.md §9
 -->
 
 ## Summary
@@ -42,7 +42,7 @@ below):**
   input.raw }`) from a marked value, bypassing the door (**critic finding #77**).
   v1 therefore REQUIRES the **`#[sealed]` abstraction barrier** (REQ-8 below, a NEW
   validator rule + a struct attribute): a `#[sealed]` clean type CANNOT be
-  constructed by a `StructLit` anywhere in Thermite code, so the ONLY way to obtain
+  constructed by a `StructLit` anywhere in Fluffy code, so the ONLY way to obtain
   one is through its `#[boundary]` door. With the barrier, `query(Sql { stmt:
   input.raw })` is REJECTED at validation (`SpecError::SealedConstruction`) and the
   door is the only launder point. REQ-1/REQ-2/REQ-3/REQ-5/REQ-6/REQ-7/**REQ-8** are
@@ -51,7 +51,7 @@ below):**
   INTERMEDIATE values (`let y = f(x)` where `x` is tainted makes `y` tainted),
   the dual secret-propagation (a value combining a `Secret` stays secret), and
   the reject at the point a *derived* marked value reaches a sink — this is the
-  harder NEW validator-dataflow pass in `thermite-spec/src/validator.rs`. It is
+  harder NEW validator-dataflow pass in `fluffy-spec/src/validator.rs`. It is
   explicitly **v1.1**, NOT v1; the v1 type-level slice (with the sealed barrier)
   rejects the direct laundering forms without it.
 
@@ -170,7 +170,7 @@ THAT rejection is emergent. But the clean types (`Sql`/`Public`/`Authorized`) as
 ordinary Stage-1 newtype structs have ACCESSIBLE fields, so a `StructLit` mints a
 clean type DIRECTLY from a marked value's field:
 
-```thermite
+```fluffy
 fn launder(input: Tainted) -> u64 { query(Sql { stmt: input.raw }) }   // #77: certified L3, MUST be rejected
 ```
 
@@ -184,7 +184,7 @@ no new code" claim held only for the naive `query(input)` form; the full
 door-is-the-only-launder-point guarantee (REQ-2) needs the barrier.**
 
 **The fix — the standard capability/IFC abstraction barrier.** A clean (or
-capability) type must be ABSTRACT: only the trusted door mints it. Thermite has no
+capability) type must be ABSTRACT: only the trusted door mints it. Fluffy has no
 module-privacy/visibility system to hide a struct's fields, so the barrier is a
 DIRECT validator rule keyed off a new struct attribute:
 
@@ -200,10 +200,10 @@ DIRECT validator rule keyed off a new struct attribute:
   REQ-6), then in its `Expr::StructLit` walk arm (the validator already visits
   `Expr::StructLit` — `walk_expr_inner` / the contract and body walks, verified)
   REJECTS any `StructLit` whose `path` resolves to a `#[sealed]` struct, emitting
-  `SealedConstruction { name, span }`. The rejection applies ANYWHERE in Thermite
+  `SealedConstruction { name, span }`. The rejection applies ANYWHERE in Fluffy
   code — there is no "outside the door" carve-out needed, because a door is a
-  `#[boundary]` fn with NO Thermite body (`body: None`, `external_body`); the door
-  never contains a Thermite `StructLit` in-language. So the safe path
+  `#[boundary]` fn with NO Fluffy body (`body: None`, `external_body`); the door
+  never contains a Fluffy `StructLit` in-language. So the safe path
   (`query(parameterize(input))`) has no sealed-`StructLit` and is NOT rejected,
   while EVERY in-language attempt to mint a sealed clean type screams.
 - **The corpus marking.** `Sql`/`Public`/`Authorized` (and the rest of the clean
@@ -276,7 +276,7 @@ honest (`03-effect-stdlib.md` "the door-as-TCB" = "the boundary-as-TCB"):
   the SAME legitimate-`external_body` distinction Stage 3 pins
   (`03-effect-stdlib.md` REQ-7, `boundary-composition.md` HONESTY ARGUMENT): the
   door is a declared trust boundary, NOT a `--no-cheating` core-logic cheat
-  (R-DEFER-9). Because the door body is foreign (`external_body`, no Thermite
+  (R-DEFER-9). Because the door body is foreign (`external_body`, no Fluffy
   `StructLit`), the door itself is the legitimate way the sealed type is minted —
   the `#[sealed]` rule does NOT block it.
 - **Every door is enumerated in the audit manifest.** The doors are the security
@@ -302,7 +302,7 @@ dataflow engine (REQ-4) rejects.
 ## How the marked types + doors are REPRESENTED (PINNED)
 
 **The marked types are per-axis concrete newtype `struct`s, NOT generics.**
-Thermite has **no user generics** — `StructItem` in `ast.rs` carries `name` +
+Fluffy has **no user generics** — `StructItem` in `ast.rs` carries `name` +
 `fields` + `inv` + `span` and NO type parameters (verified). A user cannot write
 `struct Tainted<T>`. So the marked types are concrete Stage-1 wrappers (`struct
 Tainted { raw: u64 }`, `struct Secret { val: u64 }`), and the clean/capability
@@ -358,7 +358,7 @@ This is the load-bearing honesty of this stage — be explicit about the line:
   f(x)` where `x: Tainted` makes `y` tainted), that a `Secret` *combined* with
   anything stays secret, that the mark propagates through assignment / function
   calls / ADT construction & destructuring / arithmetic — this is a DATAFLOW /
-  type-propagation pass in `thermite-spec/src/validator.rs`, not a solver query. It
+  type-propagation pass in `fluffy-spec/src/validator.rs`, not a solver query. It
   is the CORE NEW WORK of v1.1 (more validator than SMT). It is DISTINCT from REQ-8:
   REQ-8 rejects a clean-type `StructLit` outright (no propagation needed — the
   construction site IS the launder); REQ-4 tracks a mark through arbitrary derived
@@ -370,7 +370,7 @@ values).
 
 ## Requirements
 
-### The marked types + the SEALED clean types + the doors (governs `thermite-syntax/src/ast.rs`)
+### The marked types + the SEALED clean types + the doors (governs `fluffy-syntax/src/ast.rs`)
 
 - **REQ-1 (v1 — the three marked types — `Tainted` / `Secret` / `Authorized`):**
   the IFC mechanism is three concrete Stage-1 marked wrapper `struct`s (`01-adts.md`
@@ -412,7 +412,7 @@ values).
   `parse_attribute`). The validator (`pub fn validate` in `validator.rs`) collects
   the `#[sealed]` struct-name set in its pre-pass and REJECTS any `Expr::StructLit`
   whose `path` is a `#[sealed]` struct — emitting a structured `SpecError::
-  SealedConstruction { name, span }` — ANYWHERE in Thermite code (no carve-out: a
+  SealedConstruction { name, span }` — ANYWHERE in Fluffy code (no carve-out: a
   `#[boundary]` door's body is foreign/`external_body` and contains no in-language
   `StructLit`, so the safe path is unaffected). A `#[sealed]` type is therefore
   obtainable ONLY as a `#[boundary]` door's return value. The clean types in the
@@ -426,8 +426,8 @@ values).
   `StructLit` bypasses, `forge/tests/divergence_provenance.rs`) MUST be un-ignored
   and PASS (each → `SealedConstruction`/`L0`, R-DEFER-3). Owned by blocker **#77**.
 
-### The sink catalog + the flow rules (governs `thermite-syntax/src/ast.rs`,
-`thermite-spec/src/validator.rs`)
+### The sink catalog + the flow rules (governs `fluffy-syntax/src/ast.rs`,
+`fluffy-spec/src/validator.rs`)
 
 - **REQ-3 (v1 — the sink catalog — every sink's parameter type / `req` demands the
   CLEAN type):** each security sink is a `#[boundary]` whose PARAMETER TYPE (and,
@@ -448,7 +448,7 @@ values).
   primitives) + `boundary-composition.md` REQ-1.
 
 - **REQ-4 (v1.1 — the validator mark-PROPAGATION + REJECTION engine — the core new
-  work, NOT v1):** the validator (`thermite-spec/src/validator.rs`) PROPAGATES
+  work, NOT v1):** the validator (`fluffy-spec/src/validator.rs`) PROPAGATES
   each mark through dataflow and REJECTS the forbidden flows at compile time when
   the value reaching a sink is a DERIVED value rather than the syntactic source.
   Propagation rules: a value derived from a `Tainted` value is `Tainted` (through
@@ -468,7 +468,7 @@ values).
   decision. **v1.1, not v1** — the v1 slice (the type mismatch + the `#[sealed]`
   rule) does NOT need this for the direct/launder forms.
 
-### Lowering + honesty (governs `thermite-lower/src/lower.rs`, `forge/src/audit.rs`
+### Lowering + honesty (governs `fluffy-lower/src/lower.rs`, `forge/src/audit.rs`
 — via the SHIPPED #15 path)
 
 - **REQ-5 (v1 — marks lower to Stage-1 wrapper types; doors lower to
@@ -627,7 +627,7 @@ corpus + skill grammar. Stage 6's **v1.1 owns a SECOND new mechanism** — the
 validator mark-propagation/rejection engine (REQ-4). The component spans three
 crates, additively:
 
-- **`thermite-syntax/src/ast.rs`** — the three marked types are Stage-1 concrete
+- **`fluffy-syntax/src/ast.rs`** — the three marked types are Stage-1 concrete
   `struct` wrappers (`StructItem`, SHIPPED, `01-adts.md` REQ-1); the clean types
   add the NEW `StructItem.sealed: bool` flag (REQ-8 — `struct StructItem` today
   carries `name`+`fields`+`inv`+`span`, verified, and gains `sealed`); the doors
@@ -636,7 +636,7 @@ crates, additively:
   types reuse the struct surface, the doors reuse the boundary surface; the ONLY new
   node shape at v1 is `StructItem.sealed`. NO user generics (`StructItem` has no
   type params — PINNED).
-- **`thermite-spec/src/validator.rs`** — gains the `#[sealed]` rule at v1 (REQ-8):
+- **`fluffy-spec/src/validator.rs`** — gains the `#[sealed]` rule at v1 (REQ-8):
   `pub fn validate` collects the `#[sealed]` struct-name set in its pre-pass
   (alongside the existing `struct_fields` collection, REQ-6) and its existing
   `Expr::StructLit` walk arm (the validator already visits `Expr::StructLit` —
@@ -648,7 +648,7 @@ crates, additively:
   through the dataflow of each `fn` body, and reject the forbidden DERIVED flows
   with the `TaintReachesSink` / `SecretReachesPublic` / `MissingCapability`
   variants. The caged-flat walk (`spectherm-combinators.md` REQ-6) is UNCHANGED.
-- **`thermite-lower/src/lower.rs`** — the marked AND clean types lower to their
+- **`fluffy-lower/src/lower.rs`** — the marked AND clean types lower to their
   Stage-1 wrappers via the SHIPPED `lower_struct` (`01-adts.md` REQ-8; a `#[sealed]`
   struct lowers identically to a plain struct — the seal is a validator concern,
   fired before lowering); the doors lower to `#[verifier::external_body]` signatures
@@ -804,7 +804,7 @@ unbuilt #77 fix.
   tests at `forge/tests/divergence_provenance.rs` are un-ignored and assert each
   `StructLit` launder of a `#[sealed]` clean type yields `SpecError::
   SealedConstruction` / `L0` (never `L3`); the doored paths stay `L3`. Plus a
-  `thermite-spec` unit fixture: a `#[sealed]` struct's `StructLit` → one
+  `fluffy-spec` unit fixture: a `#[sealed]` struct's `StructLit` → one
   `SealedConstruction`; a plain struct's `StructLit` → accepted (no regression).
 - **AC-4 (v1.1):** validator-dataflow reject fixtures (hand-derived expectations,
   R-CHAR-3) exercising mark propagation through a derived value — gated on the
@@ -823,9 +823,9 @@ adds these routes to `tooling/spec-routes.toml` pointing at THIS doc (a file may
 carry multiple governing docs — the #52 `lower.rs` precedent):
 
 ```toml
-[[route]]  crate_pattern = "thermite-spec/src/validator.rs"  design = ".design/basis/06-provenance-and-sinks.md"  reference = ["conformance/provenance"]
-[[route]]  crate_pattern = "thermite-syntax/src/ast.rs"       design = ".design/basis/06-provenance-and-sinks.md"  reference = ["conformance/provenance"]
-[[route]]  crate_pattern = "thermite-lower/src/lower.rs"      design = ".design/basis/06-provenance-and-sinks.md"  reference = ["tests/golden/lower/sqli_safe.verus.rs"]
+[[route]]  crate_pattern = "fluffy-spec/src/validator.rs"  design = ".design/basis/06-provenance-and-sinks.md"  reference = ["conformance/provenance"]
+[[route]]  crate_pattern = "fluffy-syntax/src/ast.rs"       design = ".design/basis/06-provenance-and-sinks.md"  reference = ["conformance/provenance"]
+[[route]]  crate_pattern = "fluffy-lower/src/lower.rs"      design = ".design/basis/06-provenance-and-sinks.md"  reference = ["tests/golden/lower/sqli_safe.verus.rs"]
 ```
 
 The `validator.rs` route is needed for v1 REQ-8 (the `#[sealed]` rule) AND v1.1
@@ -845,8 +845,8 @@ NOT author the oracle, the goldens, or the routes (R-DOC-1).
 | REQ-1 (v1 — the three marked types — `Tainted`/`Secret`/`Authorized`) | NOT-STARTED | epic **#62** / issue **#76** Stage 6. No `Tainted`/`Secret`/`Authorized` type in the tree or corpus (`grep -r "Tainted\|Secret\|Authorized"` over `.rs`/`conformance` returns NONE). The SUBSTRATE is SHIPPED (`struct StructItem` newtype with `name`+`fields`+`inv`+`span`, `01-adts.md` REQ-1/REQ-8 SHIPPED, no user generics — PINNED) and GROUNDED through the full path (`struct Tainted { raw: u64 }` certifies `L3` in `sqli_safe`); the v1 deliverable (the corpus declarations + skill vocabulary) is not authored. |
 | REQ-2 (v1 — the doors — only mark-changing ops, contracted `#[boundary]`/`#[slag]`) | NOT-STARTED | epic **#62** / issue **#76** Stage 6. No `parameterize`/`declassify`/`authorize` door exists in the corpus (`grep -r "declassify\|sanitize"` returns NONE). The SHIPPED door substrate (`struct BoundaryAttr`/`struct SlagAttr` in `ast.rs`, `FnItem.boundary`/`.slag`, `ffi-boundary.md` REQ-2 SHIPPED) is the form, GROUNDED (the `#[boundary] parameterize(Tainted) -> Sql` door type-changes the mark and is audit-enumerated). **CORRECTED (#77):** "only the door changes a mark" is TRUE only with the `#[sealed]` barrier (REQ-8) — without it a `StructLit` launders `Tainted -> Sql` outside the door (certified `L3` today, must be `L0`). Depends on REQ-8. |
 | REQ-3 (v1 — the sink catalog — every sink's param type / `req` demands the CLEAN type) | NOT-STARTED | epic **#62** / issue **#76** Stage 6. No security sink exists in the corpus. The sink-demands-clean-type mechanism's DIRECT form is GROUNDED end-to-end: `query(s: Sql)` rejects raw `Tainted` (`L0`/`FAILED`/`E0308`) and accepts a `parameterize`-produced `Sql` (`L3`) through the real `forge`/`verus`. The `StructLit`-launder rejection at the sink's clean type needs REQ-8 (the `#[sealed]` rule). The corpus is not authored. |
-| REQ-8 (v1 — the `#[sealed]` abstraction barrier — clean type is door-only-mintable) | SHIPPED | **blocker #77** (the abstraction-barrier fix). AST: `StructItem.sealed: bool` (`struct StructItem` in `thermite-syntax/src/ast.rs`). Parser: `parse_attribute` dispatches `#[sealed]` → `ParsedAttr::Sealed`, routed by `parse_item` onto a `struct` (`parse_struct(start, sealed)`); `#[sealed]` on `enum`/`fn`/`spec fn` is a parse error (struct-only barrier). Validator: the `Validator::new` pre-pass collects `sealed_structs` (alongside `struct_fields`); `check_sealed_construction` (called from BOTH `Expr::StructLit` walk arms — exec `scan_expr_for_loops` + caged `walk_expr_inner`) emits the NEW span-bearing `SpecError::SealedConstruction { name, span }` for any literal of a sealed struct. Inert with no `#[sealed]` declared (the non-IFC corpus UNCHANGED). A sealed type is thus obtainable ONLY as a `#[boundary]` door's return (foreign `external_body`, no in-language `StructLit`), so the safe doored path is unaffected. Consumer: `pub fn validate` → `forge::check::check_file` (a `ForgeError::Spec`: exit non-zero, the `SealedConstruction` diagnostic, NO L3 cert). Corpus: `Sql`/`Public`/`Authorized` marked `#[sealed]` in `conformance/provenance_demo.th`. Verification: the three #77 `#[ignore]`d tests (`forge/tests/divergence_provenance.rs`: `taint_/secret_/capability_structlit_bypass_must_not_certify_l3`) UN-IGNORED + REJECT on all 3 axes; `thermite-syntax/tests/sealed_parse.rs` (5) + `thermite-spec/tests/sealed_validate.rs` (4); `forge/tests/provenance_conformance.rs` unchanged (safe paths L3, naive careless L0, plain structs unaffected). |
-| REQ-4 (v1.1 — validator mark-PROPAGATION + REJECTION engine — the core new work) | NOT-STARTED | epic **#62** / issue **#76** Stage 6, **v1.1** (NOT v1). `thermite-spec/src/validator.rs` has no taint/secret/capability propagation pass and no `TaintReachesSink`/`SecretReachesPublic`/`MissingCapability` `SpecError` variant. This is the NEW dataflow engine (NOT SMT) — DISTINCT from REQ-8 (REQ-8 rejects a clean-type `StructLit` at the construction site, no propagation; REQ-4 tracks a mark through arbitrary derived values and rejects at the sink). Compile-time tooth of handled-or-loud for derived flows. |
+| REQ-8 (v1 — the `#[sealed]` abstraction barrier — clean type is door-only-mintable) | SHIPPED | **blocker #77** (the abstraction-barrier fix). AST: `StructItem.sealed: bool` (`struct StructItem` in `fluffy-syntax/src/ast.rs`). Parser: `parse_attribute` dispatches `#[sealed]` → `ParsedAttr::Sealed`, routed by `parse_item` onto a `struct` (`parse_struct(start, sealed)`); `#[sealed]` on `enum`/`fn`/`spec fn` is a parse error (struct-only barrier). Validator: the `Validator::new` pre-pass collects `sealed_structs` (alongside `struct_fields`); `check_sealed_construction` (called from BOTH `Expr::StructLit` walk arms — exec `scan_expr_for_loops` + caged `walk_expr_inner`) emits the NEW span-bearing `SpecError::SealedConstruction { name, span }` for any literal of a sealed struct. Inert with no `#[sealed]` declared (the non-IFC corpus UNCHANGED). A sealed type is thus obtainable ONLY as a `#[boundary]` door's return (foreign `external_body`, no in-language `StructLit`), so the safe doored path is unaffected. Consumer: `pub fn validate` → `forge::check::check_file` (a `ForgeError::Spec`: exit non-zero, the `SealedConstruction` diagnostic, NO L3 cert). Corpus: `Sql`/`Public`/`Authorized` marked `#[sealed]` in `conformance/provenance_demo.th`. Verification: the three #77 `#[ignore]`d tests (`forge/tests/divergence_provenance.rs`: `taint_/secret_/capability_structlit_bypass_must_not_certify_l3`) UN-IGNORED + REJECT on all 3 axes; `fluffy-syntax/tests/sealed_parse.rs` (5) + `fluffy-spec/tests/sealed_validate.rs` (4); `forge/tests/provenance_conformance.rs` unchanged (safe paths L3, naive careless L0, plain structs unaffected). |
+| REQ-4 (v1.1 — validator mark-PROPAGATION + REJECTION engine — the core new work) | NOT-STARTED | epic **#62** / issue **#76** Stage 6, **v1.1** (NOT v1). `fluffy-spec/src/validator.rs` has no taint/secret/capability propagation pass and no `TaintReachesSink`/`SecretReachesPublic`/`MissingCapability` `SpecError` variant. This is the NEW dataflow engine (NOT SMT) — DISTINCT from REQ-8 (REQ-8 rejects a clean-type `StructLit` at the construction site, no propagation; REQ-4 tracks a mark through arbitrary derived values and rejects at the sink). Compile-time tooth of handled-or-loud for derived flows. |
 | REQ-5 (v1 — marks lower to Stage-1 wrappers; doors lower to `external_body`) | NOT-STARTED | epic **#62** / issue **#76** Stage 6. No marked/clean type or door in the corpus. The mechanism is SHIPPED + GROUNDED (`lower_struct` for the wrapper, `01-adts.md` REQ-8 SHIPPED — a `#[sealed]` struct lowers identically, the seal is a validator concern; `lower_external_body_fn` for the door, `boundary-composition.md` REQ-1; the careless DIRECT path's `Tainted`-arg-at-`Sql`-param is rejected by verus `E0308` on the emitted source). The corpus/golden is not authored. |
 | REQ-6 (v1 — the doors are the security TCB — enumerated in the manifest) | NOT-STARTED | epic **#62** / issue **#76** Stage 6. The SHIPPED `Tcb::from_certificates in forge/src/audit.rs` (`audit-manifest.md` REQ-3) enumerates boundary contracts as the TCB — GROUNDED for IFC: `forge audit sqli_safe.th --json` lists `[parameterize, query]`, `secret_safe.th` lists `[declassify, emit]` (name + target + req + ens + fx). No IFC corpus exists to audit yet; `grep declassify` = the door list once the corpus lands. |
 | REQ-7 (v1 — marks compose through the call graph — the Stage-5 hook) | NOT-STARTED | epic **#62** / issue **#76** Stage 6. The SHIPPED #52 compose-through (`reachable_fn_deps in check.rs`, `05-composition.md` REQ-1) + the #15 deep-graph TCB aggregation (`05-composition.md` REQ-7) are the mechanism — GROUNDED: `safe_path` composes `parameterize` + `query` across the graph and certifies `L3`/to-boundary. No IFC corpus program composes a mark yet. |
@@ -854,7 +854,7 @@ NOT author the oracle, the goldens, or the routes (R-DOC-1).
 ## Open questions (for the orchestrator before the builder runs)
 
 - **OQ-1 (RESOLVED — marked/clean type as a concrete newtype, NOT a generic; the
-  seal is an attribute flag).** Thermite has NO user generics (`StructItem` carries
+  seal is an attribute flag).** Fluffy has NO user generics (`StructItem` carries
   no type params — verified). The marked types are concrete per-axis Stage-1 newtype
   `struct`s; the clean types are concrete `#[sealed]` `struct`s (`StructItem.sealed`,
   REQ-8). A `Marked<Tag, T>` phantom-generic is un-expressible. The §10 6k-token

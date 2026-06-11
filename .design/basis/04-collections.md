@@ -2,14 +2,14 @@
 <!--
 tier: 3-component
 status: draft
-governs: thermite-syntax/src/ast.rs
-governs: thermite-syntax/src/parser.rs
-governs: thermite-spec/src/validator.rs
-governs: thermite-lower/src/lower.rs
+governs: fluffy-syntax/src/ast.rs
+governs: fluffy-syntax/src/parser.rs
+governs: fluffy-spec/src/validator.rs
+governs: fluffy-lower/src/lower.rs
 thesis-refs:
-  - thermite-design.md §4.2
-  - thermite-design.md §4.4
-  - thermite-design.md §6
+  - fluffy-design.md §4.2
+  - fluffy-design.md §4.4
+  - fluffy-design.md §6
 -->
 
 ## Summary
@@ -26,8 +26,8 @@ data**: a `Vec<Account>` where every element satisfies a Stage-1 `well_formed`
 invariant, carried as a `forall|i| inv(v@[i])` predicate through a named
 `spec fn` (the §4.2 cage bridge).
 
-This doc is GREENFIELD / FORWARD-LOOKING. Thermite v0.1 today admits exactly
-`u32`/`u64`/`usize`, `bool`, and the read-only slice `&[T]` (`thermite-syntax/
+This doc is GREENFIELD / FORWARD-LOOKING. Fluffy v0.1 today admits exactly
+`u32`/`u64`/`usize`, `bool`, and the read-only slice `&[T]` (`fluffy-syntax/
 src/ast.rs` `enum Type` = `Prim`/`Unit`/`Ref`/`Slice`/`Generic`); there is no
 `Vec`, `Map`, or growth. **UPDATE (#73): the `Vec` half is SHIPPED** — REQ-1/REQ-3/
 REQ-5/REQ-7 landed (the bounded `Vec<u64>` over `vstd::vec::Vec`, capacity
@@ -47,8 +47,8 @@ solver decidable and matches the existing `xs.len() <= 1_000_000` corpus idiom
 (`conformance/sum.th` `req xs.len() <= 1_000_000`). Three representations were
 considered for the verified `Vec`:
 
-- **(a) wrap vstd `Vec`** — a Thermite `Vec<T>` lowers to a newtype over Verus's
-  `vstd::vec::Vec<T>`, with the capacity bound carried as a Thermite-level
+- **(a) wrap vstd `Vec`** — a Fluffy `Vec<T>` lowers to a newtype over Verus's
+  `vstd::vec::Vec<T>`, with the capacity bound carried as a Fluffy-level
   `well_formed` predicate (`self.data.len() <= CAP`) threaded through contracts.
   vstd already gives verified `push`/`index`/`len` with `Seq` views (`v@`).
 - **(b) a from-scratch custom bounded Vec** — re-derive a length-tracked backing
@@ -75,14 +75,14 @@ proven-for-free (vstd's `push`/`index`/`len` carry the heap proof; the GROUNDED
 `BVec` over `Vec<u64>` is exactly this form, `5 verified, 0 errors`), and `vstd` is
 VERSION-PINNED alongside Verus, so the coupling is to a PINNED dep (low-risk, not
 an unpinned moving target). The decisive REQUIREMENT this resolution pins
-(REQ-5): the **Thermite-surface `Vec` contract — `push`/`pop`/`get`/`len` plus the
+(REQ-5): the **Fluffy-surface `Vec` contract — `push`/`pop`/`get`/`len` plus the
 capacity invariant (`len() <= CAP`) and the element invariant — is specified
 BACKING-AGNOSTIC**, independently of vstd. The surface contract names what each
 operation guarantees (`push`: `req len < CAP, ens len' == len+1 && v@[old_len] ==
 x`; `get`: `req i < len, ens result == v@[i]`) WITHOUT referencing
 `vstd::vec::Vec` in the contract itself; vstd is the v1 IMPLEMENTATION behind that
 contract, not the contract. **Migration path:** a later decouple to a custom
-backing store (a Thermite-owned `Seq`-backed run) swaps the IMPLEMENTATION — the
+backing store (a Fluffy-owned `Seq`-backed run) swaps the IMPLEMENTATION — the
 lowering target changes from `self.data: vstd::vec::Vec<T>` to the custom store —
 WITHOUT changing the surface contract or any user `.th` code, exactly because the
 contract is backing-agnostic (the §6/§9 "the contract is the interface" property).
@@ -91,7 +91,7 @@ first-cut depth.
 
 ## Requirements
 
-### Surface + AST (governs `thermite-syntax/src/ast.rs`, `parser.rs`)
+### Surface + AST (governs `fluffy-syntax/src/ast.rs`, `parser.rs`)
 
 - **REQ-1 (`Vec<T>` type + operation surface):** The surface admits a `Vec<T>`
   type and its bounded operations `push`/`pop`/`get`/`len`. The AST `enum Type`
@@ -115,7 +115,7 @@ first-cut depth.
   key-uniqueness invariant, modeled on `vstd::map::Map`. Derived from §4.4 (closed
   built-in interfaces — `Map` is built in) and the vstd `Map` model.
 
-### Validator / the SpecTherm cage (governs `thermite-spec/src/validator.rs`)
+### Validator / the SpecTherm cage (governs `fluffy-spec/src/validator.rs`)
 
 - **REQ-3 (capacity + operation contracts fit the §4.2 cage):** The bounded
   collection contracts are written with FLAT, named predicates, never anonymous
@@ -149,10 +149,10 @@ first-cut depth.
   composition), the decided scope (verified collections of verified data), and the
   GROUNDED `push_preserving` proof (element invariant preserved across `push`).
 
-### Verus lowering (governs `thermite-lower/src/lower.rs`)
+### Verus lowering (governs `fluffy-lower/src/lower.rs`)
 
 - **REQ-5 (`Vec<T>` → vstd `Vec` wrapper; `push`/`get`/`len` → verified vstd ops;
-  the `alloc` effect):** A Thermite `Vec<T>` lowers to a newtype over `vstd::vec::
+  the `alloc` effect):** A Fluffy `Vec<T>` lowers to a newtype over `vstd::vec::
   Vec<T>` (or vstd `Vec` directly) with the capacity bound as a `pub open spec fn
   well_formed(&self) -> bool { self.data.len() <= CAP }` threaded through
   `requires`/`ensures` (the SAME data-invariant-threading mechanism as Stage-1
@@ -163,7 +163,7 @@ first-cut depth.
   lowers to `self.data[i]` with `req i < self.data.len(), ens result ==
   self.data@[i as int]` (the verified no-OOB index); `len` to `self.data.len()`.
   A `fn` CONSTRUCTING / `push`-ing a `Vec` allocates, so it carries `fx alloc`
-  (`Effect::Alloc`, `thermite-syntax/src/ast.rs` `enum Effect` `Alloc`, already
+  (`Effect::Alloc`, `fluffy-syntax/src/ast.rs` `enum Effect` `Alloc`, already
   present) — the SAME effect-row rule and effect-subsumption acceptance as Stage-1
   `Box` construction (`.design/basis/01-adts.md` REQ-3). **GROUNDED**: a `BVec`
   newtype over `Vec<u64>`, verified `well_formed`/`push`/`get`/`accumulate`,
@@ -171,20 +171,20 @@ first-cut depth.
   the broken forms (push without the cap guard, get without the bound) FAIL.
   Derived from §3 (transpile to Verus), §4.1 (the `alloc` effect; row
   subsumption), §6 (L3), and the GROUNDED `BVec` proof. **BACKING-AGNOSTIC SURFACE CONTRACT
-  (#62 resolution, REQUIRED).** The Thermite-surface `Vec` contract
+  (#62 resolution, REQUIRED).** The Fluffy-surface `Vec` contract
   (`push`/`pop`/`get`/`len` + the capacity and element invariants) is specified
   INDEPENDENTLY of vstd — the contract names the operation guarantees over the
   `Seq` view `v@`, never `vstd::vec::Vec` itself. v1 IMPLEMENTS that contract by
   wrapping `vstd::vec::Vec` (proven-for-free; vstd is version-pinned alongside
   Verus, so the coupling is to a pinned dep). Because the contract is
-  backing-agnostic, a later decouple to a custom Thermite-owned backing store swaps
+  backing-agnostic, a later decouple to a custom Fluffy-owned backing store swaps
   the lowering target (`self.data: vstd::vec::Vec<T>` → the custom store) WITHOUT
   changing the surface contract or any user `.th` code (§6/§9 "the contract is the
   interface"). The golden lowering is pinned to a recorded `verus`/vstd version
   (OQ-1).
 
 - **REQ-6 (`Map<K,V>` → vstd `Map` wrapper; `insert`/`get`/`contains` → verified
-  ops; key-uniqueness invariant):** A Thermite `Map<K,V>` lowers to a wrapper over
+  ops; key-uniqueness invariant):** A Fluffy `Map<K,V>` lowers to a wrapper over
   `vstd::map::Map<K,V>` with `insert` (`ens get(k) after insert(k,v) == v`),
   `get`, `contains`, `len`, and a key-uniqueness invariant (a Verus `Map` has at
   most one value per key by construction — the invariant is the model's, surfaced
@@ -195,11 +195,11 @@ first-cut depth.
   `Map` model, and the decided scope.
 
 - **REQ-7 (`LowerError`/`SpecError` extension, no panics):** The new collection
-  constructs extend the EXISTING `thermite-lower::LowerError` and `thermite-spec::
+  constructs extend the EXISTING `fluffy-lower::LowerError` and `fluffy-spec::
   SpecError` enums with span-bearing variants for the new failure modes (a `get`
   whose index bound cannot be discharged is a Verus proof failure surfaced through
   the ladder, not a lowerer panic; an un-lowerable collection construct is a
-  `LowerError` variant), reusing `thermite_syntax::lexer::Span`. No `unwrap`/
+  `LowerError` variant), reusing `fluffy_syntax::lexer::Span`. No `unwrap`/
   `expect`/`panic!` in production (R-CODE-2 / R-APG-1). Derived from R-CODE-2 and
   the existing error-enum discipline in `validator.rs` / `lower.rs`.
 
@@ -322,7 +322,7 @@ were GROUNDED end-to-end with the real `verus 0.2026.05.24` binary during author
   are EXEC-only (never in a contract — they mutate). `last`/`contains` MAY be named
   in a contract (`ens result == v.last()` / a `contains` predicate), so `last` and
   `contains` (alongside the existing `get`/`len`) are admitted in `BUILTIN_METHODS`
-  (`thermite-spec/src/validator.rs`) so their `ens` validates inside the §4.2 cage.
+  (`fluffy-spec/src/validator.rs`) so their `ens` validates inside the §4.2 cage.
   `tvec_name` (`lower.rs`) EXTENDS its `match` from Copy primitives to also accept a
   `Type::String` element (→ `TVecTString`), a `Type::Named(struct)` element
   (→ `TVec<StructName>`), and a `Type::Vec(inner)` nested element (→ recursive
@@ -379,8 +379,8 @@ vec_accum.cert.json` / `conformance/vec_accounts.cert.json`.
   verus.rs`, and certify L3. A `Vec`'s backing slice is `&v[..]` and its `Seq` view
   is `v@` — the SAME `Seq` the slice `forall_in`/`spec_sum` already quantify over;
   the collection additions are purely additive (new `Type` variant(s), the `Vec`/
-  `Map` lowering paths). Mechanically: `cargo test -p thermite-syntax -p
-  thermite-spec -p thermite-lower` and the conformance corpus pass with 0
+  `Map` lowering paths). Mechanically: `cargo test -p fluffy-syntax -p
+  fluffy-spec -p fluffy-lower` and the conformance corpus pass with 0
   mismatches. (All REQs; Stage 4 must not break the kernel.)
 
 ### Cluster C6 acceptance criteria (#98 — Vec completeness, GROUNDED)
@@ -423,7 +423,7 @@ The orchestrator authors NEW corpus programs from the C6 GROUNDED forms below: a
 
 The component spans three crates, all additively:
 
-- **`thermite-syntax`** — `enum Type` (`thermite-syntax/src/ast.rs`) gains the
+- **`fluffy-syntax`** — `enum Type` (`fluffy-syntax/src/ast.rs`) gains the
   `Vec` element-type indirection (REQ-1, OQ-1) and the `Map` key/value
   indirection (REQ-2, OQ-2), generalizing the existing single-arg `Generic { name,
   arg: Box<Type> }` and the read-only `Slice(Box<Type>)`. `Vec`/`Map` operations
@@ -431,7 +431,7 @@ The component spans three crates, all additively:
   parses the `Vec<T>` / `Map<K,V>` type spellings; the mandatory-contract
   discipline of `Contract` (`.design/syntax/ast.md` REQ-2) is unchanged.
 
-- **`thermite-spec`** — `validator.rs` (`pub fn validate`) accepts the
+- **`fluffy-spec`** — `validator.rs` (`pub fn validate`) accepts the
   capacity/operation contracts as FLAT built-ins (REQ-3) and the element invariant
   as a named `spec fn` (REQ-4). The caged-flat walk
   (`.design/spec/spectherm-combinators.md` REQ-6) is UNCHANGED: `v@`-indexing,
@@ -440,7 +440,7 @@ The component spans three crates, all additively:
   through named `spec fn`s, never anonymous nested quantifiers — the §4.2 cage is
   preserved.
 
-- **`thermite-lower`** — `lower.rs` (`pub fn lower` / `lower_expr`) gains the
+- **`fluffy-lower`** — `lower.rs` (`pub fn lower` / `lower_expr`) gains the
   `Vec`/`Map` lowering paths (REQ-5/REQ-6): the vstd-`Vec`/`Map` wrapper, the
   `well_formed` capacity predicate (REQ-5), and the operation contracts. The
   data-invariant-threading mechanism is the SAME as Stage-1 `Account::well_formed`
@@ -509,7 +509,7 @@ postcondition — the lowerer must emit `final(...)` for `&mut`-mutating
 collection-operation `ensures`. The verified `BVec` over vstd `Vec<u64>` is the
 exact wrap-vstd form REQ-5 lowers to: vstd's verified `Vec::push`/`Vec::index`/
 `Vec::len` carry the heap proof; the capacity bound and element invariant are the
-Thermite-level additions threaded through contracts.
+Fluffy-level additions threaded through contracts.
 
 ### The C6 grounding record (GROUNDED — real `verus 0.2026.05.24`, the #98 seed)
 
@@ -554,7 +554,7 @@ during authoring (`verus --no-cheating`), non-vacuous, cheat-token grep
 
 - **The local `Vec::new()`-no-param case (REQ-11).** Every C6 probe's `build_*` body
   contains `let mut v: TVec*  = TVec* { data: Vec::new() };` — the local `Vec::new()`
-  verifies in verus. The bug is purely Thermite-side wrapper-emission reachability
+  verifies in verus. The bug is purely Fluffy-side wrapper-emission reachability
   (`collect_vec_elem_types` not walking body-local `let`s), NOT verification.
 
 **Migration note (C6):** the per-element-type monomorphization (REQ-5 `tvec_name`)
@@ -619,8 +619,8 @@ own wrapper/decl must be in scope before the `TVec<elem>` newtype (REQ-10, the
   the practical-stdlib foundation Stages 2 and 5 build on. (Scratch cleaned per
   §53 — no stray `*.rlib`/`*.d` left.)
 
-- **AC-1/AC-2/AC-3:** `cargo test -p thermite-syntax -p thermite-spec -p
-  thermite-lower`, plus a harness that shells the real `verus` binary on the
+- **AC-1/AC-2/AC-3:** `cargo test -p fluffy-syntax -p fluffy-spec -p
+  fluffy-lower`, plus a harness that shells the real `verus` binary on the
   emitted lowering of `vec_accum.th` / `vec_accounts.th` / the Map program and
   asserts exit 0 + `N verified, 0 errors` (R-CODE-4: subprocess status checked,
   never swallowed), plus `forge check` matching the golden certificates
@@ -641,10 +641,10 @@ adds these routes to `tooling/spec-routes.toml` pointing at THIS doc (a file may
 carry multiple governing docs — the `lower.rs` precedent):
 
 ```
-[[route]]  crate_pattern = "thermite-syntax/src/ast.rs"        design = ".design/basis/04-collections.md"   reference = ["conformance/vec_accum.th", "conformance/vec_accounts.th"]
-[[route]]  crate_pattern = "thermite-syntax/src/parser.rs"     design = ".design/basis/04-collections.md"   reference = ["conformance/vec_accum.th", "conformance/vec_accounts.th"]
-[[route]]  crate_pattern = "thermite-spec/src/validator.rs"    design = ".design/basis/04-collections.md"   reference = ["conformance/vec_accum.th"]
-[[route]]  crate_pattern = "thermite-lower/src/lower.rs"       design = ".design/basis/04-collections.md"   reference = ["tests/golden/lower/vec_accum.verus.rs", "tests/golden/lower/vec_accounts.verus.rs"]
+[[route]]  crate_pattern = "fluffy-syntax/src/ast.rs"        design = ".design/basis/04-collections.md"   reference = ["conformance/vec_accum.th", "conformance/vec_accounts.th"]
+[[route]]  crate_pattern = "fluffy-syntax/src/parser.rs"     design = ".design/basis/04-collections.md"   reference = ["conformance/vec_accum.th", "conformance/vec_accounts.th"]
+[[route]]  crate_pattern = "fluffy-spec/src/validator.rs"    design = ".design/basis/04-collections.md"   reference = ["conformance/vec_accum.th"]
+[[route]]  crate_pattern = "fluffy-lower/src/lower.rs"       design = ".design/basis/04-collections.md"   reference = ["tests/golden/lower/vec_accum.verus.rs", "tests/golden/lower/vec_accounts.verus.rs"]
 ```
 
 The corpus programs `conformance/vec_accum.th`, `conformance/vec_accounts.th`,
@@ -656,34 +656,34 @@ the builder runs (R-CHAR-3).
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (`Vec<T>` type + push/pop/get/len surface) | SHIPPED | #73. `Type::Vec(Box<Type>)` in `thermite-syntax/src/ast.rs` (dedicated node mirroring `Type::Box`, OQ-2 RESOLVED); parsed by `parser::parse_type` on the contextual `Vec` ident; `push`/`pop`/`get`/`len` reuse `Expr::MethodCall` (no new node). Consumer: `thermite_lower::lower`. Verified: `v: Vec<u64>` parses + lowers + verus-verifies (`thermite-lower/tests/collections_conformance.rs`, the `conformance/vec_demo.th` oracle). |
+| REQ-1 (`Vec<T>` type + push/pop/get/len surface) | SHIPPED | #73. `Type::Vec(Box<Type>)` in `fluffy-syntax/src/ast.rs` (dedicated node mirroring `Type::Box`, OQ-2 RESOLVED); parsed by `parser::parse_type` on the contextual `Vec` ident; `push`/`pop`/`get`/`len` reuse `Expr::MethodCall` (no new node). Consumer: `fluffy_lower::lower`. Verified: `v: Vec<u64>` parses + lowers + verus-verifies (`fluffy-lower/tests/collections_conformance.rs`, the `conformance/vec_demo.th` oracle). |
 | REQ-2 (`Map<K,V>` type + insert/get/contains/len surface) | NOT-STARTED | epic **#62** Stage 4 (v1.1). No `Map` in `enum Type`; the single-arg `Generic`/`Vec`/`Box` nodes cannot carry a key+value (OQ-2). The v1 oracle (`conformance/vec_demo.th`) is `Vec`-only; deferred to a Stage-4 follow-up. |
-| REQ-3 (capacity + operation contracts fit the §4.2 cage) | SHIPPED | #73. The bounded-`Vec` contracts are FLAT built-ins: `v.len()` (already admitted) + the no-OOB accessor `get` ADDED to `BUILTIN_METHODS` (`thermite-spec/src/validator.rs`) so `ens result == v.get(i)` validates inside the cage; `v.len() < CAP` / `result.len() == v.len() + 1` are flat `len` comparisons. The caged-flat walk (`walk_expr_inner`'s `MethodCall` arm) is UNCHANGED. `push`/`pop` are EXEC-only (never in a contract). Consumer: `validate`. Verified: `collections_conformance.rs` (contracts validate clean + real verus L3). |
+| REQ-3 (capacity + operation contracts fit the §4.2 cage) | SHIPPED | #73. The bounded-`Vec` contracts are FLAT built-ins: `v.len()` (already admitted) + the no-OOB accessor `get` ADDED to `BUILTIN_METHODS` (`fluffy-spec/src/validator.rs`) so `ens result == v.get(i)` validates inside the cage; `v.len() < CAP` / `result.len() == v.len() + 1` are flat `len` comparisons. The caged-flat walk (`walk_expr_inner`'s `MethodCall` arm) is UNCHANGED. `push`/`pop` are EXEC-only (never in a contract). Consumer: `validate`. Verified: `collections_conformance.rs` (contracts validate clean + real verus L3). |
 | REQ-4 (element invariant via named `spec fn` `forall|i| inv(v@[i])`) | NOT-STARTED | epic **#62** Stage 4 (v1.1). The named-`spec fn` accept path it reuses is SHIPPED, but the v1 corpus (`conformance/vec_demo.th`) exercises only the capacity contract + no-OOB get — no `Vec<Account>` element-invariant program is in the corpus. The GROUNDED `all_elems_inv` form (preserved across `push`, `0 errors`) is design-confirmed feasible; deferred to a Stage-4 follow-up. |
 | REQ-5 (`Vec` → vstd `Vec` wrapper; push/get/len; `fx alloc`; BACKING-AGNOSTIC surface) | SHIPPED | #73 (OQ-1 RESOLVED: v1 WRAPS `vstd::vec::Vec`). `lower.rs`: `Type::Vec(elem)` → `tvec_name` (`Vec<u64>` → `TVecU64`); `emit_vec_wrappers` materializes ONCE per element type the GROUNDED `TVec<elem>` newtype over `vstd::vec::Vec<elem>` with `well_formed` (`len() <= CAP`), spec `len`/`spec_get`, the no-OOB exec `get` (`req i < len`), and the capacity-preserving exec `push` (`req well_formed && len < CAP`, `ens final(self)...` — the `final(self)` &mut grounding finding). Spec-position `v.get(i)` → `v.spec_get(i as int)`. `fx alloc` accepted by effect-subsumption (`push` is an intrinsic, no callee row). Consumer: `lower`. Verified: real `verus --no-cheating` on emitted `vec_demo.th` — `checked_get` L3/pure, `push_one` L3/alloc (`4 verified, 0 errors`); the no-`req` `get` reject FAILS (L0, R-DEFER-9). BACKING-AGNOSTIC surface preserved (the contract names `len`/`get`/`push` over `v@`, never `vstd::vec::Vec`). |
 | REQ-6 (`Map` → vstd `Map` wrapper; insert/get/contains; key-uniqueness) | NOT-STARTED | epic **#62** Stage 4 (v1.1). `lower.rs` has no `Map` lowering; the v1 oracle is `Vec`-only (OQ-3 thin-first-cut). Modeled on `vstd::map::Map`, deferred to a Stage-4 follow-up. |
 | REQ-7 (`LowerError`/`SpecError` extension, no panics) | SHIPPED | #73. The `Vec` lowering reuses the existing `LowerError::Unsupported` (`tvec_name` on a non-primitive element type) — no new variant needed; the validator reuses its existing reject path (a forbidden method in a contract). No `unwrap`/`expect`/`panic!` added (R-CODE-2 / R-APG-1); verified by `cargo clippy --workspace -D warnings` + the anti-pattern-gate. |
-| REQ-8 (`pop_last`/`last`/`insert`/`remove`/`contains` — tuple-free missing ops) | SHIPPED | #98. `emit_one_vec_wrapper` (`thermite-lower/src/lower.rs`, per element type) emits all five ops on `TVec<elem>`: `pop_last`/`insert`/`remove` are `&mut` with `final(self)`, `last` is `&self`-reading, `contains` is the exec linear scan (the `forall|k| 0<=k<i ==> v@[k]!=x` invariant + `decreases len-i`). `insert` carries the load-bearing `i <= len` no-OOB guard. Spec-position `v.last()` → `v.spec_get((v.len()-1) as int)` (`lower_expr`). Consumer: `lower`. Verified: `forge/tests/vec_completeness_conformance.rs::vec_u64_ops_certify_l3` — real `verus --no-cheating` `9 verified, 0 errors`; the unguarded `insert` FAILS `8 verified, 1 errors` (non-vacuity, R-DEFER-9). |
+| REQ-8 (`pop_last`/`last`/`insert`/`remove`/`contains` — tuple-free missing ops) | SHIPPED | #98. `emit_one_vec_wrapper` (`fluffy-lower/src/lower.rs`, per element type) emits all five ops on `TVec<elem>`: `pop_last`/`insert`/`remove` are `&mut` with `final(self)`, `last` is `&self`-reading, `contains` is the exec linear scan (the `forall|k| 0<=k<i ==> v@[k]!=x` invariant + `decreases len-i`). `insert` carries the load-bearing `i <= len` no-OOB guard. Spec-position `v.last()` → `v.spec_get((v.len()-1) as int)` (`lower_expr`). Consumer: `lower`. Verified: `forge/tests/vec_completeness_conformance.rs::vec_u64_ops_certify_l3` — real `verus --no-cheating` `9 verified, 0 errors`; the unguarded `insert` FAILS `8 verified, 1 errors` (non-vacuity, R-DEFER-9). |
 | REQ-9 (`Vec<T>` non-Copy elements — `Vec<String>`/`Vec<struct>`/nested via borrow-`get`) | SHIPPED | #98. `tvec_name` `match` EXTENDS to a `String` element (→ `TVecTString`), a `Named` struct/enum element (→ `TVec<Name>`), and a nested `Vec(inner)` element (→ recursive `tvec_name(inner)` suffix, `Vec<Vec<u64>>` → `TVecTVecU64`). `elem_is_copy` selects the accessor: Copy → by-value `get -> T`/`last -> T` + `contains`; NON-Copy → BORROW `get -> &T`/`last -> &T` (`&self.data[i]`, `ens *result == v@[i]`) — vstd's index MOVES a non-Copy element out (`E0507`), so the borrow is the load-bearing fix; `push(x: T)` consumes the owned element. Consumer: `lower`. Verified: `vec_completeness_conformance.rs` — `Vec<String>` `17 verified, 0 errors` (make-or-break), `Vec<struct>` `7 verified`, nested `Vec<Vec<u64>>` `15 verified`, all `0 errors`; the by-value form FAILS `E0507`. |
 | REQ-10 (element-type wrapper/decl woven before the `TVec` — #68/#86 pattern) | SHIPPED | #98. `collect_vec_elem_types`'s `note_vec_elems` notes a nested `Vec` element INNER-FIRST, so `emit_vec_wrappers` emits `TVecU64` before `TVecTVecU64` (the two-wrapper order). For a `String`/struct element the wrapper/decl is woven via the CONSUMED `program_uses_string`/`forge::collect_type_adt_refs` (both recurse `Type::Vec`) — verus resolves references within the `verus!` block order-independently (the 17/0 + 7/0 verifies confirm; literal source order is not load-bearing within the block). Consumer: `lower`. Verified: `vec_completeness_conformance.rs` (element wrapper/decl present + whole program L3). |
 | REQ-11 (`Vec::new()`-no-param wrapper-reachability fix — the #86 analog) | SHIPPED | #98. `collect_vec_elem_types` EXTENDS its reachability closure from fn/spec-fn param+return to ALSO walk `struct`/`enum`-variant FIELD types and `fn`-body local `let` annotations (`note_block_vec_elems`/`note_stmt_vec_elems`, keyed on `Type::Vec(inner)`, the #86 analog). `lower_stmt`'s `Stmt::Let` rewrites a `Vec`-typed `Vec::new()` init (`is_vec_new`) to `<TVec> { data: Vec::new() }` (a bare `Vec::new()` cannot inhabit the newtype, `E0308`); L1 mirrors with `<TVec>::new()`. Consumer: `lower`/`lower_l1`. Verified: `vec_completeness_conformance.rs::local_vec_new_no_param_certifies_l3` (a body-local-only `Vec::new()` certifies L3 — NOT `E0425`). |
-| REQ-12 (`last`/`contains` in `BUILTIN_METHODS`; non-Copy `tvec_name` extension; no panics) | SHIPPED | #98. `last`/`contains` ADDED to `BUILTIN_METHODS` (`thermite-spec/src/validator.rs`) so an `ens result == v.last()`/`v.contains(x)` validates in the §4.2 cage; `pop_last`/`insert`/`remove` stay EXEC-only. `tvec_name` extends to `String`/`Named`/nested `Vec` elements (the borrow-`get` form, REQ-9). A still-unlowerable element is the existing `LowerError::Unsupported` — no new variant, no `unwrap`/`expect`/`panic!` (R-CODE-2 / R-APG-1). Consumer: `validate`/`lower`. Verified: `vec_completeness_conformance.rs` + `cargo test -p thermite-spec`. |
+| REQ-12 (`last`/`contains` in `BUILTIN_METHODS`; non-Copy `tvec_name` extension; no panics) | SHIPPED | #98. `last`/`contains` ADDED to `BUILTIN_METHODS` (`fluffy-spec/src/validator.rs`) so an `ens result == v.last()`/`v.contains(x)` validates in the §4.2 cage; `pop_last`/`insert`/`remove` stay EXEC-only. `tvec_name` extends to `String`/`Named`/nested `Vec` elements (the borrow-`get` form, REQ-9). A still-unlowerable element is the existing `LowerError::Unsupported` — no new variant, no `unwrap`/`expect`/`panic!` (R-CODE-2 / R-APG-1). Consumer: `validate`/`lower`. Verified: `vec_completeness_conformance.rs` + `cargo test -p fluffy-spec`. |
 
 ## Open questions (for the orchestrator before the builder runs)
 
 - **OQ-1 (wrap vstd `Vec` vs. a custom bounded backing — RESOLVED; #62
   design-refinement).** *(This is the OQ the #62 pass refers to for the Vec
   backing; in this doc it is OQ-1.)* **RESOLVED: v1 WRAPS `vstd::vec::Vec`** behind
-  a thin Thermite-owned newtype (`struct Vec<T> { data: vstd::vec::Vec<T> }`, the
+  a thin Fluffy-owned newtype (`struct Vec<T> { data: vstd::vec::Vec<T> }`, the
   GROUNDED `BVec` shape, `5 verified, 0 errors`) — proven-for-free, and `vstd` is
   version-pinned alongside Verus so the coupling is to a PINNED dep (low-risk). The
-  capacity invariant + the `fx alloc` boundary stay Thermite's own. The decisive
+  capacity invariant + the `fx alloc` boundary stay Fluffy's own. The decisive
   REQUIREMENT (REQ-5): the surface contract is **BACKING-AGNOSTIC** — specified
   independently of vstd — so the residual certificate/golden-stability concern (the
   golden lowering references vstd's `Vec` API, which can shift across Verus
   versions — cf. the `final(self)` migration note this version forced) is handled
   by pinning the golden lowering to a RECORDED `verus`/vstd version, and the
-  MIGRATION PATH is clean: swapping to a custom Thermite-owned backing store later
+  MIGRATION PATH is clean: swapping to a custom Fluffy-owned backing store later
   changes only the lowering target, never the surface contract or user `.th` code.
   The GROUNDED proof uses `vstd::vec::Vec` directly; a fully vstd-decoupled custom
   backing store is the designed-but-unproven future swap that the backing-agnostic

@@ -1,6 +1,6 @@
 {
-  "note": "The §5.1 binary_search goal-state dialogue, the AC-6 acceptance oracle for the forge goal/fill REPL (.design/forge/goal-repl.md). HAND-DERIVED from thermite-design.md §5.1's verbatim dialogue text + the design-doc AC-6 (goal.md R-CHAR-3) — NEVER regenerated from the verbs' output. See README.md for the structural-oracle vs illustrative split.",
-  "thesis_ref": "thermite-design.md §5.1",
+  "note": "The §5.1 binary_search goal-state dialogue, the AC-6 acceptance oracle for the forge goal/fill REPL (.design/forge/goal-repl.md). HAND-DERIVED from fluffy-design.md §5.1's verbatim dialogue text + the design-doc AC-6 (goal.md R-CHAR-3) — NEVER regenerated from the verbs' output. See README.md for the structural-oracle vs illustrative split.",
+  "thesis_ref": "fluffy-design.md §5.1",
   "design_ref": ".design/forge/goal-repl.md AC-6",
   "oracle_kind": "structure-of-the-dialogue (the given/want/holes/discharged-vs-open/counterexample-presence transitions), NOT exact timings/mutant-counts (illustrative — see README)",
   "turns": [

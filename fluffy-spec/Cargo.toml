@@ -1,0 +1,17 @@
+[package]
+name = "fluffy-spec"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+# REQ-2: depends on fluffy-syntax (consumes the AST).
+[dependencies]
+fluffy-syntax = { path = "../fluffy-syntax" }
+
+# Dev-only: the combinator oracle under tests/golden/combinators/ is JSON
+# (registry.json / accept.json / reject.json). serde + serde_json read it in
+# the conformance test only — they are NOT a production dependency (the
+# registry itself is a static Rust table, R-CODE-5).
+[dev-dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

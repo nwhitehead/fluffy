@@ -5,11 +5,11 @@ tier: 3-component
 status: draft
 governs: forge/src/repair.rs
 thesis-refs:
-  - thermite-design.md §5.2
-  - thermite-design.md §5.3
-  - thermite-design.md §6
-  - thermite-design.md §12
-  - thermite-design.md Appendix B
+  - fluffy-design.md §5.2
+  - fluffy-design.md §5.3
+  - fluffy-design.md §6
+  - fluffy-design.md §12
+  - fluffy-design.md Appendix B
 -->
 
 ## Summary
@@ -291,7 +291,7 @@ retry).
   `lowered_assurance` cert; repair runs at escalated (non-default) budgets, so by the
   current rule each escalated rung is a fresh verify (see OQ-2 on caching a
   successful escalated proof).
-- `thermite_lower::lower` (the shape-keyed proof-aid templates lower.rs already
+- `fluffy_lower::lower` (the shape-keyed proof-aid templates lower.rs already
   emits) — the substrate of OQ-3's proof-aid escalation; budget escalation is the
   v0.5 mechanical move, proof-aid escalation is the open extension.
 - `enum Command in cli.rs` (`parse_args`, the hand-rolled matcher over
@@ -457,7 +457,7 @@ COMPOSES all ship and are reused: the #10 ladder's `VerusTimeout` degrade reason
   (escalated verifies are uncached; correct + simple, but a repeated repair pass
   re-pays the escalation); (b) extend `cache::cache_key` with a FIFTH verdict-input,
   the budget (the rlimit), so a *successful* escalated proof caches under
-  `(lowered, seed, verus, thermite, check-schema, rlimit)` and a re-run is a cheap
+  `(lowered, seed, verus, fluffy, check-schema, rlimit)` and a re-run is a cheap
   HIT. Reading (b) is sound (the budget IS a verdict-determining input, like the seed)
   and matches REQ-4's "re-verifies are cheap," but it is a cache-key change touching
   the #8 contract (`.design/forge/proof-cache.md`). RECOMMENDATION: (a) for the v0.5

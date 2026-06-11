@@ -1,12 +1,12 @@
-# Thermite Semantic Addressing (stable block addresses)
+# Fluffy Semantic Addressing (stable block addresses)
 <!--
 tier: 3-component
 status: draft
-governs: thermite-syntax/src/address.rs
+governs: fluffy-syntax/src/address.rs
 thesis-refs:
-  - thermite-design.md §4.3
-  - thermite-design.md §2 (pillar 5 locality)
-  - thermite-design.md §5.3 (per-item content-addressed proof cache)
+  - fluffy-design.md §4.3
+  - fluffy-design.md §2 (pillar 5 locality)
+  - fluffy-design.md §5.3 (per-item content-addressed proof cache)
 references:
   - conformance/binary_search.th
   - conformance/sum.th
@@ -15,7 +15,7 @@ references:
 
 ## Summary
 
-Every item and addressable block in a Thermite program has a **stable semantic
+Every item and addressable block in a Fluffy program has a **stable semantic
 address** — a deterministic, positional path like `binary_search.loop#1.inv#2`
 (§4.3). Addresses are the operands of `forge edit <addr>` / `forge insert-after`
 and the keys of the per-item proof cache (§5.3), so they must be **stable under
@@ -123,7 +123,7 @@ string vs verbatim source) is additionally pending blocker **#26** (OQ-1).
 
 ## Architecture
 
-`thermite-syntax/src/address.rs` computes addresses over the AST (`ast.md`
+`fluffy-syntax/src/address.rs` computes addresses over the AST (`ast.md`
 REQ-8 marks the addressable nodes: `Item`, `Loop`/`While`, `inv`/`dec` clauses).
 The scheme is purely structural:
 
@@ -155,7 +155,7 @@ In `sum` the `while` is therefore `sum.loop#1`.
 
 ## Verification
 
-`cargo test -p thermite-syntax` against `conformance/address/`:
+`cargo test -p fluffy-syntax` against `conformance/address/`:
 - the full address list for `binary_search.th` (AC-1) and `sum.th` (AC-2),
   including the `inv#2`/`inv#3` resolutions;
 - the stability fixture (AC-3): unrelated-item edit and same-loop body edit leave

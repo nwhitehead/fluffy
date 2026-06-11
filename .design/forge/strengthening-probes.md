@@ -5,10 +5,10 @@ tier: 3-component
 status: draft
 governs: forge/src/strengthen.rs
 thesis-refs:
-  - thermite-design.md §7
-  - thermite-design.md §4.1
-  - thermite-design.md §4.2
-  - thermite-design.md §5.1
+  - fluffy-design.md §7
+  - fluffy-design.md §4.1
+  - fluffy-design.md §4.2
+  - fluffy-design.md §5.1
 -->
 
 ## Summary
@@ -21,7 +21,7 @@ clauses, VERIFIES each against the real body by reusing the existing verus drive
 (`check::run_verus`), and SURFACES the candidates that (a) VERIFY against the body
 and (b) are strictly STRONGER than the current `ens` as adoptable SUGGESTIONS
 (*"consider strengthening `ens` with `<clause>` — it holds for your body and would
-kill survivor `<M>`"*). This is `thermite-design.md` §7's "template-based
+kill survivor `<M>`"*). This is `fluffy-design.md` §7's "template-based
 tightenings of `ens` … if a strictly stronger contract proves with no body change,
 Forge suggests it" (§7 step 5), and the made-concrete form of §7 line 224's
 "a precise prompt for strengthening" / line 227's "the residue surfaced for
@@ -45,8 +45,8 @@ crosslink issue **#14** ("§7 step 5 strengthening probes", v0.3 battery, milest
 (#5, `check::run_verus` + `classify_verus_outcome`, both `private` in `check.rs`),
 mutation scoring (#12, `mutation::MutationScore` / `mutation::generate` — the
 SURVIVORS are the input), the proof cache (#8, `cache::cache_key`/`load`/`store`),
-the SpecTherm clause AST (`thermite_syntax::{Expr, Clause, Contract, BinOp}`), the
-lowerer (#4, `thermite_lower::lower`), and the cert schema with the reserved
+the SpecTherm clause AST (`fluffy_syntax::{Expr, Clause, Contract, BinOp}`), the
+lowerer (#4, `fluffy_lower::lower`), and the cert schema with the reserved
 `manifest::SuggestedMove` slot. Real verus is at `~/.local/bin/verus`
 (`0.2026.05.24.ecee80a`); the GROUNDING below ran against it and PROVES the
 candidate-verify-against-body mechanism is mechanical, not vaporware.
@@ -111,7 +111,7 @@ candidate-verify-against-body mechanism is mechanical, not vaporware.
 - **REQ-2 (verify each candidate against the REAL body, reusing `run_verus`).**
   Each candidate `ens` is woven into a COPY of the `fn` (the body UNCHANGED, the
   `req`/`fx` UNCHANGED, the candidate clause REPLACING-or-ADDED-TO the `ens`),
-  lowered via `thermite_lower::lower` of the same per-item sub-program shape
+  lowered via `fluffy_lower::lower` of the same per-item sub-program shape
   (`check::item_subprogram`), and re-verified through the EXISTING verus driver
   (`check::run_verus`). A candidate that verus PROVES against the real body HOLDS
   (it is adoptable with NO body change — §7 step 5's "proves with no body change").
@@ -179,7 +179,7 @@ outcomes below are the AC anchors.
   strictly stronger. The EXPECTED (PARSE-VERIFIED) suggestion is
   **`ens result == a + b`** — it VERIFIES against `{ a + b }` (grounded below) and
   would have killed the early-return-0 survivor (`0 == a + b` is false). Mechanical
-  check: the suggestion list contains a clause that (i) `thermite_syntax::parse`s as
+  check: the suggestion list contains a clause that (i) `fluffy_syntax::parse`s as
   an `ens` expression, (ii) when verified against the real body yields `Proved`,
   (iii) when verified against the `return 0` survivor body yields a non-`Proved`
   outcome (the kill link).
@@ -221,7 +221,7 @@ strengthen::generate_candidates(f, spec_items, &score) ── REQ-1 (frozen temp
    ▼  for each candidate (deterministic order)
 strengthen::verify_candidate                            ── REQ-2
    │   weave candidate ens into a COPY of f (body UNCHANGED)
-   │   item_subprogram → thermite_lower::lower → cache::load? → run_verus
+   │   item_subprogram → fluffy_lower::lower → cache::load? → run_verus
    │   Proved  → HOLDS (adoptable)        ── §7 step 5 "proves with no body change"
    │   else    → DISCARD                  ── no unadoptable suggestion (R-DEFER-1)
    ▼
@@ -237,7 +237,7 @@ Certificate (level UNCHANGED) + additive `strengthening` + `suggested_move`
 The component owns `strengthen.rs` (the candidate template + the verify/filter
 pipeline) and a `manifest::Suggestion` additive cert type; `check.rs` is the
 consumer (one new call in the per-item L3 path, after `mutation_score`). The
-candidate `ens` `Expr`s are built from `thermite_syntax::{Expr, BinOp, Clause}`
+candidate `ens` `Expr`s are built from `fluffy_syntax::{Expr, BinOp, Clause}`
 (the same nodes the parser produces, so a candidate round-trips through the
 lowerer unchanged — `lower_fn` in `lower.rs` emits the `ens` from `Contract.ens`).
 The verify step reuses `check::run_verus` and `check::item_subprogram` verbatim
@@ -316,7 +316,7 @@ builder edits `strengthen.rs`.
 ## Ground the probe (real verus, `0.2026.05.24.ecee80a`)
 
 Run against `~/.local/bin/verus` to prove the candidate-verify mechanism is
-MECHANICAL. The harness mirrors what `thermite_lower::lower` emits for a `fn`
+MECHANICAL. The harness mirrors what `fluffy_lower::lower` emits for a `fn`
 (`fn f(...) -> (result: T) requires ...; ensures ...; { body }` inside `verus! {}`).
 
 ### Adoptable candidate: `ens result == a + b` VERIFIES against `{ a + b }`
@@ -432,7 +432,7 @@ no search, no synthesis beyond the frozen grammar.
 | REQ | Status | Evidence |
 |---|---|---|
 | REQ-1 (frozen deterministic bounded candidate template) | SHIPPED | `pub fn generate_candidates` in `strengthen.rs` is a pure function of the `FnItem` + the file's `spec fn`s + the #12 survivor, producing an ORDERED list in the fixed family order (family 1 spec-fn equality `result == s(<params>)`, family 2 result-equals-input-expression `result == p` / `result == a OP b` / `result == xs.len()`, family 3 survivor-derived kill link), capped by `pub const CANDIDATE_CAP = 16`. Consumer: `pub fn probe` + `check::strengthen_certificate`. Verified by `strengthen::tests::{weak_fixture_generates_result_eq_a_plus_b, spec_fn_equality_candidate_for_matching_signature, candidates_bounded_by_cap}`. |
-| REQ-2 (verify candidate vs real body, reuse `run_verus`) | SHIPPED | `pub fn probe` weaves each candidate `ens` into a COPY of `f` (`candidate_fn`, body UNCHANGED) and calls the threaded verify closure; `check::strengthen_certificate` implements that closure as `item_subprogram` → `thermite_lower::lower` → `cache::load`? → `check::run_verus` (the EXISTING driver, content-addressed via #8). A non-`Proved` / un-lowerable candidate is DISCARDED; a `ForgeError` propagates (R-CODE-4). Verified live against real verus by `strengthening_conformance::weak_contract_emits_verifying_strictly_stronger_suggestion` (the surfaced `result == a + b` PROVES against `{ a + b }`). |
+| REQ-2 (verify candidate vs real body, reuse `run_verus`) | SHIPPED | `pub fn probe` weaves each candidate `ens` into a COPY of `f` (`candidate_fn`, body UNCHANGED) and calls the threaded verify closure; `check::strengthen_certificate` implements that closure as `item_subprogram` → `fluffy_lower::lower` → `cache::load`? → `check::run_verus` (the EXISTING driver, content-addressed via #8). A non-`Proved` / un-lowerable candidate is DISCARDED; a `ForgeError` propagates (R-CODE-4). Verified live against real verus by `strengthening_conformance::weak_contract_emits_verifying_strictly_stronger_suggestion` (the surfaced `result == a + b` PROVES against `{ a + b }`). |
 | REQ-3 (strictly-stronger filter) | SHIPPED | `pub fn is_strictly_stronger` keeps a verifying candidate only if it KILLS the survivor (the survivor-body verify witness — `candidate_fn` over the #12 survivor body does NOT verify the candidate) OR adds a `result ==` equality the current `ens` lacks (`current_ens_pins_result` false). No extra implication solver query (OQ-5). Verified by `strengthen::tests::{equality_is_stronger_than_non_pinning_ens, not_stronger_when_ens_already_pins_result}` + the live `result == a + b` kill of the `return 0` survivor. |
 | REQ-4 (advisory placement — additive cert field, not a gate) | SHIPPED | `manifest::Suggestion` + the additive `#[serde(default, skip_serializing_if = "Vec::is_empty")] Certificate.strengthening: Vec<Suggestion>` field (oracle-EXCLUDED); `Certificate::with_strengthening` attaches them + populates `suggested_move` with the headline. `level`/`reject`/`oracle_subset` UNTOUCHED. Verified by `strengthening_conformance::{probe_never_changes_the_verdict, corpus_sum_emits_no_suggestion_and_certifies_l3}` (the golden `sum.cert.json` oracle subset is unperturbed; `check_conformance` still green). |
 | REQ-5 (consumes #12 survivors; runs on a settled L3 + scored item) | SHIPPED | `check::check_file_with_options` calls `check::strengthen_certificate` AFTER `mutation_score`, ONLY in the `score.meets_floor` branch (the item is `Level::L3`, `reject.is_none()`, a `MutationScore` produced). The `MutationScore.survivor` resolves the survivor body via `mutation::generate` (same frozen mutator) for the family-3 kill witness. |

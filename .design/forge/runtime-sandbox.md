@@ -4,8 +4,8 @@ tier: 3-component
 status: draft
 governs: forge/src/sandbox.rs
 thesis-refs:
-  - thermite-design.md §4.1
-  - thermite-design.md §9
+  - fluffy-design.md §4.1
+  - fluffy-design.md §9
 -->
 
 ## Summary
@@ -27,8 +27,8 @@ SHIPPED in `forge/src/build.rs`). This doc is the forward-looking contract the b
 implements against; the seccomp mechanism is empirically grounded against real
 `rustc`/`libc` on Linux (see [Verification](#verification)).
 
-> **Honest v0.1 limitation (read this first).** Pure Thermite has NO I/O surface — a
-> `forge`-built binary lowered from pure Thermite never *attempts* a disallowed
+> **Honest v0.1 limitation (read this first).** Pure Fluffy has NO I/O surface — a
+> `forge`-built binary lowered from pure Fluffy never *attempts* a disallowed
 > syscall, so a pure program never *triggers* the sandbox. The sandbox's real value is
 > (a) **confining `#[boundary]`/`#[slag]` code**: a foreign/fiat body (§9) that COULD
 > do I/O is, once it executes, held to ITS declared `fx` at the syscall boundary; and
@@ -201,13 +201,13 @@ ran CLEAN under a kill-default filter with exactly this set; see Verification).
 | `diverge` | (no added syscall; divergence is a non-termination effect) |
 
 > The baseline is a SUPERSET-of-minimum: it allows the syscalls the Rust runtime
-> startup/teardown + `println!` + the L1 `thermite_check!` panic path need. It pointedly
+> startup/teardown + `println!` + the L1 `fluffy_check!` panic path need. It pointedly
 > EXCLUDES `openat`, `socket`, `connect`, `getrandom`, `clock_gettime` — so a `pure`
 > filter denies file I/O, network, rand, and time. See OQ-1 on `read`/`statx` exactness.
 
 ### The probe (how a kill is demonstrated)
 
-Because pure Thermite never attempts a denied syscall, the kill is demonstrated by an
+Because pure Fluffy never attempts a denied syscall, the kill is demonstrated by an
 explicit probe under a test-only flag `--sandbox-self-test`. The generated `main`
 becomes: `[install prelude] → [unsafe { libc::syscall(openat, AT_FDCWD, …) }] →
 [let r = entry(…); println!]`. Under a `pure` filter, the `openat` is non-allowlisted →
@@ -215,7 +215,7 @@ becomes: `[install prelude] → [unsafe { libc::syscall(openat, AT_FDCWD, …) }
 output). Under a `read(x)` filter, `openat` is allowlisted → the probe returns and the
 entry runs normally. The probe is NEVER emitted without the flag (production runners
 have no probe). This is the v0.1 demonstrability device; the genuine future trigger
-surface is foreign/boundary bodies, not pure Thermite.
+surface is foreign/boundary bodies, not pure Fluffy.
 
 ## The `term` atom ripple (issue #106)
 
@@ -227,10 +227,10 @@ This doc PINS the contract; the builder lands the atom under blocker **#132**. T
 ripple (all are `match`-exhaustive on `enum Effect`, so the compiler enforces an arm
 on each):
 
-1. **`thermite-syntax/src/ast.rs`** — add `Effect::Term` to `enum Effect` (alongside
+1. **`fluffy-syntax/src/ast.rs`** — add `Effect::Term` to `enum Effect` (alongside
    `Read`/`Write`/`Net`/`Alloc`/`Time`/`Rand`/`Panic`/`Diverge`). A bare atom (no path
    arg), like `time`/`rand`.
-2. **`thermite-syntax/src/parser.rs`** — add a `"term"` arm to `parse_effect` (the
+2. **`fluffy-syntax/src/parser.rs`** — add a `"term"` arm to `parse_effect` (the
    bare-atom branch beside `"alloc"`/`"time"`/`"rand"`/`"panic"`/`"diverge"`).
 3. **`forge/src/manifest.rs`** — add `Effect::Term => "term".to_string()` to
    `effect_token` (the exhaustive match `effects_of` projects through); the
@@ -241,7 +241,7 @@ on each):
    `mask_to_tokens` exhaustive-mask test gains the atom's bit (ioctl is NOT one of
    the five sensitive user-I/O syscalls the `io_allow` soundness proof covers, so the
    proved-bitset binding is unaffected — `ioctl` is a sixth, terminal-control grant).
-5. **The dynamic skill (`thermite-skill`)** — the effect-vocabulary table the skill
+5. **The dynamic skill (`fluffy-skill`)** — the effect-vocabulary table the skill
    emits auto-requires an arm for each `Effect` variant; `term` gets a one-line row
    (terminal control / `ioctl`). The ≤6,000-token budget is unaffected (one row).
 6. **The validator / lowering** — `term` is a valid `fx` atom subject to the SAME
@@ -365,7 +365,7 @@ The discharging checks (post-implementation):
 
 ## Open questions
 
-- **OQ-1 (`read`/`write` syscall exactness):** the exact extra syscalls a Thermite
+- **OQ-1 (`read`/`write` syscall exactness):** the exact extra syscalls a Fluffy
   `read(path)` body needs depend on what foreign body actually runs (which is OUT of
   #57). The table is a conservative starting set (`openat`/`read`/`close`/`statx`);
   the empirically-grounded part is the `pure` baseline + the `openat`-allow-vs-kill
@@ -413,4 +413,4 @@ cite) and the route above. This doc does NOT author the oracle or the route (R-D
 | REQ-4 (sandbox-on-by-default for `--entry`, `--no-sandbox` opt-out) | SHIPPED | `build::SandboxConfig::default` is `SandboxMode::On`; `synthesize_entry_main` injects the prelude FIRST when on; `--no-sandbox` → `SandboxMode::Off` (no prelude); a library build emits no `main`. Consumer: `cli::run_build` (the `--sandbox`/`--no-sandbox` flags). Verified by `sandbox_conformance::no_sandbox_omits_prelude`. |
 | REQ-5 (reproducible prelude + manifest record) | SHIPPED | `emit_sandbox_prelude` is byte-deterministic (sorted allowlist); `build::BuildManifest::sandbox` (`SandboxRecord`) records the installed allowlist (the §9 audit surface). Verified by `sandbox::tests::prelude_installs_and_is_deterministic` + `sandbox_conformance::pure_runs_clean`. |
 | REQ-6 (demonstrable enforcement — probe + clean pure run) | SHIPPED | `sandbox::emit_probe` injects (under `--sandbox-self-test`, AFTER the filter) a raw `syscall(SYS_openat, ...)`. Consumer: `build::synthesize_entry_main`. Verified by `probe_killed` (exit 159 under pure) vs `probe_allowed_when_fx_widens` (exit 0 under read). The critical interaction — a contract violation still PANICS `[ens]` (exit 101), NOT seccomp-killed — is verified by `contract_violation_panics_not_killed` (the baseline allows the panic/abort path). |
-| REQ-7 (the `term` terminal-control atom + the `ioctl` grant, #106) | SHIPPED | blocker **#132** closed. `Effect::Term` in `thermite_syntax::ast::Effect` (parsed as `fx term` by `parser::parse_effect`); `EffectKind::Term` (bit 8) in `thermite_lower::effects` over the WIDENED 9-atom `u16` bitset (the proved subsumption bitset widened `u8`→`u16` in `thermite-verified`, `verus --no-cheating` → `27 verified, 0 errors`); `sandbox::TERM_SYSCALLS = &[16 /* ioctl */]` + the `"term" => TERM_SYSCALLS` arm in `syscall_allowlist`. The atom ripples through every `Effect`-exhaustive seam (`manifest::effect_token`, `lower::effect_atom_name`, `vacuity::effect_row_is_maximal`, `generate::render_effect_arm`/`effect_inventory`). The `examples/editor/editor.th` `run` entry's `raw_mode_on`/`raw_mode_off` declare `fx term`, so its transitive `fx` unions `term` and the allowlist INCLUDES `ioctl`:16 — the editor builds + runs FULLY sandboxed (NO `--no-sandbox`, exit 0: raw mode + edit + Ctrl-S save) via `forge/tests/editor_runs.rs`. The grant is SCOPED (a `pure`/`read`/`write`/`net` program's allowlist EXCLUDES `ioctl` — `sandbox::tests::term_grants_ioctl_scoped_to_the_effect` + `sandbox_conformance::term_grant_adds_ioctl_to_the_recorded_allowlist`). `term` (bit 8) is NON-io-sensitive (`widen(8)==0`), so the verus `io_allow` soundness bitset is unaffected over all 512 fx-masks (`sandbox::verus_anchor`, OQ-5 `ioctl`-broad). |
+| REQ-7 (the `term` terminal-control atom + the `ioctl` grant, #106) | SHIPPED | blocker **#132** closed. `Effect::Term` in `fluffy_syntax::ast::Effect` (parsed as `fx term` by `parser::parse_effect`); `EffectKind::Term` (bit 8) in `fluffy_lower::effects` over the WIDENED 9-atom `u16` bitset (the proved subsumption bitset widened `u8`→`u16` in `fluffy-verified`, `verus --no-cheating` → `27 verified, 0 errors`); `sandbox::TERM_SYSCALLS = &[16 /* ioctl */]` + the `"term" => TERM_SYSCALLS` arm in `syscall_allowlist`. The atom ripples through every `Effect`-exhaustive seam (`manifest::effect_token`, `lower::effect_atom_name`, `vacuity::effect_row_is_maximal`, `generate::render_effect_arm`/`effect_inventory`). The `examples/editor/editor.th` `run` entry's `raw_mode_on`/`raw_mode_off` declare `fx term`, so its transitive `fx` unions `term` and the allowlist INCLUDES `ioctl`:16 — the editor builds + runs FULLY sandboxed (NO `--no-sandbox`, exit 0: raw mode + edit + Ctrl-S save) via `forge/tests/editor_runs.rs`. The grant is SCOPED (a `pure`/`read`/`write`/`net` program's allowlist EXCLUDES `ioctl` — `sandbox::tests::term_grants_ioctl_scoped_to_the_effect` + `sandbox_conformance::term_grant_adds_ioctl_to_the_recorded_allowlist`). `term` (bit 8) is NON-io-sensitive (`widen(8)==0`), so the verus `io_allow` soundness bitset is unaffected over all 512 fx-masks (`sandbox::verus_anchor`, OQ-5 `ioctl`-broad). |

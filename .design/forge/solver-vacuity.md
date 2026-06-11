@@ -5,12 +5,12 @@ tier: 3-component
 status: draft
 governs: forge/src/vacuity_solver.rs
 thesis-refs:
-  - thermite-design.md §7
-  - thermite-design.md §4.1
-  - thermite-design.md §4.2
-  - thermite-design.md §5.1
-  - thermite-design.md §5.3
-  - thermite-design.md §6
+  - fluffy-design.md §7
+  - fluffy-design.md §4.1
+  - fluffy-design.md §4.2
+  - fluffy-design.md §5.1
+  - fluffy-design.md §5.3
+  - fluffy-design.md §6
 -->
 
 ## Summary
@@ -30,7 +30,7 @@ the battery exists precisely to catch the gaming move of a logically-vacuous
 contract).
 
 Both checks reuse the EXISTING verus contract lowering
-(`thermite_lower::lower` already lowers `req`/`ens` to Verus exprs) and forge's
+(`fluffy_lower::lower` already lowers `req`/`ens` to Verus exprs) and forge's
 existing `run_verus` driver (`check.rs`). They build a one-query verus
 **harness** per check, interpret verus PROVING the harness as "vacuous → reject",
 and set `contract_quality.{tautology, vacuous_precondition}` to the
@@ -67,11 +67,11 @@ prerequisites this component composes.
   requires <lowered req>, ensures <lowered ens>, { }` — `result` as a `proof fn`
   parameter is universally quantified, i.e. arbitrary, and the empty body forces
   verus to discharge the ensures from the requires + types alone. The `req`/`ens`
-  exprs are lowered by reusing `thermite_lower::lower` (SPEC-context lowering,
+  exprs are lowered by reusing `fluffy_lower::lower` (SPEC-context lowering,
   the same `requires`/`ensures` text `lower_fn` emits) so the harness's contract
   text is byte-identical to the real item's. Spec-fn dependencies the contract
   references (`spec_sum`) plus combinator defs are woven in exactly as `check.rs`'s
-  `item_subprogram` does. Source: `thermite-design.md` §7 step 2 ("is `ens`
+  `item_subprogram` does. Source: `fluffy-design.md` §7 step 2 ("is `ens`
   provable from `req` + types **without the function body**? If yes, the contract
   says nothing about the implementation → reject with the proof as the
   explanation").
@@ -80,8 +80,8 @@ prerequisites this component composes.
   ASSERTS `false`. The grounded encoding is a verus `proof fn vacuity_check(
   <params>) requires <lowered req>, { assert(false); }`. If verus proves it, the
   assumed `req` is contradictory (unsat) and the precondition is vacuous. The
-  `req` expr is lowered by reusing `thermite_lower::lower` (same SPEC-context
-  lowering). Source: `thermite-design.md` §7 step 3 ("is `req` satisfiable? An
+  `req` expr is lowered by reusing `fluffy_lower::lower` (same SPEC-context
+  lowering). Source: `fluffy-design.md` §7 step 3 ("is `req` satisfiable? An
   unsatisfiable precondition verifies everything about the empty set → reject
   with the unsat core").
 - **REQ-3 (interpretation — verus verdict → vacuity, never a false clean):**
@@ -96,7 +96,7 @@ prerequisites this component composes.
   reports (it does not assert clean); the surface form (degrade to "undetermined"
   vs. a `ForgeError`) is OQ-3. The polarity is deliberate: verus PROVING the
   harness is the *bad* news (the contract is degenerate). Source:
-  `thermite-design.md` §7; `goal.md` R-CODE-4.
+  `fluffy-design.md` §7; `goal.md` R-CODE-4.
 - **REQ-4 (the value-add over #6 — semantic detection #6 cannot reach):** a
   contract that PASSES #6's syntactic triage but IS a semantic tautology / has an
   unsat precondition is caught by #13. Grounded (see below): `ens result >= 0`
@@ -105,7 +105,7 @@ prerequisites this component composes.
   tautology harness; `req x > 0 && x < 0` passes #6 (no `BoolLit(false)`, the
   `&&` chain is not a syntactic contradiction #6 checks for) yet verus PROVES the
   vacuity harness. This is the reason #13 exists distinct from #6. Source:
-  `thermite-design.md` §7 steps 1 vs 2–3.
+  `fluffy-design.md` §7 steps 1 vs 2–3.
 - **REQ-5 (gate wiring — AFTER #6, verdict-in-cert):** the two checks run in
   `check::check_file`'s per-item path, AFTER `gate_fn`'s #6 structural triage
   returns `ProceedToL3` (a contract still must survive the free checks first) and
@@ -116,7 +116,7 @@ prerequisites this component composes.
   never a `ForgeError`, mirroring #6's verdict-in-cert resolution
   (`vacuity-triage.md` REQ-5 / OQ-1). The exact cause tags are
   `"SemanticTautology"` and `"VacuousPrecondition"` (OQ-1). Source:
-  `thermite-design.md` §7; `.design/forge/vacuity-triage.md` REQ-6.
+  `fluffy-design.md` §7; `.design/forge/vacuity-triage.md` REQ-6.
 - **REQ-6 (graduate `contract_quality.{tautology, vacuous_precondition}` to the
   SOLVER-confirmed value):** #6 already graduates these two bools to live-`false`
   on a structurally-clean PASS (`Certificate::graduate_triage_clean`, asserting
@@ -127,16 +127,16 @@ prerequisites this component composes.
   true` on the reject cert. Likewise for `vacuous_precondition`. NO frozen schema
   field is added or renamed (R-SPEC-2); #13 only changes which producer sets the
   two existing bools and the strength of the claim. `mutants_killed`/`survivor`
-  stay #12-forward-declared. Source: `thermite-design.md` §7, Appendix A
+  stay #12-forward-declared. Source: `fluffy-design.md` §7, Appendix A
   (`contract_quality`); `.design/forge/certificate-manifest.md` REQ-3.
 - **REQ-7 (determinism + cost honesty):** each check is ONE verus query under the
   pinned solver seed (§5.3, `check::DEFAULT_SOLVER_SEED`); the verdict
   (proved vs failed) is deterministic for a fixed toolchain + seed (R-CODE-5).
   #13 adds up to TWO verus runs per `fn` to the gate (on top of the L3 proof) —
-  documented as an accepted cost (`thermite-design.md` §11: "Verification time is
+  documented as an accepted cost (`fluffy-design.md` §11: "Verification time is
   an accepted cost ... never by weakening the gate"). The verus version + seed
   may key these queries into the existing proof cache (`cache.rs`) exactly as the
-  L3 path does (OQ-2). Source: `thermite-design.md` §5.3, §11; `goal.md`
+  L3 path does (OQ-2). Source: `fluffy-design.md` §5.3, §11; `goal.md`
   R-CODE-5.
 
 ## Acceptance criteria
@@ -188,7 +188,7 @@ the verus harness verdicts are GROUNDED (the real verus outputs are pasted in
 ## Architecture
 
 `vacuity_solver.rs` is a new `mod vacuity_solver;` in `forge/src/lib.rs`,
-consumed by `check.rs`. It depends on `thermite_lower::lower` (the existing
+consumed by `check.rs`. It depends on `fluffy_lower::lower` (the existing
 contract lowering) and reuses forge's `run_verus`-class invocation
 (`check.rs`'s verus driver). It owns NO new schema (it sets the two existing
 `manifest::ContractQuality` bools and produces a `manifest::RejectReason`).
@@ -200,7 +200,7 @@ Both harnesses are a single `proof fn` inside the standard
 with the combinator defs + spec-fn dependencies woven in (REQ-1/REQ-2).
 
 **Tautology harness (assume-req / arbitrary-result / assert-ens).** Built from a
-`FnItem`'s lowered `req`/`ens` (reuse `thermite_lower::lower`'s SPEC-context
+`FnItem`'s lowered `req`/`ens` (reuse `fluffy_lower::lower`'s SPEC-context
 emission — the exact `requires`/`ensures` text `lower_fn in lower.rs` produces):
 
 ```rust
@@ -282,7 +282,7 @@ SOLVER-confirmed `false` (REQ-6) — a strengthening of #6's syntactic-`false`.
 ### Why this composes with the existing toolchain
 
 - **Lowering reuse:** the harnesses are NOT a second lowering — they call
-  `thermite_lower::lower` (or thread a lowered req/ens string the same emitter
+  `fluffy_lower::lower` (or thread a lowered req/ens string the same emitter
   produces), so the contract text verus sees is identical to the real proof's
   (`pub fn lower in lower.rs`, `lower_fn`'s `requires`/`ensures` emission, the
   `xs@` SPEC-context slice view in `lower_expr`). No new SpecTherm semantics.
@@ -300,7 +300,7 @@ SOLVER-confirmed `false` (REQ-6) — a strengthening of #6's syntactic-`false`.
   interpretation function: a synthetic PROVED summary → vacuity DETECTED; a
   synthetic FAILED summary + counterexample → CLEAN; a synthetic VIR/absent error
   → handled `ForgeError`, never a clean `false` (AC-6). Expected verdicts trace
-  to `thermite-design.md` §7 and the hand-authored `conformance/solver-vacuity/`
+  to `fluffy-design.md` §7 and the hand-authored `conformance/solver-vacuity/`
   oracle (R-CHAR-3), never to forge's own output.
 - Conformance integration (`goal.md` model (B); the `conformance/solver-vacuity`
   route reference): `forge check conformance/solver-vacuity/tautology.th` →
@@ -378,7 +378,7 @@ FAILS (`success: false, errors: 1`) — a trivially-satisfiable req is not vacuo
 
 ### How to build a harness from a `FnItem`'s lowered `req`/`ens` (REQ-1/REQ-2)
 
-1. Reuse `thermite_lower`'s SPEC-context emission for the contract text: the
+1. Reuse `fluffy_lower`'s SPEC-context emission for the contract text: the
    `requires <req>` and `ensures <ens>,` lines are exactly what `lower_fn in
    lower.rs` already produces (the `xs@` slice view, the `as nat` coercion, the
    combinator calls). The cleanest implementation lowers the FULL item (via
@@ -398,7 +398,7 @@ FAILS (`success: false, errors: 1`) — a trivially-satisfiable req is not vacuo
 
 ## Exact `conformance/solver-vacuity/` fixtures (PARSE-VERIFIED + GROUNDED)
 
-Both parse clean under `thermite_syntax::parse` and `forge check` runs them
+Both parse clean under `fluffy_syntax::parse` and `forge check` runs them
 today (verified: each currently certifies **L3** with `tautology: false`,
 `vacuous_precondition: false` — i.e. they PASS #6's triage, which is exactly the
 AC-4 gap #13 closes). Grammar-legal: no `%`, `dec` only on loops (none here),
@@ -407,7 +407,7 @@ fixtures the orchestrator authors; the ACCEPT side reuses `conformance/sum.th` /
 `binary_search.th`.
 
 **`tautology.th`** — reject (SemanticTautology), AC-2 + AC-4:
-```thermite
+```fluffy
 fn nonneg(x: u32) -> u32
   req x > 0
   ens result >= 0
@@ -420,7 +420,7 @@ But `result >= 0` holds for every `u32` → the tautology harness PROVES → #13
 rejects. `forge check` TODAY: `L3`, `tautology: false` (the gap).
 
 **`vacuous.th`** — reject (VacuousPrecondition), AC-3 + AC-4:
-```thermite
+```fluffy
 fn unreachable_fn(x: u32) -> u32
   req x > 0 && x < 0
   ens result == x
@@ -463,7 +463,7 @@ conformance_ops = ["tautology", "vacuous", "corpus_sum", "corpus_binary_search"]
   builder + critic; a new field would be a design amendment, not code-local.
 - **OQ-2 (proof-cache keying):** should the two vacuity queries be content-keyed
   into the existing proof cache (`cache.rs`, keyed on lowered source + seed +
-  verus/thermite version) like the L3 proof? The harnesses are deterministic
+  verus/fluffy version) like the L3 proof? The harnesses are deterministic
   functions of the lowered contract, so caching is sound and saves two verus runs
   on a re-check. Default: yes, key them like the L3 path; flagged because it
   touches the cache-key composition. Not load-bearing for correctness.
@@ -519,7 +519,7 @@ conformance_ops = ["tautology", "vacuous", "corpus_sum", "corpus_binary_search"]
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (tautology harness builder) | SHIPPED | `vacuity_solver::build_tautology_harness` lowers the real `FnItem` (+ spec fns) via `thermite_lower::lower` and rebuilds `proof fn taut_check(<params>, result: <RET>) requires ..; ensures ..; { }` (`extract_lowered_fn` reuses the verbatim `requires`/`ensures`). Consumer: `check::check_file`. Grounded: PROVES on `result >= 0`/`u32`, FAILS on `sum`'s ens. |
+| REQ-1 (tautology harness builder) | SHIPPED | `vacuity_solver::build_tautology_harness` lowers the real `FnItem` (+ spec fns) via `fluffy_lower::lower` and rebuilds `proof fn taut_check(<params>, result: <RET>) requires ..; ensures ..; { }` (`extract_lowered_fn` reuses the verbatim `requires`/`ensures`). Consumer: `check::check_file`. Grounded: PROVES on `result >= 0`/`u32`, FAILS on `sum`'s ens. |
 | REQ-2 (vacuity harness builder) | SHIPPED | `vacuity_solver::build_vacuity_harness` reuses the same extraction → `proof fn vac_check(<params>) requires ..; { assert(false); }`. Consumer: `check::check_file`. Grounded: PROVES on `x>5 && x<3`, FAILS on `sum`'s `req`. |
 | REQ-3 (verdict interpretation, R-CODE-4) | SHIPPED | `vacuity_solver::interpret_summary`: PROVED (`success && errors==0`) → DETECTED; FAILED → CLEAN; VIR error → `ForgeError::VerusOutput`; `run_harness` surfaces verus-absent / unparseable as `ForgeError`, never a silent clean. |
 | REQ-4 (value-add over #6) | SHIPPED | the `semantic_tautology` / `vacuous_precondition` fixtures PASS `vacuity::triage` (no #6 syntactic cause) yet `solver_vacuity_check` rejects them with the SOLVER causes — asserted by `forge/tests/solver_vacuity_conformance.rs` against `conformance/solver-vacuity/cases.json`. |

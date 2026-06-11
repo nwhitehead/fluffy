@@ -1,6 +1,6 @@
 {
   "source": "conformance/sum.th",
-  "note": "Hand-derived structural facts from the verbatim corpus + thermite-design.md Appendix A / §4.2 (goal.md R-CHAR-3). spec fns (§4.2) are total/terminating and carry a `dec` measure but NO req/ens/fx clauses.",
+  "note": "Hand-derived structural facts from the verbatim corpus + fluffy-design.md Appendix A / §4.2 (goal.md R-CHAR-3). spec fns (§4.2) are total/terminating and carry a `dec` measure but NO req/ens/fx clauses.",
   "parses_ok": true,
   "error_count": 0,
   "items": [

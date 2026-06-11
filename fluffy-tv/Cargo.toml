@@ -1,0 +1,20 @@
+[package]
+name = "fluffy-tv"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+# Contract-faithfulness translation validation (epic crosslink #139).
+#
+# THE INDEPENDENCE CONSTRAINT (`.design/verified/contract-tv.md`, the trust
+# model): this crate depends on `fluffy-syntax` (the AST it encodes) and
+# `fluffy-spec` (the FROZEN shared combinator ground truth `REGISTRY.verus_l3`)
+# ONLY. It MUST NOT depend on `fluffy-lower` — the reference encoder is an
+# INDEPENDENT, deliberately-simple re-implementation of the contract
+# sublanguage's meaning (N-version differential validation). A `fluffy-lower`
+# dependency would make `assert(P_production <==> P_reference)` vacuous (two copies
+# of the same `lower_expr` always agree). The dependency graph enforces the
+# boundary as a compile constraint (AC-6).
+[dependencies]
+fluffy-syntax = { path = "../fluffy-syntax" }
+fluffy-spec = { path = "../fluffy-spec" }

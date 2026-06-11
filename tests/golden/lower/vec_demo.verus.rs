@@ -1,11 +1,11 @@
 // L3 Verus lowering of `conformance/vec_demo.th` — the bounded-collection rung
 // (.design/basis/04-collections.md REQ-5, Basis Stage 4 / issue #73). Reference
-// oracle for `thermite-lower::lower`'s `Vec<T>` wrapping: hand-authored from the
+// oracle for `fluffy-lower::lower`'s `Vec<T>` wrapping: hand-authored from the
 // design's GROUNDED `BVec`-over-`vstd::vec::Vec<u64>` form (R-CHAR-3 — never
 // regenerated from the lowerer), and CONFIRMED to pass the real `verus` binary
 // (verus 0.2026.05.24): `verus --no-cheating <this> => 4 verified, 0 errors`.
 //
-// A Thermite `Vec<u64>` lowers to the Thermite-runtime newtype `TVecU64` over
+// A Fluffy `Vec<u64>` lowers to the Fluffy-runtime newtype `TVecU64` over
 // `vstd::vec::Vec<u64>` carrying the capacity invariant `well_formed`
 // (len() <= CAP), the spec `len`/`spec_get`, the no-OOB exec `get` (req i < len),
 // and the capacity-preserving exec `push` (req well_formed && len < CAP) with the

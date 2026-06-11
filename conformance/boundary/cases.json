@@ -3,7 +3,7 @@
   "certifies_l1_boundary": [
     { "name": "foreign_id", "expect_level": "L1", "expect_boundary": true, "expect_target": "ext::foreign_id",
       "program": "#[boundary(\"ext::foreign_id\")] fn foreign_id(x: u32) -> u32 req x < 100 ens result == x fx pure ;",
-      "why": "A foreign fn given a Thermite contract; the body is foreign (unproven) so it cannot reach L3 — it certifies L1 with the contract enforced at the crossing (req x<100 checked before, ens result==x checked after), boundary flag set, target recorded for the TCB enumeration." }
+      "why": "A foreign fn given a Fluffy contract; the body is foreign (unproven) so it cannot reach L3 — it certifies L1 with the contract enforced at the crossing (req x<100 checked before, ens result==x checked after), boundary flag set, target recorded for the TCB enumeration." }
   ],
   "reject": [
     { "name": "bodyless_without_boundary", "cause": "ParseError",

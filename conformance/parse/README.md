@@ -1,7 +1,7 @@
 # Parse oracle (`conformance/parse/`)
 
 Hand-derived expected structural facts for parsing the corpus programs — the
-external anchor for `thermite-syntax/src/parser.rs` (issue #3), per
+external anchor for `fluffy-syntax/src/parser.rs` (issue #3), per
 `.design/syntax/parser.md`.
 
 ## Contract
@@ -24,7 +24,7 @@ well-formed second item (`recovered_items` / `recovered_item_facts`).
 
 ## R-CHAR-3
 
-Expected values are derived from the verbatim `.th` source + `thermite-design.md`
+Expected values are derived from the verbatim `.th` source + `fluffy-design.md`
 §4. They are NEVER produced by `parser.rs`. The parser is the artifact under
 test; this is the truth it is tested against. A builder implementing the parser
 must MATCH these fixtures, never edit them to match its output.

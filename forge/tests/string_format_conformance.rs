@@ -27,7 +27,7 @@
 //! R-CHAR-3: expected levels trace to `.design/basis/07-strings.md` REQ-7 (the
 //! byte-builder `ens len == old+1 && data@[old] == b` + element frame) and REQ-8
 //! (the round-trip `parse_le(result) == n` is the gold standard, GROUNDED) +
-//! `thermite-design.md` §6 ladder semantics (L3 == a fully-discharged real-verus
+//! `fluffy-design.md` §6 ladder semantics (L3 == a fully-discharged real-verus
 //! proof; L0 == an undischarged obligation), NEVER copied from forge's own output.
 //! The wrong-digit negative pins non-vacuity.
 
@@ -103,7 +103,7 @@ fn cert_for<'a>(certs: &'a [Value], item: &str) -> &'a Value {
 /// 1-byte constructor (`ens len == 1 && data@[0] == b`); `s.push_byte(b)` to the
 /// copy-then-append (`req len < CAP`, `ens len == old+1 && data@[old] == b` + the
 /// element frame `forall|j| 0 <= j < old ==> result@[j] == self@[j]`). The
-/// constructing fn carries `fx alloc`. `thermite-design.md` §6: a fully-discharged
+/// constructing fn carries `fx alloc`. `fluffy-design.md` §6: a fully-discharged
 /// verus proof is L3. GROUNDED `4 verified, 0 errors`.
 #[test]
 fn ac6_byte_builder_certifies_l3_alloc() {
@@ -139,7 +139,7 @@ fn ac6_byte_builder_certifies_l3_alloc() {
 /// AUTHORITY: `.design/basis/07-strings.md` REQ-8 — `n.to_string()` lowers to the
 /// generated `u64_to_string` (the divide/mod-by-10 digit loop + the `pow10`/
 /// `parse_le` spec fns + the `lemma_parse_push` append lemma) with the round-trip
-/// ens `parse_le(result) == n`. `thermite-design.md` §6: L3 is a fully-discharged
+/// ens `parse_le(result) == n`. `fluffy-design.md` §6: L3 is a fully-discharged
 /// verus proof. GROUNDED `16 verified, 0 errors` (the round-trip is REAL — the
 /// lemma + nonlinear_arith, no `assume`/`external_body`).
 #[test]
@@ -180,7 +180,7 @@ fn ac7_to_string_round_trip_certifies_l3() {
 /// `parse_le(result) == n + 1` — is REJECTED, never laundered to L3.)
 ///
 /// AUTHORITY: `.design/basis/07-strings.md` REQ-8 (the round-trip is the gold
-/// standard, non-vacuous) + `thermite-design.md` §7 (the battery catches a false
+/// standard, non-vacuous) + `fluffy-design.md` §7 (the battery catches a false
 /// claim). An ens that overclaims the value is a counterexample, never a false L3.
 #[test]
 fn ac7_overclaimed_round_trip_is_rejected() {
@@ -291,7 +291,7 @@ fn ac7_formatter_builds_and_prints_decimal() {
 /// `to_string` is used) and must not perturb the existing wrapper.
 ///
 /// AUTHORITY: `conformance/string/cases.json` (the Stage-7 oracle: greeting_len /
-/// first_byte L3 pure, join / literal_len L3 alloc). `thermite-design.md` §6.
+/// first_byte L3 pure, join / literal_len L3 alloc). `fluffy-design.md` §6.
 #[test]
 fn ac5_string_demo_corpus_unchanged() {
     if !verus_present() {

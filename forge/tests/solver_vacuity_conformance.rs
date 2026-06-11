@@ -1,5 +1,5 @@
 //! The LIVE oracle test for forge's SOLVER-backed tautology + vacuous-precondition
-//! checks (issue #13, `thermite-design.md` §7 steps 2-3). It drives the BUILT
+//! checks (issue #13, `fluffy-design.md` §7 steps 2-3). It drives the BUILT
 //! `forge` binary (`.design/forge/cli.md` Verification — same as
 //! `vacuity_slag_conformance.rs`) and asserts the emitted certificate against the
 //! hand-derived oracle `conformance/solver-vacuity/cases.json` (R-CHAR-3 — expected

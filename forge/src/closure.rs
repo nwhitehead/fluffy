@@ -1,7 +1,7 @@
 //! `forge/src/closure.rs` — the §9 end-to-end vs to-the-boundary classification
-//! (issue #17, `.design/forge/e2e-vs-boundary.md`; `thermite-design.md` §9).
+//! (issue #17, `.design/forge/e2e-vs-boundary.md`; `fluffy-design.md` §9).
 //!
-//! `thermite-design.md` §9 promises the manifest distinguishes "verified to the
+//! `fluffy-design.md` §9 promises the manifest distinguishes "verified to the
 //! boundary" from "verified, period". This module computes, for each `fn` in a
 //! parsed file, its **transitive intra-file call closure** and classifies the
 //! function's *assurance scope*:
@@ -27,10 +27,10 @@
 //! - Edges come from walking each `fn` body's `Expr::Call` / `Expr::MethodCall`
 //!   (and every nested expression / statement) and resolving the callee by NAME.
 //! - A callee resolving to an in-file `Item::SpecFn` is PURE (a `spec fn` is total
-//!   / terminating / body-Thermite-verified, §4.2 — never a crossing, even when
+//!   / terminating / body-Fluffy-verified, §4.2 — never a crossing, even when
 //!   self-recursive like `spec_sum`).
 //! - A callee resolving to a registry combinator (`forall_in`, `sorted`, … — the
-//!   `thermite_spec` set, §4.2) is PURE (a frozen-trigger proved library).
+//!   `fluffy_spec` set, §4.2) is PURE (a frozen-trigger proved library).
 //! - A callee resolving to an in-file `Item::Fn` that is `#[boundary]` / `#[slag]`
 //!   is a CROSSING; an in-file pure `Item::Fn` inherits ITS closure.
 //! - A callee resolving to nothing in-file and not a combinator (a cross-file
@@ -72,7 +72,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use thermite_syntax::{Block, Expr, IndexArg, Item, Program, Stmt};
+use fluffy_syntax::{Block, Expr, IndexArg, Item, Program, Stmt};
 
 use crate::manifest::AssuranceScope;
 
@@ -272,7 +272,7 @@ pub fn classify(program: &Program) -> BTreeMap<String, AssuranceScope> {
 /// `check::item_subprogram` consumes this to build a caller `f`'s isolated §5.3
 /// sub-program: every regular reachable fn is woven with its REAL body (proved),
 /// and every `#[boundary]`/`#[slag]` reachable fn is woven as a
-/// `#[verifier::external_body]` signature (`thermite_lower::lower`), so `verus`
+/// `#[verifier::external_body]` signature (`fluffy_lower::lower`), so `verus`
 /// resolves the foreign callee and `f` proves THROUGH its contract (was an
 /// undefined-callee L0). A `spec fn` is EXCLUDED here — it is woven separately by
 /// `item_subprogram`'s existing `spec_items` set (no duplication); the transitive
@@ -337,7 +337,7 @@ fn walk_stmt(stmt: &Stmt, in_file: &BTreeSet<&str>, out: &mut Vec<String>) {
                 walk_expr(&inv.expr, in_file, out);
             }
             walk_expr(&node.dec.expr, in_file, out);
-            if let thermite_syntax::LoopKind::While(cond) = &node.kind {
+            if let fluffy_syntax::LoopKind::While(cond) = &node.kind {
                 walk_expr(cond, in_file, out);
             }
             walk_block(&node.body, in_file, out);
@@ -470,12 +470,12 @@ mod tests {
     /// Parse a program source into a `Program`, asserting a clean parse (the
     /// fixtures here are all well-formed).
     fn parse(src: &str) -> Program {
-        let parsed = thermite_syntax::parse(src);
+        let parsed = fluffy_syntax::parse(src);
         assert!(parsed.is_clean(), "fixture must parse: {:?}", parsed.errors);
         parsed.program
     }
 
-    // REQ-2 / AC-1: a pure-Thermite fn calling only a spec fn is END-TO-END.
+    // REQ-2 / AC-1: a pure-Fluffy fn calling only a spec fn is END-TO-END.
     // Anchored to the corpus `sum` shape (sum -> spec_sum, a spec fn).
     #[test]
     fn pure_caller_of_spec_fn_is_end_to_end() {

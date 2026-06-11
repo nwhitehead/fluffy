@@ -1,5 +1,5 @@
 {
-  "note": "Oracle for forge's §7.1 STRUCTURAL vacuity triage (free/syntactic, no solver). Hand-derived from thermite-design.md §7.1 (R-CHAR-3). `accept` programs must PASS triage (non-vacuous); `reject` programs must be REJECTED with the named structural cause. Triage order: ens-is-trivial (a), ens-omits-result (b), ens-implied-by-req (c), maximal-fx-without-slag (d) — `cause` is the FIRST matching check. Solver tautology/unsat-precondition is #13; mutation is #12 — NOT covered here.",
+  "note": "Oracle for forge's §7.1 STRUCTURAL vacuity triage (free/syntactic, no solver). Hand-derived from fluffy-design.md §7.1 (R-CHAR-3). `accept` programs must PASS triage (non-vacuous); `reject` programs must be REJECTED with the named structural cause. Triage order: ens-is-trivial (a), ens-omits-result (b), ens-implied-by-req (c), maximal-fx-without-slag (d) — `cause` is the FIRST matching check. Solver tautology/unsat-precondition is #13; mutation is #12 — NOT covered here.",
   "accept": [
     { "name": "corpus_sum",           "source": "conformance/sum.th",           "why": "sum's contracts are non-vacuous (ens mentions result, not trivially true, not req-implied)." },
     { "name": "corpus_binary_search", "source": "conformance/binary_search.th", "why": "binary_search's match-ens mentions result and is non-trivial." },

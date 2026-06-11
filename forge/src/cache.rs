@@ -1,10 +1,10 @@
 //! `forge/src/cache.rs` — the per-item, content-addressed proof cache and the
-//! home of the bit-reproducible-verification contract (`thermite-design.md`
+//! home of the bit-reproducible-verification contract (`fluffy-design.md`
 //! §5.3: "Proof results are content-addressed and cached per item").
 //!
 //! For each `.th` item, `check::check_file` computes a STABLE cache key from the
 //! four inputs that determine that item's verdict — the item's LOWERED Verus
-//! source, the pinned solver seed, the verus version, and the thermite toolchain
+//! source, the pinned solver seed, the verus version, and the fluffy toolchain
 //! version — consults the cache BEFORE spawning verus, returns the stored
 //! [`Certificate`] on a HIT (skipping the solver), and stores the result on a
 //! MISS. The cache is a PERFORMANCE optimization that NEVER changes a verdict: a
@@ -15,7 +15,7 @@
 //!
 //! This module is a thin, deterministic, content-addressed store with NO
 //! verification logic of its own — it sits BETWEEN `check::item_subprogram` /
-//! `thermite_lower::lower` (which produce the lowered source it content-addresses)
+//! `fluffy_lower::lower` (which produce the lowered source it content-addresses)
 //! and `check::run_verus` (the solver invocation it lets `forge` skip on a hit).
 //! IO failures DEGRADE to a MISS, never a panic (R-CODE-2): a damaged cache is
 //! "slower," never "wrong" or "crashes."
@@ -24,12 +24,12 @@
 //!
 //! | REQ | Status | Evidence |
 //! |---|---|---|
-//! | REQ-1 (cache-key composition — verdict-determining inputs) | SHIPPED | `pub fn cache_key(lowered_src, seed, verus_version, thermite_version) -> String` hashes the four args PLUS the `CHECK_SCHEMA_VERSION` check-logic version (blocker #49), each DOMAIN-TAGGED + LENGTH-PREFIXED (`field`), into a lowercase-hex sha256 content address. Consumer: `check::check_file`. |
+//! | REQ-1 (cache-key composition — verdict-determining inputs) | SHIPPED | `pub fn cache_key(lowered_src, seed, verus_version, fluffy_version) -> String` hashes the four args PLUS the `CHECK_SCHEMA_VERSION` check-logic version (blocker #49), each DOMAIN-TAGGED + LENGTH-PREFIXED (`field`), into a lowercase-hex sha256 content address. Consumer: `check::check_file`. |
 //! | REQ-2 (soundness-completeness invariant — hit == fresh verify) | SHIPPED | `cache_key` captures every verdict-determining input (the four args); `store` clears `cached` before persisting and `load` returns the stored cert unchanged, so `check::check_file`'s `with_cached(true)` HIT is oracle-equal to the fresh verify it was stored from. Verified by `key_changes_when_any_input_changes` + `check::check_file`'s `with_cached` wiring. |
 //! | REQ-3 (lookup-then-store flow, per item) | SHIPPED | `pub fn load(cache_dir, key) -> Option<Certificate>` consulted BEFORE `run_verus`; `pub fn store(cache_dir, key, cert)` after a MISS. Consumer: `check::check_file`'s per-item L3 path. |
 //! | REQ-4 (locality — per-item) | SHIPPED | the key is over the item's OWN `item_subprogram` lowered source (`check.rs`), so an edit to a sibling leaves this item's key byte-identical. Verified by `check::tests::cache_key_is_local_to_the_item`. |
-//! | REQ-5 (version-keyed invalidation) | SHIPPED | `verus_version` + `thermite_version` (`env!("CARGO_PKG_VERSION")`, sourced in `check.rs`) are key inputs; a version change forces a universal MISS. Verified by `key_changes_when_any_input_changes`. |
-//! | REQ-6 (cache location + format — gitignore-able) | SHIPPED | `pub fn default_cache_dir() -> PathBuf` = `target/thermite-proof-cache/` (under the already-ignored `target/`); one `<hex-key>.json` per key; `store` writes atomically (temp + rename); a corrupt/unreadable entry → `load` returns `None` (MISS, never an error). Consumer: `check::check_file`. |
+//! | REQ-5 (version-keyed invalidation) | SHIPPED | `verus_version` + `fluffy_version` (`env!("CARGO_PKG_VERSION")`, sourced in `check.rs`) are key inputs; a version change forces a universal MISS. Verified by `key_changes_when_any_input_changes`. |
+//! | REQ-6 (cache location + format — gitignore-able) | SHIPPED | `pub fn default_cache_dir() -> PathBuf` = `target/fluffy-proof-cache/` (under the already-ignored `target/`); one `<hex-key>.json` per key; `store` writes atomically (temp + rename); a corrupt/unreadable entry → `load` returns `None` (MISS, never an error). Consumer: `check::check_file`. |
 //! | REQ-7 (additive `cached: bool` field) | SHIPPED | `manifest::Certificate::cached` (`#[serde(default)]`, oracle-excluded); `store` persists `cached: false` (a stored cert is the canonical fresh verify), `check::check_file` sets `with_cached(true)` on the HIT it returns. |
 //! | REQ-8 (bit-reproducible deterministic cert) | SHIPPED | `cache_key` is a PURE function of its four inputs (no wall-clock, no ambient state, R-CODE-5); `load`/`store` round-trip the cert's deterministic fields byte-for-byte. Verified by `cache_key_is_pure` + `round_trip_load_store`. |
 
@@ -42,7 +42,7 @@ use crate::manifest::{Certificate, ObligationStatus};
 /// Domain-separation tag prefixed to the WHOLE keyed stream, so a `forge` proof
 /// cache key can never collide with an unrelated sha256 use of the same bytes
 /// (`.design/forge/proof-cache.md` REQ-1 — domain separation).
-const DOMAIN: &[u8] = b"thermite.forge.proof-cache.v1";
+const DOMAIN: &[u8] = b"fluffy.forge.proof-cache.v1";
 
 /// The version of forge's VERDICT-AFFECTING CHECK LOGIC — the set of gates a
 /// cached certificate was produced under (`.design/forge/proof-cache.md` REQ-2,
@@ -52,13 +52,13 @@ const DOMAIN: &[u8] = b"thermite.forge.proof-cache.v1";
 /// changes: a different schema ⇒ a different key ⇒ a MISS ⇒ a full re-check
 /// under the CURRENT gates. This closes the bypass where a cert cached by a
 /// forge BEFORE a gate existed — under an IDENTICAL (lowered_src, seed,
-/// verus_version, thermite_version) key, because `forge`'s crate version did not
+/// verus_version, fluffy_version) key, because `forge`'s crate version did not
 /// move — was served on a HIT and skipped the now-required gate.
 ///
 /// MAINTENANCE CONTRACT (blocker #49): BUMP this constant WHENEVER the set of
 /// verdict-affecting checks/gates changes — a gate added, removed, or its
 /// pass/fail semantics altered (e.g. the §7 mutation floor, the vacuity battery,
-/// the triage rejects). The `thermite_version` input does NOT suffice: the
+/// the triage rejects). The `fluffy_version` input does NOT suffice: the
 /// toolchain ships gate changes WITHOUT a crate-version bump (issue #12's
 /// mutation gate landed at 0.1.0), so the check-logic version must move
 /// independently. Forgetting to bump it re-opens the stale-verdict bypass; this
@@ -100,12 +100,12 @@ const DOMAIN: &[u8] = b"thermite.forge.proof-cache.v1";
 const CHECK_SCHEMA_VERSION: u32 = 5;
 
 /// The project-local proof-cache directory (`.design/forge/proof-cache.md`
-/// REQ-6, OQ-1): `target/thermite-proof-cache/`. It is BUILD OUTPUT under the
+/// REQ-6, OQ-1): `target/fluffy-proof-cache/`. It is BUILD OUTPUT under the
 /// already-git-ignored `target/`, so it is never committed and `cargo clean`
 /// clears it. The path is relative to the current working directory (the project
 /// root), matching where `target/` lives. Consumed by `check::check_file`.
 pub fn default_cache_dir() -> PathBuf {
-    PathBuf::from("target").join("thermite-proof-cache")
+    PathBuf::from("target").join("fluffy-proof-cache")
 }
 
 /// Compute the STABLE content-address cache key for ONE item (REQ-1) — a
@@ -115,7 +115,7 @@ pub fn default_cache_dir() -> PathBuf {
 ///    checks; the §5.3 isolated sub-program). REQ-1a.
 /// 2. `seed` — the pinned SMT solver seed (`check::resolve_seed`, §5.3). REQ-1b.
 /// 3. `verus_version` — the verus binary version (`verus --version`). REQ-1d/REQ-5.
-/// 4. `thermite_version` — the `forge` toolchain version
+/// 4. `fluffy_version` — the `forge` toolchain version
 ///    (`env!("CARGO_PKG_VERSION")`). REQ-1c/REQ-5.
 ///
 /// Each field is DOMAIN-TAGGED and LENGTH-PREFIXED (`field`), so two distinct
@@ -129,18 +129,18 @@ pub fn cache_key(
     lowered_src: &str,
     seed: u64,
     verus_version: &str,
-    thermite_version: &str,
+    fluffy_version: &str,
 ) -> String {
     let mut hasher = Sha256::new();
     hasher.update(DOMAIN);
     field(&mut hasher, b"lowered", lowered_src.as_bytes());
     field(&mut hasher, b"seed", &seed.to_le_bytes());
     field(&mut hasher, b"verus", verus_version.as_bytes());
-    field(&mut hasher, b"thermite", thermite_version.as_bytes());
+    field(&mut hasher, b"fluffy", fluffy_version.as_bytes());
     // The FIFTH input (blocker #49): the verdict-affecting check-logic version, so
     // a cert cached under one set of gates cannot be re-served once the gate set
     // changes (a different schema ⇒ a different key ⇒ a MISS ⇒ re-check under the
-    // CURRENT gates). Captures what `thermite_version` cannot — gate changes that
+    // CURRENT gates). Captures what `fluffy_version` cannot — gate changes that
     // ship without a crate-version bump (see `CHECK_SCHEMA_VERSION`).
     field(
         &mut hasher,
@@ -285,7 +285,7 @@ mod tests {
     use crate::manifest::{Certificate, Level, ObligationResult};
 
     const VERUS: &str = "verus 0.2024.01.01";
-    const THERMITE: &str = "0.1.0";
+    const FLUFFY: &str = "0.1.0";
 
     fn sample_cert(item: &str, level: Level) -> Certificate {
         Certificate::new(
@@ -315,8 +315,8 @@ mod tests {
     // same hex key, deterministically.
     #[test]
     fn cache_key_is_pure() {
-        let a = cache_key("fn f() {}", 0, VERUS, THERMITE);
-        let b = cache_key("fn f() {}", 0, VERUS, THERMITE);
+        let a = cache_key("fn f() {}", 0, VERUS, FLUFFY);
+        let b = cache_key("fn f() {}", 0, VERUS, FLUFFY);
         assert_eq!(a, b, "same inputs must yield the same key");
         // The key is lowercase hex of a 32-byte sha256 digest.
         assert_eq!(a.len(), 64, "sha256 hex is 64 chars");
@@ -332,17 +332,17 @@ mod tests {
     // single-input change from the same baseline.
     #[test]
     fn key_changes_when_any_input_changes() {
-        let base = cache_key("fn f() {}", 0, VERUS, THERMITE);
+        let base = cache_key("fn f() {}", 0, VERUS, FLUFFY);
         // (a) lowered source.
-        assert_ne!(base, cache_key("fn g() {}", 0, VERUS, THERMITE));
+        assert_ne!(base, cache_key("fn g() {}", 0, VERUS, FLUFFY));
         // (b) seed.
-        assert_ne!(base, cache_key("fn f() {}", 1, VERUS, THERMITE));
-        // (c) thermite version.
+        assert_ne!(base, cache_key("fn f() {}", 1, VERUS, FLUFFY));
+        // (c) fluffy version.
         assert_ne!(base, cache_key("fn f() {}", 0, VERUS, "0.2.0"));
         // (d) verus version.
         assert_ne!(
             base,
-            cache_key("fn f() {}", 0, "verus 0.2024.02.02", THERMITE)
+            cache_key("fn f() {}", 0, "verus 0.2024.02.02", FLUFFY)
         );
     }
 
@@ -353,8 +353,8 @@ mod tests {
     fn length_prefixing_prevents_boundary_collision() {
         // ("ab","") vs ("a","b") on (source, verus_version): a flat concat of the
         // bytes would be identical; length-prefixing keeps them distinct.
-        let x = cache_key("ab", 0, "", THERMITE);
-        let y = cache_key("a", 0, "b", THERMITE);
+        let x = cache_key("ab", 0, "", FLUFFY);
+        let y = cache_key("a", 0, "b", FLUFFY);
         assert_ne!(
             x, y,
             "field boundaries must be unambiguous (no concat collision)"
@@ -367,7 +367,7 @@ mod tests {
     fn round_trip_load_store() {
         let dir = unique_test_dir("roundtrip");
         let _ = std::fs::remove_dir_all(&dir);
-        let key = cache_key("fn f() {}", 0, VERUS, THERMITE);
+        let key = cache_key("fn f() {}", 0, VERUS, FLUFFY);
         // A MISS before any store.
         assert!(load(&dir, &key).is_none(), "empty cache is a MISS");
         // Store a HIT-flagged cert; the stored form must be canonical false.
@@ -393,7 +393,7 @@ mod tests {
         let dir = unique_test_dir("corrupt");
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).expect("mkdir");
-        let key = cache_key("fn f() {}", 0, VERUS, THERMITE);
+        let key = cache_key("fn f() {}", 0, VERUS, FLUFFY);
         std::fs::write(entry_path(&dir, &key), b"{ this is not valid json").expect("write garbage");
         assert!(
             load(&dir, &key).is_none(),
@@ -410,6 +410,6 @@ mod tests {
             dir.starts_with("target"),
             "the proof cache lives under the ignored `target/`: {dir:?}"
         );
-        assert!(dir.ends_with("thermite-proof-cache"));
+        assert!(dir.ends_with("fluffy-proof-cache"));
     }
 }

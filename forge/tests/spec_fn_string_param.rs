@@ -2,7 +2,7 @@
 //! whose `&String` param is read via `byte_at`/`len` MUST lower correctly and
 //! certify L3, and a fn that NAMES it in a contract MUST certify L3 too.
 //!
-//! THE GAP (root cause in `thermite-lower/src/lower.rs`): the exec `lower_fn`
+//! THE GAP (root cause in `fluffy-lower/src/lower.rs`): the exec `lower_fn`
 //! signature path threads a fn's `&String` params via `.with_strings(..)`, so an
 //! exec `byte_at(i)` rewrites to the spec accessor + coerces correctly. But the
 //! `spec fn` body path (`lower_spec_fn_body` / `lower_spec_fn_body_with_schemes`)
@@ -31,7 +31,7 @@
 //! anti-pattern-gated, so `unwrap`/`expect`/`panic!` are fine here (R-APG-2).
 //!
 //! R-CHAR-3: the expected level is the design authority — L3 == a fully-discharged
-//! real-verus proof (`thermite-design.md` §6 ladder semantics;
+//! real-verus proof (`fluffy-design.md` §6 ladder semantics;
 //! `.design/basis/07-strings.md` REQ-4, the `spec_byte_at(i as int)` spec
 //! accessor) — NOT copied from the toolchain's own output. The negative L0 is the
 //! divergence the gap produced.

@@ -14,7 +14,7 @@
 //! right: it reports `NOT CERTIFIED — EnsIsTrivial` for the same cert.)
 //!
 //! AUTHORITY:
-//! - `thermite-design.md` §7: "A function does not certify until its
+//! - `fluffy-design.md` §7: "A function does not certify until its
 //!   **contract** certifies"; §7.1 (a): "`ens` simplifies to `true` → reject".
 //! - `.design/forge/goal-repl.md` REQ-1: `forge battery` "reports the §7
 //!   anti-Goodhart battery ... WITHOUT re-defining any verdict. A thin VIEW
@@ -65,7 +65,7 @@ fn triage_ens_is_true_fixture() -> (String, String) {
     )
 }
 
-// `.design/forge/goal-repl.md` REQ-1 / `thermite-design.md` §7.1 (a): the
+// `.design/forge/goal-repl.md` REQ-1 / `fluffy-design.md` §7.1 (a): the
 // battery VIEW on a gate-rejected vacuous contract must report the gate's
 // verdict (the reject), never "non-vacuous".
 #[test]

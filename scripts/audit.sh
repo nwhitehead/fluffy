@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Thermite audit — the skeptic re-derives the ENTIRE trust chain on their own
+# Fluffy audit — the skeptic re-derives the ENTIRE trust chain on their own
 # machine. The shallow "L3" demo proves an existence claim (one program certifies,
 # one mutant is refused). The DEEP audit (default) re-derives each LINK of the
 # ACTUAL guarantee and prints, honestly, what it could NOT discharge:
@@ -14,7 +14,7 @@
 #      over EVERY admitted `.th` in conformance/. PASS iff ZERO Divergent across the
 #      corpus (Skipped/Unverifiable counted + printed, not failing).
 #   3  THE FALSIFICATION BATTERY (multi-class)     — the live teeth suites that
-#      inject production-side infidelities and assert Z3 CATCHES them (thermite-tv
+#      inject production-side infidelities and assert Z3 CATCHES them (fluffy-tv
 #      teeth/body_teeth/exec_teeth/loop_teeth), PLUS one visible end-to-end sed
 #      mutant (the legible illustration; the battery is the evidence).
 #   4  CORRESPONDENCE DRIFT TRIPWIRE               — the pinned encoder/Lean SHAs in
@@ -76,12 +76,12 @@ trap 'rm -rf "$TMP"' EXIT
 # =============================================================================
 if [ "$FAST" -eq 1 ]; then
   if [ -z "${VERUS:-}" ]; then
-    bold "Thermite audit (fast)"
+    bold "Fluffy audit (fast)"
     fail "verus not found — set VERUS_BIN, put 'verus' on PATH, or install to ~/.local/bin/verus."
     note "The L3 proof AND the independent re-check both require the Verus/Z3 prover."
     exit 2
   fi
-  bold "Thermite audit (fast) — the existence demo (one program, one mutant)"
+  bold "Fluffy audit (fast) — the existence demo (one program, one mutant)"
   echo "  program : $PROG"
   echo "  prover  : $VERUS ($("$VERUS" --version 2>/dev/null | head -1))"
   echo
@@ -125,7 +125,7 @@ if [ "$FAST" -eq 1 ]; then
   else
     COPY="$TMP/${ITEM}_golden.rs"
     cp "$GOLDEN" "$COPY"
-    echo "      proof file : $GOLDEN  (Thermite's emitted Verus, committed)"
+    echo "      proof file : $GOLDEN  (Fluffy's emitted Verus, committed)"
     # run from $TMP so verus's output artifact lands in scratch, never the repo tree
     D_OUT="$( ( cd "$TMP" && "$VERUS" "$(basename "$COPY")" ) 2>&1 )"; D_RC=$?
     echo "$D_OUT" | grep -iE "verification results|verified|errors" | sed 's/^/      /'
@@ -152,7 +152,7 @@ fi
 # =============================================================================
 #  DEEP PATH (default) — re-derive the WHOLE trust chain.
 # =============================================================================
-bold "Thermite DEEP audit — re-derive the WHOLE trust chain on YOUR machine"
+bold "Fluffy DEEP audit — re-derive the WHOLE trust chain on YOUR machine"
 echo "  This is slow (minutes): it rebuilds the Lean spine, runs the per-run TV over the"
 echo "  full corpus, and runs the multi-class falsification battery live. Progress per check."
 echo "  prover  : ${VERUS:-<none found>} ${VERUS:+($("$VERUS" --version 2>/dev/null | head -1))}"
@@ -177,11 +177,11 @@ if [ -x "$HOME/.elan/bin/lake" ]; then LAKE="$HOME/.elan/bin/lake"
 elif command -v lake >/dev/null 2>&1; then LAKE="$(command -v lake)"; fi
 
 THEOREMS=(
-  "Thermite.lowering_faithful"
-  "Thermite.ref_sound"
-  "Thermite.Exec.exec_ref_sound"
-  "Thermite.Exec.body_ref_sound"
-  "Thermite.Exec.while_rule"
+  "Fluffy.lowering_faithful"
+  "Fluffy.ref_sound"
+  "Fluffy.Exec.exec_ref_sound"
+  "Fluffy.Exec.body_ref_sound"
+  "Fluffy.Exec.while_rule"
 )
 
 if [ -z "$LAKE" ]; then
@@ -198,11 +198,11 @@ else
     # generate the #print axioms probe
     PROBE="$TMP/axprobe.lean"
     {
-      echo "import Thermite.Faithfulness"
-      echo "import Thermite.Soundness"
-      echo "import Thermite.Exec"
-      echo "import Thermite.Exec.Stmt"
-      echo "import Thermite.Exec.Loop"
+      echo "import Fluffy.Faithfulness"
+      echo "import Fluffy.Soundness"
+      echo "import Fluffy.Exec"
+      echo "import Fluffy.Exec.Stmt"
+      echo "import Fluffy.Exec.Loop"
       for t in "${THEOREMS[@]}"; do echo "#print axioms $t"; done
     } > "$PROBE"
     AX_OUT="$( ( cd "$ROOT/lean" && "$LAKE" env lean "$PROBE" ) 2>&1 )"; AX_RC=$?
@@ -340,11 +340,11 @@ bold "[3/5] THE FALSIFICATION BATTERY — does Z3 CATCH injected infidelities?"
 note "A rubber-stamp prover passes everything. These suites inject production-side"
 note "infidelities of MANY classes and assert TV (Z3) CATCHES each. Classes exercised:"
 note "  contract: wrong-op, cast-paren-drop, byte-view misdispatch, arg-kind (index↔slice),"
-note "            wrong-combinator, structural-drop  (thermite-tv::teeth)"
+note "            wrong-combinator, structural-drop  (fluffy-tv::teeth)"
 note "  body:     dropped-stmt, reordered-mutation, swapped if-branch, multi-cell projection"
-note "            (thermite-tv::body_teeth)"
-note "  exec:     wrong-op, nat-coercion-underflow, cast-paren, off-by-one (thermite-tv::exec_teeth)"
-note "  loop:     broken invariant (entry/preservation), exit-overclaim (thermite-tv::loop_teeth)"
+note "            (fluffy-tv::body_teeth)"
+note "  exec:     wrong-op, nat-coercion-underflow, cast-paren, off-by-one (fluffy-tv::exec_teeth)"
+note "  loop:     broken invariant (entry/preservation), exit-overclaim (fluffy-tv::loop_teeth)"
 
 if [ -z "${VERUS:-}" ]; then
   skip "verus not found — the teeth suites need Z3 to demonstrate the catch."
@@ -352,8 +352,8 @@ if [ -z "${VERUS:-}" ]; then
   SKIPPED_GUARANTEES+=("[3] falsification battery (Z3 teeth) — NOT demonstrated")
 else
   export VERUS_BIN="$VERUS"
-  echo "      running: cargo test -p thermite-tv --test teeth --test body_teeth --test exec_teeth --test loop_teeth"
-  if cargo test -q -p thermite-tv --test teeth --test body_teeth --test exec_teeth --test loop_teeth >"$TMP/teeth.log" 2>&1; then
+  echo "      running: cargo test -p fluffy-tv --test teeth --test body_teeth --test exec_teeth --test loop_teeth"
+  if cargo test -q -p fluffy-tv --test teeth --test body_teeth --test exec_teeth --test loop_teeth >"$TMP/teeth.log" 2>&1; then
     # surface the per-suite pass counts
     grep -E "test result:" "$TMP/teeth.log" | sed 's/^/      /'
     pass "the falsification battery is GREEN — Z3 caught every injected infidelity class above"
@@ -403,10 +403,10 @@ if [ ! -f "$CORR_DOC" ]; then
 else
   # The pinned (artifact -> file -> SHA) rows from the doc's "Audited commits" table.
   declare -a PIN_FILE=(
-    "thermite-tv/src/ref_encode.rs"
-    "thermite-tv/src/exec_encode.rs"
-    "thermite-tv/src/exec_stmt_encode.rs"
-    "thermite-spec/src/combinators.rs"
+    "fluffy-tv/src/ref_encode.rs"
+    "fluffy-tv/src/exec_encode.rs"
+    "fluffy-tv/src/exec_stmt_encode.rs"
+    "fluffy-spec/src/combinators.rs"
   )
   # the doc wraps both the path and the SHA in backticks; a literal backtick in a
   # grep pattern inside $(...) would be mis-read as legacy command substitution, so
@@ -435,15 +435,15 @@ else
       DRIFT=1
     fi
   done
-  # the Lean spine SHA (the doc pins `lean/Thermite/**` @ <SHA> in the "Lean spine" row)
+  # the Lean spine SHA (the doc pins `lean/Fluffy/**` @ <SHA> in the "Lean spine" row)
   lean_pinned="$(pin_sha_for 'Lean spine')"
-  lean_cur="$(git log -1 --format=%h -- lean/Thermite/ 2>/dev/null)"
+  lean_cur="$(git log -1 --format=%h -- lean/Fluffy/ 2>/dev/null)"
   if [ -n "$lean_pinned" ]; then
     plen=${#lean_pinned}; clen=${#lean_cur}; n=$(( plen < clen ? plen : clen ))
     if [ "${lean_pinned:0:$n}" = "${lean_cur:0:$n}" ]; then
-      pass "lean/Thermite/** — unchanged since the audit (pinned $lean_pinned, current $lean_cur)"
+      pass "lean/Fluffy/** — unchanged since the audit (pinned $lean_pinned, current $lean_cur)"
     else
-      fail "lean/Thermite/** — DRIFTED: pinned $lean_pinned, current $lean_cur"
+      fail "lean/Fluffy/** — DRIFTED: pinned $lean_pinned, current $lean_cur"
       DRIFT=1
     fi
   fi
@@ -473,7 +473,7 @@ elif [ ! -f "$GOLDEN" ]; then
 else
   COPY="$TMP/${ITEM}_golden.rs"
   cp "$GOLDEN" "$COPY"
-  echo "      proof file : $GOLDEN  (Thermite's emitted Verus, committed)"
+  echo "      proof file : $GOLDEN  (Fluffy's emitted Verus, committed)"
   D_OUT="$("$VERUS" "$COPY" 2>&1)"; D_RC=$?
   echo "$D_OUT" | grep -iE "verification results|verified|errors" | sed 's/^/      /'
   if [ "$D_RC" -eq 0 ] && echo "$D_OUT" | grep -qiE "0 errors"; then

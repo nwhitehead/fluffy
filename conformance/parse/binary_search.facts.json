@@ -1,6 +1,6 @@
 {
   "source": "conformance/binary_search.th",
-  "note": "Hand-derived structural facts from the verbatim corpus + thermite-design.md §4 (goal.md R-CHAR-3). Representation-agnostic: asserts counts/kinds the parser must produce, not a specific AST encoding.",
+  "note": "Hand-derived structural facts from the verbatim corpus + fluffy-design.md §4 (goal.md R-CHAR-3). Representation-agnostic: asserts counts/kinds the parser must produce, not a specific AST encoding.",
   "parses_ok": true,
   "error_count": 0,
   "items": [

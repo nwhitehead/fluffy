@@ -12,7 +12,7 @@
 //!   2. the per-item program has no spec fn, so `spec_fn_param_type_map` is
 //!      EMPTY and the c116360c REQ-5 cast falls back to `as u64` (the emitted
 //!      `s_dec((self.x + 0) as u64)`), though the whole-program lowering — the
-//!      thermite-lower #229 pin — correctly emits `as u32`.
+//!      fluffy-lower #229 pin — correctly emits `as u32`.
 //!
 //! Fixing #230 alone (emit `pub open spec fn` for user spec fns) does NOT
 //! revive this shape: the def is still not WOVEN into the struct's
@@ -20,7 +20,7 @@
 //! spec-fn deps (the #68/#71 precedent); the Struct arm must too.
 //!
 //! THE AUTHORITY (R-CHAR-3): expected level L3 is the design contract —
-//! `thermite-design.md` §6 (L3 == fully-discharged real-verus proof) +
+//! `fluffy-design.md` §6 (L3 == fully-discharged real-verus proof) +
 //! `.design/lower/verus-lowering.md` REQ-8 (struct type-invariant → enforced
 //! `well_formed` predicate, the verified `bank_account` precedent). The
 //! fully-woven, `pub open` form of this exact fixture verifies by hand:
@@ -127,7 +127,7 @@ fn struct_inv_naming_user_spec_fn_certifies_l3() {
         "L3",
         "the spec fn itself must certify L3"
     );
-    // thermite-design.md §6: a correct source certifies L3. The struct's
+    // fluffy-design.md §6: a correct source certifies L3. The struct's
     // well_formed predicate is the verified bank_account REQ-8 shape; the
     // hand-woven `pub open` form of this exact fixture is `1 verified, 0
     // errors` under verus.

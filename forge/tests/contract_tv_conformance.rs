@@ -333,7 +333,7 @@ fn off_corpus_generated_run_all_faithful() {
     // cast-paren fix + the #147 gap #2 Eq-only coercion hold off-corpus on BOTH
     // encoders. A `divergent`/`unverifiable` here = a real off-corpus hole. The
     // construct PRESENCE (so this guard is not vacuous) is asserted directly on the
-    // deterministic generator in `thermite_tv::gen::tests::diverse_construct_coverage`
+    // deterministic generator in `fluffy_tv::gen::tests::diverse_construct_coverage`
     // (`cast_lt >= 1`, `non_eq_nat_cmp >= 1`); here we re-confirm the run is the
     // EXTENDED one by requiring the clause count grew past the old 175-checked ceiling
     // is NOT asserted (byte-view ratio varies by seed) — the load-bearing guard is the

@@ -1,6 +1,6 @@
 {
   "source": "conformance/binary_search.th",
-  "note": "Hand-derived from thermite-design.md §4.3 + the verbatim corpus, NEVER from address.rs output (goal.md R-CHAR-3). Resolves blocker #26: 1-based source order, all invariants counted.",
+  "note": "Hand-derived from fluffy-design.md §4.3 + the verbatim corpus, NEVER from address.rs output (goal.md R-CHAR-3). Resolves blocker #26: 1-based source order, all invariants counted.",
   "addresses": [
     { "addr": "binary_search", "kind": "fn" },
     { "addr": "binary_search.loop#1", "kind": "loop" },

@@ -2,21 +2,21 @@
 <!--
 tier: 3-component
 status: draft
-governs: thermite-syntax/src/ast.rs
-governs: thermite-syntax/src/parser.rs
-governs: thermite-spec/src/validator.rs
-governs: thermite-lower/src/lower.rs
+governs: fluffy-syntax/src/ast.rs
+governs: fluffy-syntax/src/parser.rs
+governs: fluffy-spec/src/validator.rs
+governs: fluffy-lower/src/lower.rs
 thesis-refs:
-  - thermite-design.md §4
-  - thermite-design.md §4.2
-  - thermite-design.md §4.4
-  - thermite-design.md §6
+  - fluffy-design.md §4
+  - fluffy-design.md §4.2
+  - fluffy-design.md §4.4
+  - fluffy-design.md §6
 -->
 
 ## Summary
 
 Stage 7 of the universal verified primitive basis (crosslink **#79**) adds
-**text** to the Thermite surface: a bounded **`String`** type (owned, growable),
+**text** to the Fluffy surface: a bounded **`String`** type (owned, growable),
 **string-literal expressions** (`let s = "hello"`), and the v1 core operations —
 **`len()`**, **byte access** (`byte_at(i)`, the no-OOB accessor), **bounded
 `slice(lo, hi)` / substring**, **`concat` / `+`** (bounded by a `CAP`), and
@@ -51,14 +51,14 @@ certifies — `greeting_len`/`first_byte` L3 pure, `join`/`literal_len` L3 alloc
 the no-`req` OOB access → L0. The per-REQ prose below is the original pre-build
 feasibility analysis (retained for the grounding record; each row's status cell now
 reads SHIPPED). Originally GREENFIELD / FORWARD-LOOKING — every REQ below WAS
-NOT-STARTED, tracked under **#79**. Thermite today
-**lexes** a string literal — `TokKind::Str(String)` (`thermite-syntax/src/lexer.rs`)
+NOT-STARTED, tracked under **#79**. Fluffy today
+**lexes** a string literal — `TokKind::Str(String)` (`fluffy-syntax/src/lexer.rs`)
 is produced and consumed by `parse_slag`/`parse_attribute` for `#[slag]` /
 `#[boundary]` field values — but a string literal is **rejected as an expression**:
-`parse_primary` (`thermite-syntax/src/parser.rs`) has no `TokKind::Str` arm, so
+`parse_primary` (`fluffy-syntax/src/parser.rs`) has no `TokKind::Str` arm, so
 `let s = "hello"` dies at the catch-all `_ => Err(self.unexpected("an
 expression"))`. There is no `String`/`str` TYPE in `enum Type`
-(`thermite-syntax/src/ast.rs` — `Prim`/`Unit`/`Ref`/`Slice`/`Generic`/`Named`/
+(`fluffy-syntax/src/ast.rs` — `Prim`/`Unit`/`Ref`/`Slice`/`Generic`/`Named`/
 `Box`/`Vec`), and no string operations anywhere. The GAP is the expression, the
 type, and the operations — NOT the lexer.
 
@@ -128,7 +128,7 @@ read-only borrowed view). A `String` parameter passed read-only is taken by
 reference (`&String`, the `str`-view role); an owned/constructed/concatenated
 `String` is the owning value that carries `fx alloc`. v1 does NOT introduce a
 distinct unsized `str` `Type` node — the `Ref { inner: String }` machinery already
-in `enum Type` (`thermite-syntax/src/ast.rs`) supplies the borrowed view, the same
+in `enum Type` (`fluffy-syntax/src/ast.rs`) supplies the borrowed view, the same
 way `&[T]` is `Ref` of `Slice`. (A dedicated unsized `str` is a future refinement;
 v1's borrowed-view-is-`&String` keeps the type set minimal per §4.4.)
 
@@ -148,16 +148,16 @@ are flat built-ins.
 
 ## Requirements
 
-### Surface + AST (governs `thermite-syntax/src/ast.rs`, `parser.rs`)
+### Surface + AST (governs `fluffy-syntax/src/ast.rs`, `parser.rs`)
 
 - **REQ-1 (`Expr::StrLit` — a string literal as a primary expression):** The
   surface admits a string literal in expression position: `let s = "hello"`. The
   AST `enum Expr` gains `StrLit(String)` (the decoded literal text, mirroring
   `Expr::IntLit { value, raw }`'s value-carrying shape and `Expr::BoolLit(bool)`);
-  `parse_primary` (`thermite-syntax/src/parser.rs`) gains a `TokKind::Str(s) =>
+  `parse_primary` (`fluffy-syntax/src/parser.rs`) gains a `TokKind::Str(s) =>
   Ok(Expr::StrLit(s))` arm BEFORE the catch-all `_ => Err(self.unexpected("an
   expression"))`. The literal LEXES today (`TokKind::Str(String)` in
-  `thermite-syntax/src/lexer.rs` `enum TokKind`); the only addition is accepting it
+  `fluffy-syntax/src/lexer.rs` `enum TokKind`); the only addition is accepting it
   as an `Expr`. The `Str` token's existing `parse_slag`/`parse_attribute` consumers
   are UNCHANGED (a `#[slag(reason = "…")]` field value is still a token-level
   string, not an `Expr`). Derived from §4 (the surface), §4.4 (closed type set,
@@ -187,7 +187,7 @@ are flat built-ins.
   and `\xNN` (exactly two hex digits) → the byte value `0xNN`. The `\r`/`\0`/`\xNN`
   forms are the ANSI/control bytes a terminal editor needs (e.g. `\x1b` → 27, the
   ANSI ESC introducer; `"\x1b".byte_at(0) == 27`). The decoded byte flows through
-  the EXISTING `Expr::StrLit` lowering (`thermite-lower::lower` `lower_expr` —
+  the EXISTING `Expr::StrLit` lowering (`fluffy-lower::lower` `lower_expr` —
   byte-`push` of `s.as_bytes()`), so no lowering change is needed: a control byte
   is just another byte in the materialized `TString`. **v1 byte-model bound:**
   `\xNN` is admitted for `0x00..=0x7F` (a single UTF-8 byte, byte-faithful); a value
@@ -200,7 +200,7 @@ are flat built-ins.
   `other => other as char` SILENTLY swallowed these — the bug this REQ closes),
   never a panic (`.design/syntax/lexer.md` REQ-8; the lexer recovers past the
   string's closing quote). This REQ extends the existing `lex_string` escape table
-  in `thermite-syntax/src/lexer.rs` (consistent with `.design/syntax/lexer.md`
+  in `fluffy-syntax/src/lexer.rs` (consistent with `.design/syntax/lexer.md`
   REQ-4, which says a string token carries "the unescaped string content" without
   enumerating the escape SET — this REQ enumerates it). Derived from §4.4 (a closed
   surface), REQ-2 (the byte char model), and the ANSI-editor unblock (#91).
@@ -211,7 +211,7 @@ are flat built-ins.
 Cluster C4 adds the verified `u64`↔`String` conversions the **editor** (ANSI
 cursor coordinates — `ESC[<row>;<col>H` needs `u64`→decimal text) and a number
 formatter / calculator need, plus the **byte-builder** that constructs them in
-PURE Thermite (replacing the trusted `os::key_str` glue the editor used). All three
+PURE Fluffy (replacing the trusted `os::key_str` glue the editor used). All three
 were GROUNDED end-to-end with the real `verus 0.2026.05.24` binary during authoring
 (Verification, below) — non-vacuous contracts, the §7 gate's floor cleared, no
 `assume`/`admit`/`external_body`. These extend the SHIPPED `TString`-over-
@@ -391,7 +391,7 @@ byte-construction building block the other two stand on.
   **DEPENDS-ON-C7 (the honest dependency — `parse_u64` does NOT ship under #94):**
   the verus probe expresses the contract with vstd's built-in `Option` + the
   `result is Some` discriminant + the `result->Some_0` PAYLOAD PROJECTION in the
-  `ensures`. The Thermite surface today has user-defined `enum`s + `Expr::Is` +
+  `ensures`. The Fluffy surface today has user-defined `enum`s + `Expr::Is` +
   `match` + tuple-variant constructors (`.design/basis/01-adts.md` SHIPPED), but it
   has **NO built-in `Option`/`Result` type AND no enum-PAYLOAD projection in the spec
   sublanguage** — `Expr::Field` is struct-field only; there is no `result->Some_0`
@@ -603,14 +603,14 @@ build issue is #102).
   cage — `is_space` named `spec fn`, bounded subrange), §4.4, §6 (L3), and the GROUNDED
   `trim` proof.
 
-### Validator / the SpecTherm cage (governs `thermite-spec/src/validator.rs`)
+### Validator / the SpecTherm cage (governs `fluffy-spec/src/validator.rs`)
 
 - **REQ-3 (string contracts fit the §4.2 cage — flat, no-OOB index, length,
   bounded slice/concat, equality):** The string operation contracts are written
   with FLAT, named predicates inside the cage. The capacity bound (`s.len() <=
   CAP`) is a flat comparison; `byte_at`'s `req i < len` and `ens result ==
   s@[i]` is the no-OOB accessor (the editor's core safety) admitted as a flat
-  built-in (`byte_at` ADDED to `BUILTIN_METHODS` in `thermite-spec/src/validator.rs`,
+  built-in (`byte_at` ADDED to `BUILTIN_METHODS` in `fluffy-spec/src/validator.rs`,
   alongside the Stage-4 `get`, so `ens result == s.byte_at(i)` validates inside the
   cage); `len` returns the length (`ens result == s.len()`); `slice`'s `req lo <= hi
   && hi <= len` is two flat comparisons with `ens result.len() == hi - lo`;
@@ -622,10 +622,10 @@ build issue is #102).
   REQ-6) is UNCHANGED. Derived from §4.2 (the cage), the GROUNDED `byte_at`/`concat`
   contracts, and the Stage-4 `BUILTIN_METHODS` precedent.
 
-### Verus lowering (governs `thermite-lower/src/lower.rs`)
+### Verus lowering (governs `fluffy-lower/src/lower.rs`)
 
 - **REQ-4 (`String` → `vstd::vec::Vec<u8>` wrapper; `len`/`byte_at`/`slice`/
-  `concat`/`==` → verified ops; the `alloc` effect):** A Thermite `String` lowers
+  `concat`/`==` → verified ops; the `alloc` effect):** A Fluffy `String` lowers
   to a newtype over `vstd::vec::Vec<u8>` — `pub struct TString { pub data: Vec<u8> }`
   — with the capacity bound as `pub open spec fn well_formed(&self) -> bool {
   self.data.len() <= CAP }` threaded through `requires`/`ensures` (the SAME
@@ -642,14 +642,14 @@ build issue is #102).
   with `ens result.data.len() == <byte-length>` — GROUNDED `4 verified, 0 errors`.
   A `fn` CONSTRUCTING a `String` (materializing a literal into an owned value, or
   `concat`-ing) allocates, so it carries `fx alloc` (`Effect::Alloc`,
-  `thermite-syntax/src/ast.rs` `enum Effect` `Alloc`, already present) — the SAME
+  `fluffy-syntax/src/ast.rs` `enum Effect` `Alloc`, already present) — the SAME
   effect-row rule and subsumption acceptance as Stage-1 `Box` / Stage-4 `Vec`
   construction; a read-only op (`len`/`byte_at`/`==` over a `&String`) is `pure`.
   The lowerer must emit `final(...)` for `&mut`-mutating string-op `ensures` (the
   Stage-4 `final(self)` grounding finding for this `verus` version). Derived from
   §3 (transpile to Verus), §4.1 (the `alloc` effect; row subsumption), §6 (L3), and
   the GROUNDED `TString` proof. **BACKING-AGNOSTIC SURFACE CONTRACT** (the
-  #62/Stage-4 resolution applied to strings): the Thermite-surface `String`
+  #62/Stage-4 resolution applied to strings): the Fluffy-surface `String`
   contract names the operation guarantees over the byte view `s@`, NEVER
   `vstd::vec::Vec<u8>` itself; v1 IMPLEMENTS that contract by wrapping
   `vstd::vec::Vec<u8>` (`vstd` is version-pinned alongside Verus). A later decouple
@@ -658,10 +658,10 @@ build issue is #102).
   the interface").
 
 - **REQ-5 (`LowerError`/`SpecError` extension, no panics):** The new string
-  constructs reuse the EXISTING `thermite-lower::LowerError` (an un-lowerable
+  constructs reuse the EXISTING `fluffy-lower::LowerError` (an un-lowerable
   string construct → `LowerError::Unsupported`, exactly as the Stage-4 `Vec` path
   reuses it) and the validator's existing reject path (a forbidden method in a
-  contract), reusing `thermite_syntax::lexer::Span`. No new variant is expected to
+  contract), reusing `fluffy_syntax::lexer::Span`. No new variant is expected to
   be required (Stage 4 needed none); if a string-specific failure mode surfaces, it
   is a span-bearing variant on the existing enums. No `unwrap`/`expect`/`panic!` in
   production (R-CODE-2 / R-APG-1). Derived from R-CODE-2 and the existing
@@ -672,29 +672,29 @@ build issue is #102).
 The component lands in three layers across three crates, all additively, mirroring
 the Stage-1/Stage-4 layer split:
 
-- **7a — surface (`thermite-syntax`).** `enum Expr` gains `StrLit(String)`;
+- **7a — surface (`fluffy-syntax`).** `enum Expr` gains `StrLit(String)`;
   `parse_primary` accepts `TokKind::Str` as a primary expr (REQ-1). `enum Type`
   gains the nullary `Type::String` node; `parse_type` parses the `String` ident
   (REQ-2). The operations parse as `Expr::MethodCall` (`len`/`byte_at`/`slice`/
   `concat`) and `Expr::Binary` (`==`, `+`) — no new operation node. The
   borrowed-view `str` is `Ref { inner: String }`.
-- **7b — validator (`thermite-spec`).** `validate` accepts the string operation
+- **7b — validator (`fluffy-spec`).** `validate` accepts the string operation
   contracts as FLAT built-ins inside the §4.2 cage (REQ-3): the no-OOB `byte_at`
   accessor (`req i < len`), the `len` identity, the bounded `slice` (`req lo <= hi
   && hi <= len`), the bounded `concat` (`req a.len() + b.len() <= CAP`), and `==`
   over the byte view. `byte_at` joins `BUILTIN_METHODS`. The cage / bounds: a
   `String` is bounded (`well_formed`: `len() <= CAP`); a property over its bytes is
   `forall_in(s@, |b| …)`, never an anonymous nested quantifier.
-- **7c — lowering (`thermite-lower`).** `lower` / `lower_expr` gain the `String`
+- **7c — lowering (`fluffy-lower`).** `lower` / `lower_expr` gain the `String`
   lowering path (REQ-4): the `TString` newtype over `vstd::vec::Vec<u8>`, the
   `well_formed` capacity predicate, the no-OOB `byte_at` accessor, bounded
   `slice`/`concat`, `==` over `s@`, and the string-literal → byte-`push` sequence.
   A constructing op carries `fx alloc`; a read-only op is `pure`. `final(...)` is
   emitted for `&mut`-mutating `ensures`.
 - **C4 — the byte-builder + `u64`↔`String` (#94, layered across 7b/7c).** *7b
-  (`thermite-spec`):* `push_byte` and `to_string` ADDED to `BUILTIN_METHODS`
+  (`fluffy-spec`):* `push_byte` and `to_string` ADDED to `BUILTIN_METHODS`
   (alongside `byte_at`/`concat`/`slice`) so their `ens` validates inside the cage
-  (REQ-7/REQ-8). *7c (`thermite-lower`):* `emit_string_wrapper` gains the
+  (REQ-7/REQ-8). *7c (`fluffy-lower`):* `emit_string_wrapper` gains the
   `from_byte`/`push_byte` constructor methods (REQ-7); `lower` emits the generated
   `u64_to_string` exec fn + the `pow10`/`parse_le` spec fns + the `lemma_parse_push`
   proof fn (the divide/mod-by-10 digit-extraction loop with its round-trip `inv` +
@@ -706,7 +706,7 @@ the Stage-1/Stage-4 layer split:
   `None`-arm handled-or-loud error path.
 
 - **C5 — string search / transform (#102, layered across 7b/7c).** *7b
-  (`thermite-spec`):* `starts_with`/`ends_with` ADDED to `BUILTIN_METHODS` so their
+  (`fluffy-spec`):* `starts_with`/`ends_with` ADDED to `BUILTIN_METHODS` so their
   `ens result == occurs_at(…)` validates inside the §4.2 cage (REQ-13); `find` ADDED to
   `BUILTIN_METHODS` (its `ens` is the C7 spec-`match`-in-`ens`, REQ-14); `split`/`trim`
   ADDED so a contract may NAME them (REQ-15/REQ-16). The generated predicate `spec fn`s
@@ -717,7 +717,7 @@ the Stage-1/Stage-4 layer split:
   predicate; the STRING `contains` (substring) shares the surface name but is keyed on
   the RECEIVER type (`String` vs `Vec`) by the lowerer — the builder must dispatch
   `contains` to the substring scan only for a `String` receiver (the `Vec` membership
-  scan is unchanged). *7c (`thermite-lower`):* `emit_string_wrapper` gains the
+  scan is unchanged). *7c (`fluffy-lower`):* `emit_string_wrapper` gains the
   `contains`/`starts_with`/`ends_with` byte-scan methods (REQ-13), the `find ->
   Option<u64>` occurrence scan (REQ-14, reusing C7's `Type::Option` lowering), the
   `split -> TVecTString` push-loop (REQ-15, reusing C6's `TVecTString`/borrow-`get` —
@@ -808,7 +808,7 @@ verified, 0 errors` each) — the codepoint follow-up is feasible over the same
 backing; v1 ships bytes (`u8`, `Copy`, the Stage-4-safe choice). The verified
 `TString` over `vstd::vec::Vec<u8>` is the exact wrap-vstd form REQ-4 lowers to;
 `vstd`'s verified `Vec::push`/`Vec::index`/`Vec::len` carry the heap proof, the
-capacity bound and length identities are the Thermite-level additions.
+capacity bound and length identities are the Fluffy-level additions.
 
 ## Acceptance criteria
 
@@ -820,7 +820,7 @@ GROUNDED form above and confirmed to pass `verus`. The certificate golden lives 
 `conformance/string_demo.cert.json`. The EXACT corpus pinned (the shape the builder
 implements against):
 
-```thermite
+```fluffy
 fn greeting_len(s: &String) -> usize
   req s.len() <= 1_000_000
   ens result == s.len()
@@ -880,7 +880,7 @@ non-vacuity (R-DEFER-9).
   validate, lower byte-stable, and certify L3. The string additions are purely
   additive (one new `Expr` variant, one new `Type` variant, the `String` lowering
   path, `byte_at` in `BUILTIN_METHODS`); no existing node reshapes. Mechanically:
-  `cargo test -p thermite-syntax -p thermite-spec -p thermite-lower` and the
+  `cargo test -p fluffy-syntax -p fluffy-spec -p fluffy-lower` and the
   conformance corpus pass with 0 mismatches. (All REQs; Stage 7 must not break the
   kernel.) (REQ-1–REQ-5.)
 
@@ -971,7 +971,7 @@ needle present at index 0) so the always-None mutant is killable (#101 trap avoi
 
 The component spans three crates, all additively:
 
-- **`thermite-syntax`** — `enum Expr` (`thermite-syntax/src/ast.rs`) gains
+- **`fluffy-syntax`** — `enum Expr` (`fluffy-syntax/src/ast.rs`) gains
   `StrLit(String)` (REQ-1, the value-carrying literal mirroring `IntLit`/
   `BoolLit`); `enum Type` gains the nullary `Type::String` node (REQ-2, a dedicated
   first-class node mirroring `Type::Vec`/`Type::Box` so the lowerer keys on node
@@ -980,7 +980,7 @@ The component spans three crates, all additively:
   already produced (`lexer.rs`); the change is accepting it as an `Expr`. The
   mandatory-contract discipline of `Contract` is unchanged.
 
-- **`thermite-spec`** — `validator.rs` (`pub fn validate`) accepts the string
+- **`fluffy-spec`** — `validator.rs` (`pub fn validate`) accepts the string
   operation contracts as FLAT built-ins (REQ-3): `byte_at` joins `BUILTIN_METHODS`
   alongside the Stage-4 `get`; `len`/`slice`/`concat`/`==` are flat length/equality
   built-ins. The caged-flat walk (`.design/spec/spectherm-combinators.md` REQ-6) is
@@ -989,7 +989,7 @@ The component spans three crates, all additively:
   string is bounded (`well_formed`: `len() <= CAP`) so the §4.2 cage never sees an
   unbounded sequence.
 
-- **`thermite-lower`** — `lower.rs` (`pub fn lower` / `lower_expr`) gains the
+- **`fluffy-lower`** — `lower.rs` (`pub fn lower` / `lower_expr`) gains the
   `String` lowering path (REQ-4): the `TString` newtype over `vstd::vec::Vec<u8>`
   (reusing the Stage-4 `TVec` wrapper-emission path, parameterized to `u8`), the
   `well_formed` capacity predicate, the no-OOB `byte_at`, bounded `slice`/`concat`,
@@ -1108,7 +1108,7 @@ The component spans three crates, all additively:
   `string_demo`'s `greeting_len`/`first_byte` (pure) and `join` (alloc) will match
   (`conformance/string_demo.cert.json`).
 
-- **AC-1–AC-4:** `cargo test -p thermite-syntax -p thermite-spec -p thermite-lower`,
+- **AC-1–AC-4:** `cargo test -p fluffy-syntax -p fluffy-spec -p fluffy-lower`,
   plus a harness that shells the real `verus` binary on the emitted lowering of
   `string_demo.th` and asserts exit 0 + `N verified, 0 errors` (R-CODE-4:
   subprocess status checked, never swallowed), plus `forge check` matching
@@ -1128,10 +1128,10 @@ adds these routes to `tooling/spec-routes.toml` pointing at THIS doc (a file may
 carry multiple governing docs — the `lower.rs` precedent):
 
 ```
-[[route]]  crate_pattern = "thermite-syntax/src/ast.rs"        design = ".design/basis/07-strings.md"   reference = ["conformance/string_demo.th"]
-[[route]]  crate_pattern = "thermite-syntax/src/parser.rs"     design = ".design/basis/07-strings.md"   reference = ["conformance/string_demo.th"]
-[[route]]  crate_pattern = "thermite-spec/src/validator.rs"    design = ".design/basis/07-strings.md"   reference = ["conformance/string_demo.th"]
-[[route]]  crate_pattern = "thermite-lower/src/lower.rs"       design = ".design/basis/07-strings.md"   reference = ["tests/golden/lower/string_demo.verus.rs"]
+[[route]]  crate_pattern = "fluffy-syntax/src/ast.rs"        design = ".design/basis/07-strings.md"   reference = ["conformance/string_demo.th"]
+[[route]]  crate_pattern = "fluffy-syntax/src/parser.rs"     design = ".design/basis/07-strings.md"   reference = ["conformance/string_demo.th"]
+[[route]]  crate_pattern = "fluffy-spec/src/validator.rs"    design = ".design/basis/07-strings.md"   reference = ["conformance/string_demo.th"]
+[[route]]  crate_pattern = "fluffy-lower/src/lower.rs"       design = ".design/basis/07-strings.md"   reference = ["tests/golden/lower/string_demo.verus.rs"]
 ```
 
 The corpus program `conformance/string_demo.th`, its `.cert.json` golden, and the
@@ -1148,11 +1148,11 @@ cover the C5 surface — no new route is needed; #102 owns the build.
 ## REQ status
 
 **Build-side L1-exec-twin requirement (#104).** `forge build` lowers EVERY fn to
-L1 (always-active runtime `thermite_check!`s, `thermite-design.md` §6 L1), so any
+L1 (always-active runtime `fluffy_check!`s, `fluffy-design.md` §6 L1), so any
 contract that NAMES a generated spec fn (`all_digits`/`parse_be`/`count_sep`/
 `contains_sub`/`sep_free`/`occurs_at`/`is_digit`/the free `parse_u64`) needs a
 runnable EXEC twin to evaluate that check at runtime — the SPEC twins + verus proofs
-carry only the `forge check` (L3) path, not the build/run path. `thermite-lower::l1::
+carry only the `forge check` (L3) path, not the build/run path. `fluffy-lower::l1::
 emit_string_runtime_l1` emits these exec twins: the C5 family (`occurs_at`/
 `contains_sub`/`count_sep`/`sep_free`) gated on `program_uses_string_search`, the C7
 family (`is_digit`/`all_digits`/`parse_be`/free `parse_u64`) gated on
@@ -1168,19 +1168,19 @@ UNCHANGED (L3) — #104 touched only the L1/exec mirror.
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (`Expr::StrLit` — string literal as a primary expr) | SHIPPED | #79 Stage 7. `enum Expr` (`thermite-syntax/src/ast.rs`) has `IntLit`/`BoolLit` but no `StrLit`; `parse_primary` (`thermite-syntax/src/parser.rs`) has no `TokKind::Str` arm — `let s = "hello"` dies at the catch-all `_ => Err(self.unexpected("an expression"))`. The literal LEXES (`TokKind::Str(String)` in `lexer.rs`, consumed by `parse_slag`/`parse_attribute` only). GROUNDED-feasible (the literal lowers + verifies, `lit_hello` `4 verified, 0 errors`); not yet accepted as an `Expr`. |
+| REQ-1 (`Expr::StrLit` — string literal as a primary expr) | SHIPPED | #79 Stage 7. `enum Expr` (`fluffy-syntax/src/ast.rs`) has `IntLit`/`BoolLit` but no `StrLit`; `parse_primary` (`fluffy-syntax/src/parser.rs`) has no `TokKind::Str` arm — `let s = "hello"` dies at the catch-all `_ => Err(self.unexpected("an expression"))`. The literal LEXES (`TokKind::Str(String)` in `lexer.rs`, consumed by `parse_slag`/`parse_attribute` only). GROUNDED-feasible (the literal lowers + verifies, `lit_hello` `4 verified, 0 errors`); not yet accepted as an `Expr`. |
 | REQ-2 (`String` type + len/byte_at/slice/concat/`==` surface) | SHIPPED | #79 Stage 7. `enum Type` (`ast.rs`) has `Prim`/`Slice`/`Vec`/`Box`/`Named`/`Generic` but no `String` node; `parse_type` has no `String` contextual-ident dispatch. The operations would reuse `Expr::MethodCall`/`Expr::Binary` (no new node), but no `String`-typed value parses today. Char model DECIDED (bytes/`u8`), `String`-owned / `str`-as-`&String` DECIDED; not implemented. |
-| REQ-3 (string contracts fit the §4.2 cage — no-OOB index, length, bounded slice/concat, `==`) | SHIPPED | #79 Stage 7. `byte_at` is not in `BUILTIN_METHODS` (`thermite-spec/src/validator.rs`); no string contract validates today. The accept path it reuses (the Stage-4 `get` no-OOB accessor in `BUILTIN_METHODS`, the caged-flat walk) is SHIPPED, so the validator extension is mechanical. GROUNDED-feasible (the no-OOB `byte_at` certifies, the unguarded form FAILS `0 verified, 1 errors`); not implemented. |
+| REQ-3 (string contracts fit the §4.2 cage — no-OOB index, length, bounded slice/concat, `==`) | SHIPPED | #79 Stage 7. `byte_at` is not in `BUILTIN_METHODS` (`fluffy-spec/src/validator.rs`); no string contract validates today. The accept path it reuses (the Stage-4 `get` no-OOB accessor in `BUILTIN_METHODS`, the caged-flat walk) is SHIPPED, so the validator extension is mechanical. GROUNDED-feasible (the no-OOB `byte_at` certifies, the unguarded form FAILS `0 verified, 1 errors`); not implemented. |
 | REQ-4 (`String` → `vstd::vec::Vec<u8>` wrapper; len/byte_at/slice/concat/`==`; `fx alloc`; literal lowering; BACKING-AGNOSTIC surface) | SHIPPED | #79 Stage 7. `lower.rs` has no `String`/`Type::String` lowering and no string-literal materialization. The wrap-vstd path it reuses (the Stage-4 `TVec` over `vstd::vec::Vec`, the `well_formed` predicate, the no-OOB exec accessor, `fx alloc` subsumption, the `final(self)` finding) is SHIPPED (#73), so the extension to `Vec<u8>` is mechanical. GROUNDED-feasible (`TString` over `vstd::vec::Vec<u8>`: `well_formed`/`len`/`byte_at`/`concat` `6 verified, 0 errors`; literal `lit_hello` `4 verified, 0 errors`); not implemented. **String-SCANNING `spec fn` (#126):** the `spec fn` body / `decreases` paths now thread the spec fn's `&String` params via `.with_strings(..)` (`lower_spec_fn_body`/`lower_spec_fn_body_with_schemes`/`spec_dec` in `lower.rs`), so a `&String`-param `byte_at(i)` in a spec-fn body rewrites to the spec accessor `spec_byte_at(i as int)` (it previously hit the `usize`-typed exec accessor → E0308) and a `dec s.len()` to `s.spec_len()`. Under Verus's unbounded-`int` spec arithmetic a recursive spec-fn-call arg `i + 1` is narrowed `(i + 1) as u64` and a contract `s.len()` arg `s.spec_len() as u64` (a user spec fn's surface integer param is `u64`), and a `&String`-param spec fn's self-call passes `s` (`&TString`) through, NOT `s.data@` (the byte-view is the GENERATED `parse_be`/`occurs_at`/… fns only — `callee_takes_string_byteview`). This lets a String-scanning twin (`spec_line_start`, the spec mirror of the editor's exec `line_start`) PIN `cursor_col` to the exact column (`ens result == b.cursor - spec_line_start(&b.text, 0, b.cursor, 0)` — the return-0 mutant killed, `cursor_col` 4/4). Verified: `forge/tests/spec_fn_string_param.rs` (real verus L3 + non-vacuity) + `forge/tests/editor_runs.rs`. |
 | REQ-5 (`LowerError`/`SpecError` extension, no panics) | SHIPPED | #79 Stage 7. No string lowering exists yet to surface a failure mode; the existing `LowerError::Unsupported` / validator reject path is expected to suffice (Stage 4 needed no new variant). No code added — NOT-STARTED until the string path lands. No `unwrap`/`expect`/`panic!` will be introduced (R-CODE-2 / R-APG-1). |
-| REQ-6 (string-literal escape table — control/hex bytes, #91 cluster 1) | SHIPPED | #91. `lex_string` in `thermite-syntax/src/lexer.rs` decodes `\n`/`\t`/`\r`/`\0`/`\"`/`\\` to their bytes and `\xNN` (two hex digits, `0x00..=0x7F`) to the byte value via `parse_hex_escape`/`hex_digit`; an unknown/malformed/high-byte escape is a STRUCTURED `SyntaxError::StrayChar` (recovering past the close-quote via `resume_past_string`), never the old silent `other as char` swallow and never a panic. Consumer: the decoded byte flows through the EXISTING `Expr::StrLit` lowering (`thermite-lower::lower` `lower_expr`, byte-`push` of `s.as_bytes()`) — no new variant. Verified: `thermite-syntax/tests/string_escapes.rs` (9 decode/diagnostic tests) + `forge/tests/literal_layer.rs` grounds `"\x1b".byte_at(0) == 27` / `\r` == 13 / `\0` == 0 at L3 against real verus (non-vacuous, §7 battery), wrong-code NOT L3. |
+| REQ-6 (string-literal escape table — control/hex bytes, #91 cluster 1) | SHIPPED | #91. `lex_string` in `fluffy-syntax/src/lexer.rs` decodes `\n`/`\t`/`\r`/`\0`/`\"`/`\\` to their bytes and `\xNN` (two hex digits, `0x00..=0x7F`) to the byte value via `parse_hex_escape`/`hex_digit`; an unknown/malformed/high-byte escape is a STRUCTURED `SyntaxError::StrayChar` (recovering past the close-quote via `resume_past_string`), never the old silent `other as char` swallow and never a panic. Consumer: the decoded byte flows through the EXISTING `Expr::StrLit` lowering (`fluffy-lower::lower` `lower_expr`, byte-`push` of `s.as_bytes()`) — no new variant. Verified: `fluffy-syntax/tests/string_escapes.rs` (9 decode/diagnostic tests) + `forge/tests/literal_layer.rs` grounds `"\x1b".byte_at(0) == 27` / `\r` == 13 / `\0` == 0 at L3 against real verus (non-vacuous, §7 battery), wrong-code NOT L3. |
 
-| REQ-7 (`push_byte`/`from_byte` — verified byte-builder; `fx alloc`) | SHIPPED | #94 cluster C4. `push_byte` ADDED to `BUILTIN_METHODS` (`thermite-spec/src/validator.rs`, now `["len","get","byte_at","concat","slice","push_byte","to_string"]`); `from_byte`/`push_byte` methods ADDED to `emit_string_wrapper` (`thermite-lower/src/lower.rs`) — `from_byte(b: u64) -> TString` (`ens len==1 && data@[0]==b as u8`) + `push_byte(&self, b: u64) -> TString` (`req len < CAP`, `ens len==old+1 && data@[old]==b as u8` + the element frame `forall|j| 0 <= j < old ==> result@[j]==self@[j]`); the surface byte is `u64` (the `byte_at -> u64` zero-extension convention), cast to the `u8` backing. `String::from_byte(b)` (a path call) lowers to `TString::from_byte(b)` (the `lower_expr` `Path` arm `String::`→`TString::` rewrite); `fx alloc` via effect-subsumption (the REQ-4 `concat` rule). Owned-result form (no `&mut`/`final`). GROUNDED `verified, 0 errors` (reuses vstd's verified `Vec::push`). Consumer: `lower`. Verified: `forge/tests/string_format_conformance.rs::ac6_byte_builder_certifies_l3_alloc` (real verus L3 / `effects: [alloc]`). |
+| REQ-7 (`push_byte`/`from_byte` — verified byte-builder; `fx alloc`) | SHIPPED | #94 cluster C4. `push_byte` ADDED to `BUILTIN_METHODS` (`fluffy-spec/src/validator.rs`, now `["len","get","byte_at","concat","slice","push_byte","to_string"]`); `from_byte`/`push_byte` methods ADDED to `emit_string_wrapper` (`fluffy-lower/src/lower.rs`) — `from_byte(b: u64) -> TString` (`ens len==1 && data@[0]==b as u8`) + `push_byte(&self, b: u64) -> TString` (`req len < CAP`, `ens len==old+1 && data@[old]==b as u8` + the element frame `forall|j| 0 <= j < old ==> result@[j]==self@[j]`); the surface byte is `u64` (the `byte_at -> u64` zero-extension convention), cast to the `u8` backing. `String::from_byte(b)` (a path call) lowers to `TString::from_byte(b)` (the `lower_expr` `Path` arm `String::`→`TString::` rewrite); `fx alloc` via effect-subsumption (the REQ-4 `concat` rule). Owned-result form (no `&mut`/`final`). GROUNDED `verified, 0 errors` (reuses vstd's verified `Vec::push`). Consumer: `lower`. Verified: `forge/tests/string_format_conformance.rs::ac6_byte_builder_certifies_l3_alloc` (real verus L3 / `effects: [alloc]`). |
 | REQ-8 (`u64_to_string` — decimal formatting, ROUND-TRIP contract; `fx alloc`) | SHIPPED | #94 cluster C4. `to_string` ADDED to `BUILTIN_METHODS`; the GENERATED `parse_le`/`pow10` seeded into `Validator::spec_fns` (`GENERATED_SPEC_FNS`) so `ens parse_le(result) == n` validates inside the §4.2 cage. `lower.rs::emit_numfmt_defs` emits the `pow10`/`parse_le` spec fns + the `lemma_parse_push` append lemma + the `u64_to_string(n) -> TString` exec fn (the divide/mod-by-10 digit loop with the round-trip invariant `parse_le(data@) + m*pow10(data.len()) == n` + `decreases m` + `by(nonlinear_arith)` + `=~=` extensionality), materialized when the program uses `n.to_string()` / names `parse_le` (`program_uses_numfmt`). `n.to_string()` lowers to `u64_to_string(n)` (`lower_expr` MethodCall exec arm); `parse_le(result)` lowers to `parse_le(result.data@)` (`lower_spec_arg` String byte-view rule) with the `as nat` coercion (`nat_fns += parse_le`). The round-trip `ens parse_le(result.data@) == n as nat` is the GOLD STANDARD — GROUNDED `16 verified, 0 errors` end-to-end (the wrapper + numfmt + the surface `show`), no `assume`/`external_body`/`admit`; a WRONG digit (`+49` instead of `+48`) FAILS verus `15 verified, 1 errors` (non-vacuous, R-DEFER-9). v1 builds LSB-first (the proven form); the human MSB-first display reversal is the design's noted `parse_be(reverse(s)) == parse_le(s)` bridge (follow-up). Consumer: `lower`. Verified: `forge/tests/string_format_conformance.rs` — `ac7_to_string_round_trip_certifies_l3` (L3, mutants 1/1, non-vacuous), `ac7_overclaimed_round_trip_is_rejected` (an overclaimed `== n+1` REJECTED, never L3), `ac7_formatter_builds_and_prints_decimal` (the formatter builds + RUNS + prints the decimal digits of 42). UPPER-BOUND ADDED (#105): the `ens` now also carries `result.data.len() <= 20` (a u64 is `< 10^20`), PROVED via the build-loop invariant `data.len() <= 20` + `lemma_pow10_20_gt_u64max` (`pow10(20) > u64::MAX`, `reveal_with_fuel` + `by(compute)`) — NOT assumed. This lets a caller's bounded `concat` discharge the §4.2 CAP when an operand is `n.to_string()` (the keystone use: the verified editor's `render_frame`, #90). Verified end-to-end: `forge check examples/editor/editor.th` certifies `render_frame` L3. |
-| REQ-9 (`parse_u64` — `String`→`u64`, PARTIAL / handled-or-loud) | SHIPPED | #95 cluster C7 (the C7 built-in `Option` + payload-in-contract surface landed, unblocking this). `thermite-lower::lower::emit_parse_defs` emits the `is_digit`/`all_digits`/`parse_be` spec fns + `parse_u64(s: &TString) -> Option<u64>` (the Horner-accumulate loop `acc = acc*10 + digit`, the BE partial-value invariant + all-digits prefix witness + `decreases s.data.len() - i`, the three handled-or-loud `None` arms — empty / non-digit / overflow, each screaming BEFORE corrupting `acc`) with the STRENGTHENED, caller-usable contract (#100): the success-arm round-trip `Some(v) => all_digits(s.data@) && s.data.len() >= 1 && parse_be(s.data@) == v as nat` PLUS the guarantee `(all_digits && len>=1 && parse_be<=u64::MAX) ==> result is Some` (so a caller with that `req` discharges `ens result is Some`) PLUS the refusal `result is None ==> (!all_digits || len==0 || parse_be>u64::MAX)`. The new monotonicity lemma `lemma_parse_be_prefix_le` lifts the overflow-prefix witness to the whole input. Materialized when `program_uses_parse` (a `parse_u64` call); `parse_be` shared+deduped with the C4 numfmt round-trip. NO `assume`/`external_body`/`admit` (R-DEFER-9). Consumer: `lower`. Verified: the EXTERNAL cert/golden oracle (#100) `forge check conformance/parse_u64.th` → `parse_valid` L3 == `conformance/parse_u64.cert.json` (`forge/tests/check_conformance.rs::parse_valid_cert_matches_golden_deterministic_subset`) + the golden lowering `tests/golden/lower/parse_u64.verus.rs` (`34 verified, 0 errors`) + `forge/tests/option_result_conformance.rs::ac4_parse_u64_lowering_verifies_under_real_verus` (real verus) + `ac4_broken_parse_u64_body_fails_real_verus` (a broken `Some(0)` FAILS, non-vacuous). The C7 surface (`.design/basis/09-option-result.md` REQ-1..REQ-5) is the dependency that landed. **BUILD-SIDE (#104):** `is_digit`/`all_digits`/`parse_be`/the free `parse_u64` now have an L1 EXEC twin (`thermite-lower::l1::emit_string_runtime_l1`, gated on `program_uses_parse`) so a contract naming them lowers to a runnable runtime check — the calculator `add` (whose `req`/`ens` name `all_digits`/`parse_be`, body calls `parse_u64`) now `forge build`s + RUNS end-to-end (`acceptance_programs.rs::calculator_string_parse_builds_and_runs_end_to_end`, 2+3→Some(5)). |
-| REQ-13 (`contains`/`starts_with`/`ends_with` — boolean substring predicates; `pure`) | SHIPPED | #102 cluster C5. `starts_with`/`ends_with` ADDED to `BUILTIN_METHODS` (`thermite-spec/src/validator.rs`); `occurs_at`/`contains_sub` ADDED to `GENERATED_SPEC_FNS`. `emit_string_search_methods` (called from `emit_string_wrapper` in `thermite-lower/src/lower.rs` when `program_uses_string_search`) emits the inner `matches_at` helper + the `starts_with`/`ends_with`/`contains` byte scans (`ens result == occurs_at(self.data@, p.data@, ..)` / `contains_sub(..)`, the no-match-exit `assert forall .. !occurs_at .. by` blocks); `emit_string_search_defs` emits the `occurs_at`/`contains_sub` spec fns. **THE `contains` NAME-CLASH RESOLVED:** `contains` is RECEIVER-TYPE-dispatched — `TString::contains` (substring scan) and `TVec::contains` (C6 membership scan) are DISTINCT inherent methods, so Rust method resolution keys on the receiver type and neither clobbers (no special lowerer arm needed — the exec catch-all emits `r.contains(..)`, resolved by the receiver). Consumer: `lower`. Verified: `forge/tests/string_search_conformance.rs` (real verus L3 pure — a true AND a false case; a broken `starts_with` FAILS, non-vacuous). GROUNDED `14 verified, 0 errors`. **BUILD-SIDE (#104):** `occurs_at`/`contains_sub` now have an L1 EXEC twin (`thermite-lower::l1::emit_string_runtime_l1`, gated on `program_uses_string_search`) so the parser `has_sep`'s `ens result == contains_sub(s, sep)` lowers to a runnable runtime check — `parse_lines.th` now `forge build`s + RUNS end-to-end (`acceptance_programs.rs::parser_builds_and_runs_end_to_end`). |
+| REQ-9 (`parse_u64` — `String`→`u64`, PARTIAL / handled-or-loud) | SHIPPED | #95 cluster C7 (the C7 built-in `Option` + payload-in-contract surface landed, unblocking this). `fluffy-lower::lower::emit_parse_defs` emits the `is_digit`/`all_digits`/`parse_be` spec fns + `parse_u64(s: &TString) -> Option<u64>` (the Horner-accumulate loop `acc = acc*10 + digit`, the BE partial-value invariant + all-digits prefix witness + `decreases s.data.len() - i`, the three handled-or-loud `None` arms — empty / non-digit / overflow, each screaming BEFORE corrupting `acc`) with the STRENGTHENED, caller-usable contract (#100): the success-arm round-trip `Some(v) => all_digits(s.data@) && s.data.len() >= 1 && parse_be(s.data@) == v as nat` PLUS the guarantee `(all_digits && len>=1 && parse_be<=u64::MAX) ==> result is Some` (so a caller with that `req` discharges `ens result is Some`) PLUS the refusal `result is None ==> (!all_digits || len==0 || parse_be>u64::MAX)`. The new monotonicity lemma `lemma_parse_be_prefix_le` lifts the overflow-prefix witness to the whole input. Materialized when `program_uses_parse` (a `parse_u64` call); `parse_be` shared+deduped with the C4 numfmt round-trip. NO `assume`/`external_body`/`admit` (R-DEFER-9). Consumer: `lower`. Verified: the EXTERNAL cert/golden oracle (#100) `forge check conformance/parse_u64.th` → `parse_valid` L3 == `conformance/parse_u64.cert.json` (`forge/tests/check_conformance.rs::parse_valid_cert_matches_golden_deterministic_subset`) + the golden lowering `tests/golden/lower/parse_u64.verus.rs` (`34 verified, 0 errors`) + `forge/tests/option_result_conformance.rs::ac4_parse_u64_lowering_verifies_under_real_verus` (real verus) + `ac4_broken_parse_u64_body_fails_real_verus` (a broken `Some(0)` FAILS, non-vacuous). The C7 surface (`.design/basis/09-option-result.md` REQ-1..REQ-5) is the dependency that landed. **BUILD-SIDE (#104):** `is_digit`/`all_digits`/`parse_be`/the free `parse_u64` now have an L1 EXEC twin (`fluffy-lower::l1::emit_string_runtime_l1`, gated on `program_uses_parse`) so a contract naming them lowers to a runnable runtime check — the calculator `add` (whose `req`/`ens` name `all_digits`/`parse_be`, body calls `parse_u64`) now `forge build`s + RUNS end-to-end (`acceptance_programs.rs::calculator_string_parse_builds_and_runs_end_to_end`, 2+3→Some(5)). |
+| REQ-13 (`contains`/`starts_with`/`ends_with` — boolean substring predicates; `pure`) | SHIPPED | #102 cluster C5. `starts_with`/`ends_with` ADDED to `BUILTIN_METHODS` (`fluffy-spec/src/validator.rs`); `occurs_at`/`contains_sub` ADDED to `GENERATED_SPEC_FNS`. `emit_string_search_methods` (called from `emit_string_wrapper` in `fluffy-lower/src/lower.rs` when `program_uses_string_search`) emits the inner `matches_at` helper + the `starts_with`/`ends_with`/`contains` byte scans (`ens result == occurs_at(self.data@, p.data@, ..)` / `contains_sub(..)`, the no-match-exit `assert forall .. !occurs_at .. by` blocks); `emit_string_search_defs` emits the `occurs_at`/`contains_sub` spec fns. **THE `contains` NAME-CLASH RESOLVED:** `contains` is RECEIVER-TYPE-dispatched — `TString::contains` (substring scan) and `TVec::contains` (C6 membership scan) are DISTINCT inherent methods, so Rust method resolution keys on the receiver type and neither clobbers (no special lowerer arm needed — the exec catch-all emits `r.contains(..)`, resolved by the receiver). Consumer: `lower`. Verified: `forge/tests/string_search_conformance.rs` (real verus L3 pure — a true AND a false case; a broken `starts_with` FAILS, non-vacuous). GROUNDED `14 verified, 0 errors`. **BUILD-SIDE (#104):** `occurs_at`/`contains_sub` now have an L1 EXEC twin (`fluffy-lower::l1::emit_string_runtime_l1`, gated on `program_uses_string_search`) so the parser `has_sep`'s `ens result == contains_sub(s, sep)` lowers to a runnable runtime check — `parse_lines.th` now `forge build`s + RUNS end-to-end (`acceptance_programs.rs::parser_builds_and_runs_end_to_end`). |
 | REQ-14 (`find` — first occurrence → `Option<u64>`; `pure`; reuses C7 Option) | SHIPPED | #102 cluster C5. `find` ADDED to `BUILTIN_METHODS`; `emit_string_search_methods` emits `find(&self, p: &TString) -> Option<u64>` (the occurrence scan returning `Some(at)` on the first hit) with the C7 spec-`match`-in-`ens` (`Some(at) => at + p.data.len() <= self.data.len() && occurs_at(..), None => !contains_sub(..)`), reusing C7's `Type::Option` lowering. The `occurs_at` offset arg is cast `as int` (the `lower_expr` `Call` `occurs_fn` arm). Consumer: `lower`. Verified: `forge/tests/string_search_conformance.rs` (real verus L3 pure; the PINNED Some case proves `result is Some`, the always-`None` mutant FAILS — #101 trap avoided). GROUNDED within `14 verified, 0 errors`. |
-| REQ-15 (`split` — split on a separator byte → `Vec<String>`; `fx alloc`; reuses C6 `Vec<String>`) | SHIPPED | #102 cluster C5. `split` ADDED to `BUILTIN_METHODS`; `count_sep`/`sep_free` ADDED to `GENERATED_SPEC_FNS`. `emit_string_search_methods` emits the `split(&self, sep: u8) -> TVecTString` push-loop (the count partial `pieces.len() == count_sep(prefix)` + `sep_free(cur@)` + every-completed-piece-sep-free invariant); `emit_string_search_defs` emits the `count_sep`/`sep_free` spec fns + the `lemma_count_push` induction proof. `collect_vec_elem_types` weaves the `Vec<String>` element (→ `TVecTString`) when a C5 op is used so `split`'s result wrapper is always in scope (even in forge's per-item subprogram). The surface `u64` `sep` is cast `as u8` at the call site (exec) + in the `count_sep`/`sep_free` contract arg (spec); `count_sep` joins `nat_fns`. Consumer: `lower`. Verified: `forge/tests/string_search_conformance.rs` (real verus — the count-bound + sep-free floor `7 verified, 0 errors`; a `split`-drop mutant FAILS, non-vacuous). The count-bound is the STRONGEST proved contract (NOT a reconstruct-round-trip). **BUILD-SIDE (#104):** `count_sep`/`sep_free` now have an L1 EXEC twin (`thermite-lower::l1::emit_string_runtime_l1`, gated on `program_uses_string_search`) so the parser `fields`'s `ens result.len() == 1 + count_sep(s, sep)` lowers to a runnable runtime check + the `Vec<String>` (`TVecTString`) exec `len() -> u64` is emitted by `emit_vec_runtime_l1` — `parse_lines.th` now `forge build`s + RUNS (a,b,c→3 pieces). |
+| REQ-15 (`split` — split on a separator byte → `Vec<String>`; `fx alloc`; reuses C6 `Vec<String>`) | SHIPPED | #102 cluster C5. `split` ADDED to `BUILTIN_METHODS`; `count_sep`/`sep_free` ADDED to `GENERATED_SPEC_FNS`. `emit_string_search_methods` emits the `split(&self, sep: u8) -> TVecTString` push-loop (the count partial `pieces.len() == count_sep(prefix)` + `sep_free(cur@)` + every-completed-piece-sep-free invariant); `emit_string_search_defs` emits the `count_sep`/`sep_free` spec fns + the `lemma_count_push` induction proof. `collect_vec_elem_types` weaves the `Vec<String>` element (→ `TVecTString`) when a C5 op is used so `split`'s result wrapper is always in scope (even in forge's per-item subprogram). The surface `u64` `sep` is cast `as u8` at the call site (exec) + in the `count_sep`/`sep_free` contract arg (spec); `count_sep` joins `nat_fns`. Consumer: `lower`. Verified: `forge/tests/string_search_conformance.rs` (real verus — the count-bound + sep-free floor `7 verified, 0 errors`; a `split`-drop mutant FAILS, non-vacuous). The count-bound is the STRONGEST proved contract (NOT a reconstruct-round-trip). **BUILD-SIDE (#104):** `count_sep`/`sep_free` now have an L1 EXEC twin (`fluffy-lower::l1::emit_string_runtime_l1`, gated on `program_uses_string_search`) so the parser `fields`'s `ens result.len() == 1 + count_sep(s, sep)` lowers to a runnable runtime check + the `Vec<String>` (`TVecTString`) exec `len() -> u64` is emitted by `emit_vec_runtime_l1` — `parse_lines.th` now `forge build`s + RUNS (a,b,c→3 pieces). |
 | REQ-16 (`trim` — strip leading/trailing ASCII whitespace → `String`; `fx alloc`) | SHIPPED | #102 cluster C5. `trim` ADDED to `BUILTIN_METHODS`; `is_space` ADDED to `GENERATED_SPEC_FNS`. `emit_string_search_methods` emits the `trim(&self) -> TString` forward/backward whitespace scan + bounded copy (the subrange invariant `out@ == self.data@.subrange(lo, i)`, the `subrange(lo, i+1) == subrange(lo, i).push(s@[i])` step); `emit_string_search_defs` emits the `is_space` spec fn (the whitespace test is inlined in the exec loop since `is_space` is a spec fn). Consumer: `lower`. Verified: `forge/tests/string_search_conformance.rs` (real verus — the length floor + the subrange content relation `result@ == s@.subrange(lo,hi)`, `8 verified, 0 errors`). |
 
 ## Open questions (for the orchestrator before the builder runs)

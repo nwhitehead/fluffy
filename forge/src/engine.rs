@@ -151,7 +151,7 @@ pub enum Verdict {
 /// REQ-2(d) / §2(d)): the SHIPPED `cache::cache_key` generalized with the ENGINE
 /// discriminator so a Verus proof and a future Lean proof of the same item never
 /// collide. Increment (i) composes the SHIPPED five-input verus key (lowered
-/// source + seed + verus version + thermite version + `CHECK_SCHEMA_VERSION`) with
+/// source + seed + verus version + fluffy version + `CHECK_SCHEMA_VERSION`) with
 /// the engine tag; the Lean analogs (toolchain rev + targeted-spine hash) are
 /// increment (ii) (the field is the seam — the future Lean engine widens it).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -166,7 +166,7 @@ pub struct CacheKey {
 
 /// The construct/class FRAGMENT an engine can ATTEMPT (`.design/verified/
 /// proof-backends.md` REQ-2(a)). For Verus this is the WHOLE frozen subset
-/// reachable via the lowering (`thermite_lower::lower` + `run_verus`), including
+/// reachable via the lowering (`fluffy_lower::lower` + `run_verus`), including
 /// the [`crate::obligation::ObligationClass::RegistryTermination`] class (its
 /// dec-check is the common discharge path, REQ-1.2(a)). The predicate is on the
 /// obligation class; a future engine narrows it (the Lean-auto engine admits only
@@ -381,7 +381,7 @@ pub fn default_engines() -> Vec<EngineName> {
 /// Build the engine-discriminated EVIDENCE key for the LIVE per-item L3 path
 /// (`.design/verified/proof-backends.md` REQ-2(d) / §2(d)). Composes the SHIPPED
 /// content-addressed `cache::cache_key` hex (over lowered source, seed, verus
-/// version, thermite version, and `CHECK_SCHEMA_VERSION`) with the engine
+/// version, fluffy version, and `CHECK_SCHEMA_VERSION`) with the engine
 /// discriminator, so a Verus proof and a future Lean proof of the same lowered
 /// source never collide.
 /// This is the key the engine attaches to its `Proven` evidence; the SHIPPED

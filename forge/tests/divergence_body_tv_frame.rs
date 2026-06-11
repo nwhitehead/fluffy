@@ -2,7 +2,7 @@
 //! classifies a FAITHFUL, in-subset body as **Divergent** ("a real body-lowering
 //! infidelity", nonzero exit) when the obligation FRAME fails to compile — i.e.
 //! when the source `req` references a `spec fn` helper (the design's central
-//! contract idiom, `thermite-design.md` §3/§4: `req sorted(haystack)`), because
+//! contract idiom, `fluffy-design.md` §3/§4: `req sorted(haystack)`), because
 //! `body_tv::corpus_req` threads the `req` text VERBATIM into a
 //! `BodyObligationFrame`/`LoopObligationFrame` whose `spec_defs` is empty
 //! (`spec_defs: Vec::new()` in `straight_line_body_tv` / `build_loop_frame`),

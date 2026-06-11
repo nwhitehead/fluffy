@@ -4,10 +4,10 @@ tier: 3-component
 status: draft
 governs: forge/src/profile.rs
 thesis-refs:
-  - thermite-design.md §5.1
-  - thermite-design.md §5.2
-  - thermite-design.md §6
-  - thermite-design.md §12
+  - fluffy-design.md §5.1
+  - fluffy-design.md §5.2
+  - fluffy-design.md §6
+  - fluffy-design.md §12
 -->
 
 ## Summary
@@ -42,7 +42,7 @@ L3→L2→L1 degrade (issue #10). #11 produces; #10 degrades; #18 retries.
   percentage of the total, the per-instantiation cost, the `cost * instantiations`
   product Verus ranks by, and the `file:basename:line:col` span of the
   quantifier). Diagnostic-only and NON-deterministic (§5.3) — like
-  `solver_time_ms`, oracle-EXCLUDED. Derived from `thermite-design.md` §5.2.
+  `solver_time_ms`, oracle-EXCLUDED. Derived from `fluffy-design.md` §5.2.
 
 - **REQ-2 (profile capture on an rlimit-hit)**: a `pub fn` that, given a Verus
   run that exhausted its resource budget, invokes Verus with the profiler enabled

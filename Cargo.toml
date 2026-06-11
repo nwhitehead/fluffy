@@ -1,13 +1,13 @@
 [workspace]
 resolver = "2"
 members = [
-    "thermite-syntax",
-    "thermite-spec",
-    "thermite-lower",
+    "fluffy-syntax",
+    "fluffy-spec",
+    "fluffy-lower",
     "forge",
-    "thermite-skill",
-    "thermite-verified",
-    "thermite-tv",
+    "fluffy-skill",
+    "fluffy-verified",
+    "fluffy-tv",
 ]
 
 # Shared metadata for every member crate (REQ-1, REQ-4). Each crate inherits

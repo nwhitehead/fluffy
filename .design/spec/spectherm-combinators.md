@@ -2,30 +2,30 @@
 <!--
 tier: 3-component
 status: draft
-governs: thermite-spec/src/combinators.rs
+governs: fluffy-spec/src/combinators.rs
 thesis-refs:
-  - thermite-design.md §4.1
-  - thermite-design.md §4.2
-  - thermite-design.md §6
-  - thermite-design.md §10
-  - thermite-design.md §11
+  - fluffy-design.md §4.1
+  - fluffy-design.md §4.2
+  - fluffy-design.md §6
+  - fluffy-design.md §10
+  - fluffy-design.md §11
 -->
 
 ## Summary
 
-`thermite-spec` ships the **SpecTherm combinator registry** — the frozen, closed
+`fluffy-spec` ships the **SpecTherm combinator registry** — the frozen, closed
 set of bounded combinators (§4.2) with their name / arity / argument-kinds /
 result type — and the **SpecTherm validator**, the boundary API that walks a
-parsed `thermite-syntax` AST's contract positions (`req`/`ens`/`inv`/`dec` and
+parsed `fluffy-syntax` AST's contract positions (`req`/`ens`/`inv`/`dec` and
 `spec fn` bodies) and enforces §4.2's "locked cage": a contract may use ONLY
 registered combinators (correct name + arity + arg-kinds), declared `spec fn`
 calls, and the built-in operators / literals / paths the grammar already allows
 — and nothing else. The validator is the registry's production consumer (so the
-registry is not vocabulary-only, R-DEFER-1) and is the boundary API `thermite-lower`
+registry is not vocabulary-only, R-DEFER-1) and is the boundary API `fluffy-lower`
 (#4) and `forge` (#6) call before lowering or running the vacuity battery.
 
 This doc is GREENFIELD / FORWARD-LOOKING: no `combinators.rs` exists (only the
-empty crate root `thermite-spec/src/lib.rs`). Every REQ is **NOT-STARTED**,
+empty crate root `fluffy-spec/src/lib.rs`). Every REQ is **NOT-STARTED**,
 blocked on issue **#2**. The acto-builder satisfies these REQs next.
 
 > **Amendment (2026-06-04, issue #40):** REQ-6 (the flat-closure-fragment rule)
@@ -36,16 +36,16 @@ blocked on issue **#2**. The acto-builder satisfies these REQs next.
 > (SHIPPED under #2) are UNCHANGED; REQ-6 is NOT-STARTED, blocked on #40. See the
 > "Thesis-clarification note" section for the §4.2-wording erratum this amendment
 > records (handled like the §4.3 inv-numbering case — recorded here, not edited
-> into `thermite-design.md`).
+> into `fluffy-design.md`).
 
 ## Scope boundary (what ships in #2 vs. what #4 adds)
 
-`thermite-spec` v0.1 (#2) ships the registry's **structural** facet — the part a
+`fluffy-spec` v0.1 (#2) ships the registry's **structural** facet — the part a
 consumer needs NOW to *validate*: name, arity, the KIND of each argument, and the
 result type. The **lowering** facet of each combinator — the frozen SMT
 **trigger** string, the **Verus (L3)** definition, and the **executable (L1)**
 runtime-check form (§4.2 "frozen SMT triggers"; §6 "the L1 fallback rung always
-exists") — is **DEFERRED to issue #4 (lowering)**, where `thermite-lower` is the
+exists") — is **DEFERRED to issue #4 (lowering)**, where `fluffy-lower` is the
 consumer that reads them. Including those fields now would be vocabulary-only (no
 consumer in #2, R-DEFER-1). They are coming; this doc names the seam (REQ-2,
 OQ-2) and attributes the fields to #4. This is a SCOPE split, not a deferred REQ:
@@ -106,7 +106,7 @@ the #4 fields are not REQs of #2 at all.
   (`WrongArgKind { name, position, expected, found, span }`); **(iv)** a
   construct the contract sublanguage forbids that nonetheless parsed (e.g. an
   arbitrary call expression in a contract whose callee is neither a combinator
-  nor a declared spec fn). `SpecError` is `thermite-spec`'s OWN error enum, born
+  nor a declared spec fn). `SpecError` is `fluffy-spec`'s OWN error enum, born
   with this first fallible function (per workspace.md REQ-3: "each crate
   introduces its OWN error enum … when its first fallible function lands, which
   is this issue"). Derived from §2.4 (crisp structured feedback), R-CODE-2,
@@ -116,12 +116,12 @@ the #4 fields are not REQs of #2 at all.
   recursive (the AST is a tree: `Binary`/`Index`/`Match`/`If`/`Call` args nest
   arbitrarily), so it MUST bound its descent depth from the first commit and
   return a structured `SpecError::ExpressionTooDeep { limit, span }` rather than
-  overflowing the native stack — mirroring the `thermite-syntax` parser's
+  overflowing the native stack — mirroring the `fluffy-syntax` parser's
   `guard_recursion` / `MAX_RECURSION_DEPTH` precedent (a fixed constant, for
   determinism, R-CODE-5; this guard is the lesson the parser re-audit
   (#29/#31/#32) hard-coded). A pathological deeply-nested contract expression is
   a structured error, never a process abort. Derived from R-CODE-2 +
-  `thermite-syntax/src/parser.rs` (`guard_recursion`, `MAX_RECURSION_DEPTH`),
+  `fluffy-syntax/src/parser.rs` (`guard_recursion`, `MAX_RECURSION_DEPTH`),
   §2.4 ("a timeout is never the final answer … the gate degrades, it does not
   block").
 
@@ -170,7 +170,7 @@ the #4 fields are not REQs of #2 at all.
   set — equal the hand-authored oracle at `tests/golden/combinators/registry.json`
   (or `.txt`), field-for-field. Expected values are hand-derived from §4.2 + the
   corpus, never read back from the registry's own output (R-CHAR-3). Mechanically:
-  `cargo test -p thermite-spec` asserts the registry against the golden file.
+  `cargo test -p fluffy-spec` asserts the registry against the golden file.
   (REQ-1, REQ-2)
 
 - **AC-2 (corpus contracts validate clean):** Validating the parsed
@@ -236,9 +236,9 @@ the #4 fields are not REQs of #2 at all.
 ## Architecture
 
 The component is a statically-defined registry table plus a recursive AST walk,
-in `thermite-spec/src/combinators.rs` (registry) and
-`thermite-spec/src/validator.rs` (the walk). It depends on `thermite-syntax` (the
-AST boundary type) and introduces `thermite-spec`'s own `SpecError` enum.
+in `fluffy-spec/src/combinators.rs` (registry) and
+`fluffy-spec/src/validator.rs` (the walk). It depends on `fluffy-syntax` (the
+AST boundary type) and introduces `fluffy-spec`'s own `SpecError` enum.
 
 ### The frozen v0.1 combinator set (REQ-1)
 
@@ -283,7 +283,7 @@ A static table of entries `{ name, arity, arg_kinds: &[ArgKind], result: ResultK
 exposed through a lookup (`lookup(name) -> Option<&CombinatorSig>`). The table is
 `const`/`static` (deterministic, R-CODE-5). The lowering facet (frozen SMT
 trigger, Verus def, L1 form) is intentionally absent — it is added to each entry
-by #4 where `thermite-lower` consumes it (Scope boundary; OQ-2). Keeping the #4
+by #4 where `fluffy-lower` consumes it (Scope boundary; OQ-2). Keeping the #4
 fields out now is what keeps the registry from being vocabulary-only in #2.
 
 ### The validator (REQ-3/REQ-4/REQ-5)
@@ -291,7 +291,7 @@ fields out now is what keeps the registry from being vocabulary-only in #2.
 `validate(program: &Program) -> Result<(), Vec<SpecError>>` first collects the
 declared `spec fn` names (every `Item::SpecFn(s)` → `s.name`), then walks each
 contract position. The contract positions are exactly the AST clauses
-`thermite-syntax` already models (cite `Contract.req`, `Contract.ens`,
+`fluffy-syntax` already models (cite `Contract.req`, `Contract.ens`,
 `LoopNode.invs`, `LoopNode.dec` in `ast.rs`; `SpecFnItem.body`). The walk
 descends `Expr` recursively under `guard_recursion`-style depth bounding (REQ-5),
 applying the accept rule (REQ-3) at each node and emitting a `SpecError` (REQ-4)
@@ -314,8 +314,8 @@ spec-fn name set. Built-ins
 grammar's bounded `MethodCall`s like `xs.len()`) are accepted structurally and
 their sub-expressions recursed into.
 
-`SpecError` is `thermite-spec`'s own error enum (workspace.md REQ-3), span-bearing
-(reusing `thermite_syntax::Span`), `Display`-able, with the variants of
+`SpecError` is `fluffy-spec`'s own error enum (workspace.md REQ-3), span-bearing
+(reusing `fluffy_syntax::Span`), `Display`-able, with the variants of
 REQ-4 plus `ExpressionTooDeep`. No `unwrap`/`expect`/`panic!` in production
 (R-CODE-2 / R-APG-1).
 
@@ -355,24 +355,24 @@ bounding.
 
 ### Boundary role (the consumer chain)
 
-`validate` is the boundary API `thermite-lower` (#4) calls before lowering a
+`validate` is the boundary API `fluffy-lower` (#4) calls before lowering a
 contract (a contract that fails validation must not reach the lowerer) and that
 `forge` (#6) calls before the vacuity battery. Within #2 the validator is itself
 the registry's first production consumer (AC-5), discharging R-DEFER-1 without
-waiting for #4. The registry is also the artifact `thermite-skill` (#7)
-regenerates the SpecTherm section of `THERMITE.skill.md` from (§10) — a second,
+waiting for #4. The registry is also the artifact `fluffy-skill` (#7)
+regenerates the SpecTherm section of `FLUFFY.skill.md` from (§10) — a second,
 later consumer.
 
 ## Verification
 
-`cargo test -p thermite-spec` over the oracle at `tests/golden/combinators/`
+`cargo test -p fluffy-spec` over the oracle at `tests/golden/combinators/`
 (declared as this route's `reference` in `tooling/spec-routes.toml`):
 
 - **AC-1:** assert the registry table equals the hand-authored
   `tests/golden/combinators/registry.{json,txt}` (every name/arity/arg-kinds/
   result), expected values hand-derived from §4.2 + corpus (R-CHAR-3).
 - **AC-2:** parse `conformance/sum.th` and `conformance/binary_search.th` (via
-  `thermite-syntax`) and assert `validate` returns `Ok(())` — accept fixtures in
+  `fluffy-syntax`) and assert `validate` returns `Ok(())` — accept fixtures in
   `tests/golden/combinators/accept.json`.
 - **AC-3:** for each crafted negative in `tests/golden/combinators/reject.json`,
   assert the returned `SpecError` variant + offending name/position matches the
@@ -394,8 +394,8 @@ later consumer.
 - **AC-8:** every pre-existing `accept.json` case (the flat corpus closures)
   continues to assert `Ok(())` after REQ-6 — the corpus is unaffected.
 
-Gauntlet (R-DEFER-6): `cargo test -p thermite-spec`,
-`cargo clippy -p thermite-spec --all-targets -- -D warnings`,
+Gauntlet (R-DEFER-6): `cargo test -p fluffy-spec`,
+`cargo clippy -p fluffy-spec --all-targets -- -D warnings`,
 `cargo fmt --check`.
 
 **Oracle anchors for REQ-6 (the orchestrator adds these; this doc pins the
@@ -417,18 +417,18 @@ outcome):**
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (frozen combinator set) | SHIPPED | registry table in `thermite-spec/src/combinators.rs` (const `CombinatorSig` set); consumed by `validate` via `combinators::lookup` in `validator.rs`. Verification: `tests/golden/combinators/registry.{json}` asserted by `cargo test -p thermite-spec`. |
+| REQ-1 (frozen combinator set) | SHIPPED | registry table in `fluffy-spec/src/combinators.rs` (const `CombinatorSig` set); consumed by `validate` via `combinators::lookup` in `validator.rs`. Verification: `tests/golden/combinators/registry.{json}` asserted by `cargo test -p fluffy-spec`. |
 | REQ-2 (registry data shape — structural facet) | SHIPPED | `CombinatorSig { name, arity, arg_kinds, result }` + `enum ArgKind` (`Slice`/`Index`/`Pred`/`Value`) in `combinators.rs`; lookup consumed by `validate`. Lowering facet (trigger/Verus/L1) remains #4 scope, not a #2 REQ. |
 | REQ-3 (validator accept rule) | SHIPPED | `pub fn validate` in `validator.rs` collects `spec fn` names, walks `Contract.req`/`ens`, `LoopNode.invs`/`dec`, `SpecFnItem.body`; accepts registered combinators (`combinators::lookup`), declared spec-fn calls, grammar built-ins. Verification: every `accept.json` case validates clean. |
 | REQ-4 (reject cases, structured `SpecError`) | SHIPPED | `enum SpecError` (`UnknownCombinator`/`WrongArity`/`WrongArgKind`/`ForbiddenCall`/`ExpressionTooDeep`) in `validator.rs`; `validate` returns `Result<(), Vec<SpecError>>`, never panics. Verification: every `reject.json` case yields the expected cause. |
 | REQ-5 (bounded recursion — no overflow) | SHIPPED | `MAX_RECURSION_DEPTH` + `descend` guard wraps every recursive descent in `validator.rs`; deep input yields `ExpressionTooDeep`. Verification: `validate_never_panics`. |
 | REQ-6 (flat-closure-fragment rule — no anonymous nested quantifiers) | NOT-STARTED | open prereq blocker **#40**. The validator OVER-PERMITS today: `check_arg_kind`'s `Pred` arm recurses the closure body through the general `walk_expr`, so a nested combinator call reaches `walk_call`, where `combinators::lookup` succeeds and the nested combinator is wrongly accepted (the loop-3 audit accepted `forall_in(xs, |x| exists_in(ys, |y| y == x))`). No caged-flat walk / `NestedCombinator` cause exists yet; the new `accept.json`/`reject.json` cases are not yet added. |
 
-## Thesis-clarification note (erratum-style — for the orchestrator/user; do NOT edit `thermite-design.md` here)
+## Thesis-clarification note (erratum-style — for the orchestrator/user; do NOT edit `fluffy-design.md` here)
 
-`thermite-design.md` §4.2's prose **"No general quantifiers. Quantification is
+`fluffy-design.md` §4.2's prose **"No general quantifiers. Quantification is
 only available through a fixed library of bounded combinators … each with
-hand-tuned, frozen SMT triggers. … Thermite locks the cage."** is realized
+hand-tuned, frozen SMT triggers. … Fluffy locks the cage."** is realized
 PRECISELY by REQ-6's flat-closure-fragment rule. The thesis wording is an
 **over-compression** in two respects an external reviewer (issue #40) correctly
 flagged:
@@ -448,7 +448,7 @@ flagged:
    quantifiers."**
 
 Recommended §4.2 amendment (for the user/orchestrator to apply to
-`thermite-design.md`, NOT done by this doc — handled like the §4.3 inv-numbering
+`fluffy-design.md`, NOT done by this doc — handled like the §4.3 inv-numbering
 erratum): append to the "No general quantifiers" bullet a clarifying sentence:
 *"A combinator's predicate-closure body is a flat predicate — it may call named
 `spec fn`s but not other combinators; anonymous nested quantification is
@@ -463,7 +463,7 @@ clarification, not a semantics change: the registry and the corpus are unchanged
   (`forall_below` named, `forall_from` corpus-required) — eight combinators.
   Of these, only four are exercised by the corpus (`sorted`, `forall_in`,
   `forall_below`, `forall_from`). Rationale for shipping the full named set: the
-  registry is the single source of truth `thermite-skill` (#7) regenerates the
+  registry is the single source of truth `fluffy-skill` (#7) regenerates the
   skill's combinator library from (§10), so a combinator §4.2 names but the
   corpus omits still belongs in the registry. The unexercised four
   (`exists_in`, `count_where`, `permutation_of`, `disjoint`) will have AC-1

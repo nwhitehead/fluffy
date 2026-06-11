@@ -26,7 +26,7 @@
 //!
 //! | REQ | Status | Evidence |
 //! |---|---|---|
-//! | REQ-1 (pipeline orchestration) | SHIPPED | `pub fn check_file` runs `thermite_syntax::parse` → `thermite_spec::validate` → `thermite_lower::check_effects`, then PER ITEM (§5.3) `item_subprogram` → `thermite_lower::lower` → `run_verus` → `parse_verus_output` → `Certificate`; each stage short-circuits into a `ForgeError`. Consumer: `cli::run` (`cli.rs`). |
+//! | REQ-1 (pipeline orchestration) | SHIPPED | `pub fn check_file` runs `fluffy_syntax::parse` → `fluffy_spec::validate` → `fluffy_lower::check_effects`, then PER ITEM (§5.3) `item_subprogram` → `fluffy_lower::lower` → `run_verus` → `parse_verus_output` → `Certificate`; each stage short-circuits into a `ForgeError`. Consumer: `cli::run` (`cli.rs`). |
 //! | REQ-2 (verus invocation, temp file, crate-name gotcha) | SHIPPED | `run_verus` writes a `<stem>.rs` file (no `.` in the stem — `crate_stem`) INSIDE a per-run scratch DIR (`unique_scratch_dir`), spawns `verus --output-json --smt-option smt.random_seed=<seed>` with `current_dir` = the scratch dir, and removes the scratch dir WHOLESALE via the `ScratchDir` Drop guard on EVERY exit path (source + verus's compiled-binary sibling go together — blocker #53). |
 //! | REQ-3 (exit-status checked, never swallow) | SHIPPED | `run_verus` returns exit status; `parse_verus_output` makes a parseable failure a reported cert and an unparseable/internal failure `ForgeError::VerusOutput`; spawn ENOENT → `ForgeError::VerusAbsent`. |
 //! | REQ-4 (verus output → per-obligation + counterexamples) | SHIPPED | `parse_verus_output` reads the JSON `verification-results` summary for level and parses stderr `error:` + `--> file:line:col` into `ObligationResult::failed` witnesses. |
@@ -38,7 +38,7 @@
 //!
 //! | REQ | Status | Evidence |
 //! |---|---|---|
-//! | vacuity-triage REQ-6 (gate BEFORE L3) | SHIPPED | `gate_fn` runs `vacuity::triage` on each `Item::Fn` BEFORE `thermite_lower::lower` + `run_verus`; a `VacuityVerdict::Rejected` short-circuits to a non-certified `Certificate::rejected` (no lowering, no verus); a pass calls `Certificate::graduate_triage_clean` (the two §7.1 `contract_quality` bools go live-`false`). |
+//! | vacuity-triage REQ-6 (gate BEFORE L3) | SHIPPED | `gate_fn` runs `vacuity::triage` on each `Item::Fn` BEFORE `fluffy_lower::lower` + `run_verus`; a `VacuityVerdict::Rejected` short-circuits to a non-certified `Certificate::rejected` (no lowering, no verus); a pass calls `Certificate::graduate_triage_clean` (the two §7.1 `contract_quality` bools go live-`false`). |
 //! | slag REQ-2/REQ-5 (L1 short-circuit) | SHIPPED | `gate_fn` for a `slag.is_some()` item runs `slag::validate` (invalid → `Certificate::rejected`), then `vacuity::triage` (a/b/c — slag exempts (d) inside `triage`), then `Certificate::slag_l1` (`Level::L1`, `slag: true`, `slag_meta`) WITHOUT invoking verus. |
 //!
 //! ## #16 gate (boundary-fn FFI L1 path, this iteration)
@@ -51,14 +51,14 @@
 //!
 //! | REQ | Status | Evidence |
 //! |---|---|---|
-//! | check.md REQ-8 (`fx diverge` caps at L1, mutation/strengthen exempt — the #16 mirror) | SHIPPED | `fn_is_diverge` (the row-shape predicate mirroring `thermite_lower`'s) routes a non-boundary, non-slag `fx diverge` fn (the editor's `run`) in `gate_fn` to `GateOutcome::DivergeL1(diverge_l1_cert(..))` — `Level::L1`, `slag: false`, `boundary: false`, the partial-correctness discharged obligation, the §7.1 (a)/(b)/(c) triage STILL applied (a vacuous-`ens` diverge fn still rejects). The per-item loop's `GateOutcome::DivergeL1` short-circuits like `BoundaryL1`/`SlagL1` (no verus, no #12 mutation, no #14 strengthen) — so `run` NEVER reaches the §7 gate that mis-rejected it `WeakContract` at L0. Boundary-style L1-no-verus (check.md REQ-8 reading (b)): the per-item sub-program's diverge body would fail verus (the loop callees' `req`s are not re-established by the loop invariant — spurious for partial correctness), so the cap skips verus; the real assurance is the L1 runtime checks + the L3-proven edit core. DIVERGE-ONLY (R-DEFER-9): a non-diverge weak contract still rejects L0 `WeakContract`; a non-diverge non-decreasing `dec` still fails verus termination. Verified: `forge/tests/editor_runs.rs` (run L1, edit core L3, build+run; non-diverge regressions). |
+//! | check.md REQ-8 (`fx diverge` caps at L1, mutation/strengthen exempt — the #16 mirror) | SHIPPED | `fn_is_diverge` (the row-shape predicate mirroring `fluffy_lower`'s) routes a non-boundary, non-slag `fx diverge` fn (the editor's `run`) in `gate_fn` to `GateOutcome::DivergeL1(diverge_l1_cert(..))` — `Level::L1`, `slag: false`, `boundary: false`, the partial-correctness discharged obligation, the §7.1 (a)/(b)/(c) triage STILL applied (a vacuous-`ens` diverge fn still rejects). The per-item loop's `GateOutcome::DivergeL1` short-circuits like `BoundaryL1`/`SlagL1` (no verus, no #12 mutation, no #14 strengthen) — so `run` NEVER reaches the §7 gate that mis-rejected it `WeakContract` at L0. Boundary-style L1-no-verus (check.md REQ-8 reading (b)): the per-item sub-program's diverge body would fail verus (the loop callees' `req`s are not re-established by the loop invariant — spurious for partial correctness), so the cap skips verus; the real assurance is the L1 runtime checks + the L3-proven edit core. DIVERGE-ONLY (R-DEFER-9): a non-diverge weak contract still rejects L0 `WeakContract`; a non-diverge non-decreasing `dec` still fails verus termination. Verified: `forge/tests/editor_runs.rs` (run L1, edit core L3, build+run; non-diverge regressions). |
 //!
 //! ## #8 gate (per-item content-addressed proof cache, this iteration)
 //!
 //! | REQ | Status | Evidence |
 //! |---|---|---|
-//! | proof-cache REQ-3 (lookup-then-store, per item) | SHIPPED | `check_file`'s L3 path computes `cache::cache_key(&lowered, seed, &verus_version, &thermite_version)` and `cache::load`s BEFORE `run_verus`: a HIT returns the stored cert via `Certificate::with_cached(true)` (verus SKIPPED); a MISS runs verus, assembles + `graduate_triage_clean`s the cert, `cache::store`s it, and returns `with_cached(false)`. |
-//! | proof-cache REQ-5 (version-keyed) | SHIPPED | `resolve_verus_version` captures the verus version ONCE per `check_file` (the `VERUS_VERSION` pin, else `verus --version`) and `THERMITE_VERSION = env!("CARGO_PKG_VERSION")` feeds the key — a version change forces a universal MISS. |
+//! | proof-cache REQ-3 (lookup-then-store, per item) | SHIPPED | `check_file`'s L3 path computes `cache::cache_key(&lowered, seed, &verus_version, &fluffy_version)` and `cache::load`s BEFORE `run_verus`: a HIT returns the stored cert via `Certificate::with_cached(true)` (verus SKIPPED); a MISS runs verus, assembles + `graduate_triage_clean`s the cert, `cache::store`s it, and returns `with_cached(false)`. |
+//! | proof-cache REQ-5 (version-keyed) | SHIPPED | `resolve_verus_version` captures the verus version ONCE per `check_file` (the `VERUS_VERSION` pin, else `verus --version`) and `FLUFFY_VERSION = env!("CARGO_PKG_VERSION")` feeds the key — a version change forces a universal MISS. |
 //!
 //! ## #11 gate (solver profiles as proof-repair prompts, this iteration)
 //!
@@ -93,7 +93,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Instant;
 
-use thermite_syntax::{Item, Program};
+use fluffy_syntax::{Item, Program};
 
 use crate::cache;
 use crate::cli::ForgeError;
@@ -103,7 +103,7 @@ use crate::profile::{self, SolverProfile};
 /// The `forge` toolchain version (`.design/forge/proof-cache.md` REQ-1c/REQ-5):
 /// a verdict-determining cache-key input. Sourced deterministically from the
 /// crate version at compile time (R-CODE-5 — no wall-clock).
-const THERMITE_VERSION: &str = env!("CARGO_PKG_VERSION");
+const FLUFFY_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// The pinned default solver seed (§5.3) used when no project lockfile supplies
 /// one. Determinism (R-CODE-5) lives in the INPUT (this fixed seed + the
@@ -192,22 +192,22 @@ pub fn check_file_with_options(
         source: e,
     })?;
 
-    // 1. parse (thermite-syntax).
-    let parsed = thermite_syntax::parse(&src);
+    // 1. parse (fluffy-syntax).
+    let parsed = fluffy_syntax::parse(&src);
     if !parsed.is_clean() {
         return Err(ForgeError::Parse(parsed.errors));
     }
 
-    // 2. validate (thermite-spec) — the SpecTherm cage.
-    thermite_spec::validate(&parsed.program).map_err(ForgeError::Spec)?;
+    // 2. validate (fluffy-spec) — the SpecTherm cage.
+    fluffy_spec::validate(&parsed.program).map_err(ForgeError::Spec)?;
 
-    // 3. effect-check (thermite-lower) — `fx` subsumption (§4.1). Effect
+    // 3. effect-check (fluffy-lower) — `fx` subsumption (§4.1). Effect
     // subsumption is a whole-program property (a caller's row must subsume every
     // callee's), so it is checked once over the full program before any per-item
     // split.
-    thermite_lower::check_effects(&parsed.program).map_err(ForgeError::Effects)?;
+    fluffy_lower::check_effects(&parsed.program).map_err(ForgeError::Effects)?;
 
-    // 4/5/6/7. PER-ITEM certification (`thermite-design.md` §5.3 — "proof
+    // 4/5/6/7. PER-ITEM certification (`fluffy-design.md` §5.3 — "proof
     // results content-addressed and cached PER ITEM"; "an edit to `f` cannot
     // invalidate `g`'s certificate unless `g`'s contract references `f`'s").
     // Each `fn` is lowered and verified in ISOLATION — a sub-program holding only
@@ -323,7 +323,7 @@ pub fn check_file_with_options(
             match gate_fn(f) {
                 // A valid `#[slag]` item certifies L1 by fiat (no verus run,
                 // `.design/forge/slag.md` REQ-2): the L1 runtime-check codegen is
-                // thermite-lower's `l1.rs` job at build time, not here.
+                // fluffy-lower's `l1.rs` job at build time, not here.
                 GateOutcome::SlagL1(cert) => {
                     certs.push(cert);
                     continue;
@@ -331,7 +331,7 @@ pub fn check_file_with_options(
                 // A valid `#[boundary]` (FFI) item certifies L1 to-the-boundary by
                 // fiat (`.design/boundary/ffi-boundary.md` REQ-5): the foreign body
                 // is unproven, so it NEVER enters L3/L2/mutation/strengthening; the
-                // L1 wrapper codegen is thermite-lower's `l1.rs` build-time job. No
+                // L1 wrapper codegen is fluffy-lower's `l1.rs` build-time job. No
                 // verus run — so a boundary-only file does not require the prover.
                 GateOutcome::BoundaryL1(cert) => {
                     certs.push(cert);
@@ -403,7 +403,7 @@ pub fn check_file_with_options(
         }
         let adt_deps = reachable_adt_deps(&parsed.program, &referrers);
         let sub = item_subprogram(item, &item_spec_items, &fn_deps, &adt_deps);
-        let lowered = thermite_lower::lower(&sub).map_err(ForgeError::Lower)?;
+        let lowered = fluffy_lower::lower(&sub).map_err(ForgeError::Lower)?;
 
         // #8 proof cache (`.design/forge/proof-cache.md` REQ-1/REQ-3): the lowered
         // source is the item's content-address — the EXACT bytes verus checks
@@ -426,7 +426,7 @@ pub fn check_file_with_options(
         // four-input `cache::cache_key` unchanged while staying sound.
         let use_cache =
             rlimit == DEFAULT_RLIMIT && options.mutation_floor == crate::mutation::MUTATION_FLOOR;
-        let key = cache::cache_key(&lowered, seed, &verus_version, THERMITE_VERSION);
+        let key = cache::cache_key(&lowered, seed, &verus_version, FLUFFY_VERSION);
         if use_cache {
             if let Some(stored) = cache::load(&cache_dir, &key) {
                 // HIT: skip verus entirely (REQ-3, AC-1 — the decisive solver-skip).
@@ -699,7 +699,7 @@ pub fn check_file_with_options(
 /// deliberate choice (REQ-7 / `goal.md` R-DEFER-4).
 ///
 /// Pipeline order (parallel to `check_file`): parse → validate → check_effects →
-/// PER ITEM (`thermite_lower::lower_l2` of the item's isolated sub-program) →
+/// PER ITEM (`fluffy_lower::lower_l2` of the item's isolated sub-program) →
 /// `kani::run_kani` → an L2 `Certificate`. A `spec fn` carries no `req`/`ens`
 /// contract (§4.2), so it has no L2 obligation to discharge — it is a pure shared
 /// dependency woven into every `fn`'s sub-program (so a `fn` whose `ens` calls
@@ -715,12 +715,12 @@ pub fn check_l2_file(path: impl AsRef<Path>) -> Result<Vec<Certificate>, ForgeEr
     })?;
 
     // 1. parse; 2. validate; 3. effect-check — identical to the L3 path.
-    let parsed = thermite_syntax::parse(&src);
+    let parsed = fluffy_syntax::parse(&src);
     if !parsed.is_clean() {
         return Err(ForgeError::Parse(parsed.errors));
     }
-    thermite_spec::validate(&parsed.program).map_err(ForgeError::Spec)?;
-    thermite_lower::check_effects(&parsed.program).map_err(ForgeError::Effects)?;
+    fluffy_spec::validate(&parsed.program).map_err(ForgeError::Spec)?;
+    fluffy_lower::check_effects(&parsed.program).map_err(ForgeError::Effects)?;
 
     // The file's pure `spec fn`s are shared dependencies woven into every per-item
     // sub-program (so a `fn` whose `ens` references one still lowers + checks),
@@ -749,8 +749,8 @@ pub fn check_l2_file(path: impl AsRef<Path>) -> Result<Vec<Certificate>, ForgeEr
         // (#52) nor the #68 ADT decls — the kani-backed L2 corpus is scalar-only
         // and the composition/ADT oracles are L3; keep this byte-stable.
         let sub = item_subprogram(item, &spec_items, &[], &[]);
-        let harness = thermite_lower::lower_l2(&sub).map_err(ForgeError::Lower)?;
-        let bound = thermite_lower::bound_string(&sub);
+        let harness = fluffy_lower::lower_l2(&sub).map_err(ForgeError::Lower)?;
+        let bound = fluffy_lower::bound_string(&sub);
         let l2 = crate::kani::run_kani(&harness, &f.name, &bound)?;
         let effects = effects_of(&f.contract.fx);
         certs.push(crate::kani::assemble_l2_certificate(&f.name, effects, &l2));
@@ -800,7 +800,7 @@ enum GateOutcome {
 ///   ▼
 /// SlagL1 (level L1, slag:true, slag_meta)
 /// ```
-fn gate_fn(f: &thermite_syntax::FnItem) -> GateOutcome {
+fn gate_fn(f: &fluffy_syntax::FnItem) -> GateOutcome {
     let effects = effects_of(&f.contract.fx);
 
     // #16 BOUNDARY (FFI) path, detected FIRST (`.design/boundary/ffi-boundary.md`
@@ -840,7 +840,7 @@ fn gate_fn(f: &thermite_syntax::FnItem) -> GateOutcome {
                 ))
             }
             // Triage clean → certify L1 to-the-boundary (no verus): the contract is
-            // enforced at the crossing by `thermite_lower::l1`'s boundary wrapper.
+            // enforced at the crossing by `fluffy_lower::l1`'s boundary wrapper.
             crate::vacuity::VacuityVerdict::Passed => GateOutcome::BoundaryL1(
                 Certificate::boundary_l1(f.name.clone(), effects, target.to_string()),
             ),
@@ -906,7 +906,7 @@ fn gate_fn(f: &thermite_syntax::FnItem) -> GateOutcome {
         // would report a (spurious-for-partial-correctness) failure — the
         // boundary-style L1-no-verus reading (`.design/forge/check.md` REQ-8
         // reading (b), the explicitly-sanctioned fallback) is the honest and clean
-        // choice. The runtime contract checks (`thermite_lower::l1`) plus the proven
+        // choice. The runtime contract checks (`fluffy_lower::l1`) plus the proven
         // edit core (`insert_str`/`backspace` are L3) carry the real assurance.
         match crate::vacuity::triage(f) {
             crate::vacuity::VacuityVerdict::Rejected { cause } => {
@@ -944,16 +944,16 @@ fn gate_fn(f: &thermite_syntax::FnItem) -> GateOutcome {
 }
 
 /// True iff `f`'s effect row contains `diverge` (§4.1: "divergence requires
-/// `fx diverge` in the row"). MIRRORS `thermite_lower`'s `fn_is_diverge` (the
+/// `fx diverge` in the row"). MIRRORS `fluffy_lower`'s `fn_is_diverge` (the
 /// SINGLE source of truth for the §4.1 termination exemption in the lowerer); the
 /// two share the row-shape predicate so the #88 L1 cap and the #87 termination
 /// exemption fire on EXACTLY the same set of fns. Keyed on the SHAPE of the
 /// effect row — a `pure` row never diverges; a `Set` row diverges iff it lists
-/// [`thermite_syntax::ast::Effect::Diverge`]. The honesty gate (R-DEFER-9): the
+/// [`fluffy_syntax::ast::Effect::Diverge`]. The honesty gate (R-DEFER-9): the
 /// cap is applied ONLY to a fn that LOUDLY declares `fx diverge`, never silently
 /// to a normal fn.
-fn fn_is_diverge(f: &thermite_syntax::FnItem) -> bool {
-    use thermite_syntax::ast::{Effect, EffectRow};
+fn fn_is_diverge(f: &fluffy_syntax::FnItem) -> bool {
+    use fluffy_syntax::ast::{Effect, EffectRow};
     matches!(&f.contract.fx, EffectRow::Set(es) if es.contains(&Effect::Diverge))
 }
 
@@ -989,7 +989,7 @@ fn diverge_l1_cert(item: String, effects: Vec<String>) -> Certificate {
 ///   TRANSITIVELY references (`fn_deps`, the #52 §9 composition weaving). A
 ///   regular reachable fn is woven with its REAL body (fully lowered + proved);
 ///   a `#[boundary]`/`#[slag]` reachable fn is woven as a
-///   `#[verifier::external_body]` signature (`thermite_lower::lower`'s
+///   `#[verifier::external_body]` signature (`fluffy_lower::lower`'s
 ///   composition arm), so `verus` resolves the foreign callee and the caller
 ///   proves THROUGH its contract (§9). Its obligations stay its own (§5.3) — a
 ///   sibling fn NOT in the closure never enters, so an unrelated sibling's
@@ -1147,7 +1147,7 @@ fn mutual_recursion_cycle_fns(program: &Program) -> std::collections::BTreeSet<S
 
     // Index `Item::Fn`s by name so a cycle member's `dec`/diverge shape is a O(1)
     // lookup while scanning a member's SCC.
-    let fns: std::collections::BTreeMap<&str, &thermite_syntax::FnItem> = program
+    let fns: std::collections::BTreeMap<&str, &fluffy_syntax::FnItem> = program
         .items
         .iter()
         .filter_map(|i| match i {
@@ -1245,7 +1245,7 @@ fn mutual_recursion_cycle_fns(program: &Program) -> std::collections::BTreeSet<S
 /// weaves the dec-position dep, so the sub-program is self-contained.
 fn reachable_spec_fn_deps(program: &Program, start: &str) -> Vec<Item> {
     // The set of in-file spec-fn names → their declaring item, for resolution.
-    let spec_decls: std::collections::BTreeMap<&str, &thermite_syntax::SpecFnItem> = program
+    let spec_decls: std::collections::BTreeMap<&str, &fluffy_syntax::SpecFnItem> = program
         .items
         .iter()
         .filter_map(|i| match i {
@@ -1324,7 +1324,7 @@ fn mint_item_obligations(program: &Program, item: &Item) -> ItemObligations {
                 item: item.name().to_string(),
                 class: crate::obligation::ObligationClass::Contract,
                 role: crate::obligation::ObligationRole::Certification,
-                ast_slice: AstSlice::Block(Box::new(thermite_syntax::Block {
+                ast_slice: AstSlice::Block(Box::new(fluffy_syntax::Block {
                     stmts: Vec::new(),
                     tail: None,
                 })),
@@ -1377,11 +1377,11 @@ fn mint_item_obligations(program: &Program, item: &Item) -> ItemObligations {
 /// tree measure) or a body/ens-position one that the body-only closure dropped
 /// would leave the spec-fn absent from `R_item` — bottoming to the `intVal`
 /// Int-bottom `0` and faking a descent / certifying a wrong contract
-/// (`lean/Thermite/PinDecMeasure.lean` / `PinBodyRegistry.lean`). This function is
+/// (`lean/Fluffy/PinDecMeasure.lean` / `PinBodyRegistry.lean`). This function is
 /// the forge-side closure mirror increment (i) owns; it walks EVERY expression
 /// position.
-fn reachable_spec_fn_names_full(program: &Program, f: &thermite_syntax::FnItem) -> Vec<String> {
-    let spec_decls: std::collections::BTreeMap<&str, &thermite_syntax::SpecFnItem> = program
+fn reachable_spec_fn_names_full(program: &Program, f: &fluffy_syntax::FnItem) -> Vec<String> {
+    let spec_decls: std::collections::BTreeMap<&str, &fluffy_syntax::SpecFnItem> = program
         .items
         .iter()
         .filter_map(|i| match i {
@@ -1414,9 +1414,9 @@ fn reachable_spec_fn_names_full(program: &Program, f: &thermite_syntax::FnItem) 
 /// (§4.2), so the seed is `body ∪ dec` only.
 fn reachable_spec_fn_names_full_spec(
     program: &Program,
-    s: &thermite_syntax::SpecFnItem,
+    s: &fluffy_syntax::SpecFnItem,
 ) -> Vec<String> {
-    let spec_decls: std::collections::BTreeMap<&str, &thermite_syntax::SpecFnItem> = program
+    let spec_decls: std::collections::BTreeMap<&str, &fluffy_syntax::SpecFnItem> = program
         .items
         .iter()
         .filter_map(|i| match i {
@@ -1437,7 +1437,7 @@ fn reachable_spec_fn_names_full_spec(
 /// `reachable_spec_fn_deps`). Returns the reached names in SOURCE order
 /// (deterministic, R-CODE-5).
 fn reachable_spec_fn_names_from_seed(
-    spec_decls: &std::collections::BTreeMap<&str, &thermite_syntax::SpecFnItem>,
+    spec_decls: &std::collections::BTreeMap<&str, &fluffy_syntax::SpecFnItem>,
     seed: std::collections::BTreeSet<String>,
     program: &Program,
 ) -> Vec<String> {
@@ -1473,8 +1473,8 @@ fn reachable_spec_fn_names_from_seed(
 /// (#71). Only a callee name resolving to an in-file `Item::SpecFn` (`spec_decls`)
 /// is emitted — a combinator / scheme / cross-file callee is ignored (§4.2 PURE).
 fn collect_block_spec_fn_calls(
-    block: &thermite_syntax::Block,
-    spec_decls: &std::collections::BTreeMap<&str, &thermite_syntax::SpecFnItem>,
+    block: &fluffy_syntax::Block,
+    spec_decls: &std::collections::BTreeMap<&str, &fluffy_syntax::SpecFnItem>,
     out: &mut std::collections::BTreeSet<String>,
 ) {
     for stmt in &block.stmts {
@@ -1488,11 +1488,11 @@ fn collect_block_spec_fn_calls(
 /// Collect the in-file spec-fn names one `Stmt` calls (#71), recursing into the
 /// `let`/assign/return/if/loop/expr forms a spec-fn body may contain.
 fn collect_stmt_spec_fn_calls(
-    stmt: &thermite_syntax::Stmt,
-    spec_decls: &std::collections::BTreeMap<&str, &thermite_syntax::SpecFnItem>,
+    stmt: &fluffy_syntax::Stmt,
+    spec_decls: &std::collections::BTreeMap<&str, &fluffy_syntax::SpecFnItem>,
     out: &mut std::collections::BTreeSet<String>,
 ) {
-    use thermite_syntax::Stmt;
+    use fluffy_syntax::Stmt;
     match stmt {
         Stmt::Let { init, .. } => collect_expr_spec_fn_calls(init, spec_decls, out),
         Stmt::Assign { target, value } => {
@@ -1516,7 +1516,7 @@ fn collect_stmt_spec_fn_calls(
                 collect_expr_spec_fn_calls(&inv.expr, spec_decls, out);
             }
             collect_expr_spec_fn_calls(&node.dec.expr, spec_decls, out);
-            if let thermite_syntax::LoopKind::While(cond) = &node.kind {
+            if let fluffy_syntax::LoopKind::While(cond) = &node.kind {
                 collect_expr_spec_fn_calls(cond, spec_decls, out);
             }
             collect_block_spec_fn_calls(&node.body, spec_decls, out);
@@ -1532,11 +1532,11 @@ fn collect_stmt_spec_fn_calls(
 /// method name does, and every nested sub-expression (a call argument, a closure
 /// body, a match arm — so a spec-fn call inside a scheme step closure is found).
 fn collect_expr_spec_fn_calls(
-    expr: &thermite_syntax::Expr,
-    spec_decls: &std::collections::BTreeMap<&str, &thermite_syntax::SpecFnItem>,
+    expr: &fluffy_syntax::Expr,
+    spec_decls: &std::collections::BTreeMap<&str, &fluffy_syntax::SpecFnItem>,
     out: &mut std::collections::BTreeSet<String>,
 ) {
-    use thermite_syntax::Expr;
+    use fluffy_syntax::Expr;
     let note = |name: &str, out: &mut std::collections::BTreeSet<String>| {
         if spec_decls.contains_key(name) {
             out.insert(name.to_string());
@@ -1591,12 +1591,12 @@ fn collect_expr_spec_fn_calls(
         Expr::Index { base, index } => {
             collect_expr_spec_fn_calls(base, spec_decls, out);
             match index {
-                thermite_syntax::IndexArg::Single(e)
-                | thermite_syntax::IndexArg::RangeTo(e)
-                | thermite_syntax::IndexArg::RangeFrom(e) => {
+                fluffy_syntax::IndexArg::Single(e)
+                | fluffy_syntax::IndexArg::RangeTo(e)
+                | fluffy_syntax::IndexArg::RangeFrom(e) => {
                     collect_expr_spec_fn_calls(e, spec_decls, out)
                 }
-                thermite_syntax::IndexArg::Range(a, b) => {
+                fluffy_syntax::IndexArg::Range(a, b) => {
                     collect_expr_spec_fn_calls(a, spec_decls, out);
                     collect_expr_spec_fn_calls(b, spec_decls, out);
                 }
@@ -1752,13 +1752,13 @@ fn collect_decl_field_adt_refs(
         Item::Enum(e) => {
             for variant in &e.variants {
                 match &variant.shape {
-                    thermite_syntax::VariantShape::Unit => {}
-                    thermite_syntax::VariantShape::Tuple(tys) => {
+                    fluffy_syntax::VariantShape::Unit => {}
+                    fluffy_syntax::VariantShape::Tuple(tys) => {
                         for ty in tys {
                             collect_type_adt_refs(ty, adt_decls, out);
                         }
                     }
-                    thermite_syntax::VariantShape::Struct(fields) => {
+                    fluffy_syntax::VariantShape::Struct(fields) => {
                         for field in fields {
                             collect_type_adt_refs(&field.ty, adt_decls, out);
                         }
@@ -1774,12 +1774,12 @@ fn collect_decl_field_adt_refs(
 /// `Type::Named` resolving to an in-file ADT decl, recursing through `Box<T>`,
 /// `&T`, `[T]`, and `Generic<T>` inner types so a `Box<List>` reaches `List`.
 fn collect_type_adt_refs(
-    ty: &thermite_syntax::Type,
+    ty: &fluffy_syntax::Type,
     adt_decls: &std::collections::BTreeMap<&str, &Item>,
     out: &mut std::collections::BTreeSet<String>,
 ) {
     match ty {
-        thermite_syntax::Type::Named(name) => {
+        fluffy_syntax::Type::Named(name) => {
             if adt_decls.contains_key(name.as_str()) {
                 out.insert(name.clone());
             }
@@ -1787,15 +1787,15 @@ fn collect_type_adt_refs(
         // Basis Stage 4 (`.design/basis/04-collections.md`): a bounded `Vec<T>`
         // recurses into its element type so a `Vec<Account>` reaches `Account`
         // (the element-invariant ADT ref), exactly as `Box<List>` reaches `List`.
-        thermite_syntax::Type::Box(inner)
-        | thermite_syntax::Type::Slice(inner)
-        | thermite_syntax::Type::Vec(inner) => {
+        fluffy_syntax::Type::Box(inner)
+        | fluffy_syntax::Type::Slice(inner)
+        | fluffy_syntax::Type::Vec(inner) => {
             collect_type_adt_refs(inner, adt_decls, out);
         }
-        thermite_syntax::Type::Ref { inner, .. } => {
+        fluffy_syntax::Type::Ref { inner, .. } => {
             collect_type_adt_refs(inner, adt_decls, out);
         }
-        thermite_syntax::Type::Generic { arg, .. } => {
+        fluffy_syntax::Type::Generic { arg, .. } => {
             collect_type_adt_refs(arg, adt_decls, out);
         }
         // Cluster C7 (`.design/basis/09-option-result.md` REQ-2): the built-in
@@ -1803,10 +1803,10 @@ fn collect_type_adt_refs(
         // `Result<u64, ParseErr>` reaches the in-file error enum `ParseErr` (the
         // `E` parameter is an ordinary user ADT), exactly as `Box<List>` reaches
         // `List`. `Option`/`Result` themselves are built-ins, never an in-file ADT.
-        thermite_syntax::Type::Option(inner) => {
+        fluffy_syntax::Type::Option(inner) => {
             collect_type_adt_refs(inner, adt_decls, out);
         }
-        thermite_syntax::Type::Result(ok, err) => {
+        fluffy_syntax::Type::Result(ok, err) => {
             collect_type_adt_refs(ok, adt_decls, out);
             collect_type_adt_refs(err, adt_decls, out);
         }
@@ -1815,14 +1815,14 @@ fn collect_type_adt_refs(
         // `Account` — the #68 ADT weave so the value's decl is woven into the
         // per-item subprogram), so both the key and value are recursed, exactly as
         // `Result`'s two arguments. `Map` itself is a built-in, never an in-file ADT.
-        thermite_syntax::Type::Map(k, v) => {
+        fluffy_syntax::Type::Map(k, v) => {
             collect_type_adt_refs(k, adt_decls, out);
             collect_type_adt_refs(v, adt_decls, out);
         }
         // Cluster C9-B (`.design/basis/10-recursion-tuples.md` REQ-8, #109): a
         // tuple type `(T, U, …)` reaches an in-file ADT in ANY element (a
         // `(Account, u64)` reaches `Account`), so every element is recursed.
-        thermite_syntax::Type::Tuple(tys) => {
+        fluffy_syntax::Type::Tuple(tys) => {
             for t in tys {
                 collect_type_adt_refs(t, adt_decls, out);
             }
@@ -1831,9 +1831,9 @@ fn collect_type_adt_refs(
         // built-in (NOT a user ADT) NULLARY type — no inner type to recurse into
         // and never an in-file ADT decl, so it references no ADT (the no-op leaf
         // arm alongside `Prim`/`Unit`).
-        thermite_syntax::Type::Prim(_)
-        | thermite_syntax::Type::Unit
-        | thermite_syntax::Type::String => {}
+        fluffy_syntax::Type::Prim(_)
+        | fluffy_syntax::Type::Unit
+        | fluffy_syntax::Type::String => {}
     }
 }
 
@@ -1846,11 +1846,11 @@ fn collect_type_adt_refs(
 /// pattern/`Is`/`StructLit` paths against the in-file ADT name set, plus the
 /// `enum`/`struct` names directly).
 fn collect_expr_adt_refs(
-    expr: &thermite_syntax::Expr,
+    expr: &fluffy_syntax::Expr,
     adt_decls: &std::collections::BTreeMap<&str, &Item>,
     out: &mut std::collections::BTreeSet<String>,
 ) {
-    use thermite_syntax::Expr;
+    use fluffy_syntax::Expr;
     // A `path` segment list may name `Type::Variant` or a bare `Type`/`Variant`.
     // Any segment resolving to an in-file ADT TYPE name is a direct reference;
     // a bare VARIANT name is resolved to its enum by `resolve_variant_owner`.
@@ -1913,12 +1913,12 @@ fn collect_expr_adt_refs(
         Expr::Index { base, index } => {
             collect_expr_adt_refs(base, adt_decls, out);
             match index {
-                thermite_syntax::IndexArg::Single(e)
-                | thermite_syntax::IndexArg::RangeTo(e)
-                | thermite_syntax::IndexArg::RangeFrom(e) => {
+                fluffy_syntax::IndexArg::Single(e)
+                | fluffy_syntax::IndexArg::RangeTo(e)
+                | fluffy_syntax::IndexArg::RangeFrom(e) => {
                     collect_expr_adt_refs(e, adt_decls, out)
                 }
-                thermite_syntax::IndexArg::Range(a, b) => {
+                fluffy_syntax::IndexArg::Range(a, b) => {
                     collect_expr_adt_refs(a, adt_decls, out);
                     collect_expr_adt_refs(b, adt_decls, out);
                 }
@@ -1948,7 +1948,7 @@ fn collect_expr_adt_refs(
 
 /// Walk a `Block`'s statements + tail for ADT type references (#68).
 fn collect_block_adt_refs(
-    block: &thermite_syntax::Block,
+    block: &fluffy_syntax::Block,
     adt_decls: &std::collections::BTreeMap<&str, &Item>,
     out: &mut std::collections::BTreeSet<String>,
 ) {
@@ -1963,11 +1963,11 @@ fn collect_block_adt_refs(
 /// Walk one `Stmt` for ADT type references (#68), including a `let` annotation
 /// type and a loop's spec clauses + body.
 fn collect_stmt_adt_refs(
-    stmt: &thermite_syntax::Stmt,
+    stmt: &fluffy_syntax::Stmt,
     adt_decls: &std::collections::BTreeMap<&str, &Item>,
     out: &mut std::collections::BTreeSet<String>,
 ) {
-    use thermite_syntax::Stmt;
+    use fluffy_syntax::Stmt;
     match stmt {
         Stmt::Let { ty, init, .. } => {
             if let Some(ty) = ty {
@@ -1996,7 +1996,7 @@ fn collect_stmt_adt_refs(
                 collect_expr_adt_refs(&inv.expr, adt_decls, out);
             }
             collect_expr_adt_refs(&node.dec.expr, adt_decls, out);
-            if let thermite_syntax::LoopKind::While(cond) = &node.kind {
+            if let fluffy_syntax::LoopKind::While(cond) = &node.kind {
                 collect_expr_adt_refs(cond, adt_decls, out);
             }
             collect_block_adt_refs(&node.body, adt_decls, out);
@@ -2011,11 +2011,11 @@ fn collect_stmt_adt_refs(
 /// `Pattern::Struct` path names a variant (or bare type), resolved to its in-file
 /// enum/struct; nested sub-patterns are walked.
 fn collect_pattern_adt_refs(
-    pat: &thermite_syntax::Pattern,
+    pat: &fluffy_syntax::Pattern,
     adt_decls: &std::collections::BTreeMap<&str, &Item>,
     out: &mut std::collections::BTreeSet<String>,
 ) {
-    use thermite_syntax::Pattern;
+    use fluffy_syntax::Pattern;
     let note_path = |segments: &[String], out: &mut std::collections::BTreeSet<String>| {
         for seg in segments {
             if adt_decls.contains_key(seg.as_str()) {
@@ -2040,7 +2040,7 @@ fn collect_pattern_adt_refs(
         }
         Pattern::Slice(pats) => {
             for sp in pats {
-                if let thermite_syntax::SlicePat::Pat(p) = sp {
+                if let fluffy_syntax::SlicePat::Pat(p) = sp {
                     collect_pattern_adt_refs(p, adt_decls, out);
                 }
             }
@@ -2087,7 +2087,7 @@ fn resolve_seed(_path: &Path) -> u64 {
 
 /// Resolve the verus version that keys the proof cache for THIS run
 /// (`.design/forge/proof-cache.md` REQ-5). Captured ONCE per `check_file` so
-/// every item keys against the same prover; a verus or thermite upgrade changes
+/// every item keys against the same prover; a verus or fluffy upgrade changes
 /// this string, the key, and forces a universal re-verify.
 ///
 /// Sourcing order (deterministic, R-CODE-5 — no wall-clock):
@@ -2134,7 +2134,7 @@ fn resolve_verus_version() -> Result<String, ForgeError> {
 
 /// Resolve the proof-cache directory for this run (`.design/forge/proof-cache.md`
 /// REQ-6). The production default is `cache::default_cache_dir()`
-/// (`target/thermite-proof-cache/`, under the git-ignored `target/`). The
+/// (`target/fluffy-proof-cache/`, under the git-ignored `target/`). The
 /// `FORGE_CACHE_DIR` env var overrides it — the hermetic-test seam so a test can
 /// point the cache at a per-test temp dir, keeping the shared `target/` cache
 /// free of test pollution and tests independent of order. Deterministic
@@ -2598,7 +2598,7 @@ fn assemble_certificate(item: &Item, verus: &VerusResult) -> Certificate {
 /// The L2/L1 closures are LAZY — they run ONLY on the timeout edge, so the common
 /// `Proved` path never spawns kani.
 fn ladder_for_timeout(
-    f: &thermite_syntax::FnItem,
+    f: &fluffy_syntax::FnItem,
     sub: &Program,
     outcome: &VerusOutcome,
     l3_cert: Certificate,
@@ -2695,22 +2695,22 @@ fn ladder_for_timeout(
         // The L2 rung (lazy): lower the SAME item to a kani harness, run the real
         // kani binary, classify (the OQ-2 split). An environment failure → Err.
         || {
-            let harness = thermite_lower::lower_l2(sub).map_err(ForgeError::Lower)?;
-            let bound = thermite_lower::bound_string(sub);
+            let harness = fluffy_lower::lower_l2(sub).map_err(ForgeError::Lower)?;
+            let bound = fluffy_lower::bound_string(sub);
             let l2 = crate::kani::run_kani(&harness, &fname, &bound)?;
             let verdict = crate::kani::classify_l2_outcome(&l2);
             let cert = crate::kani::assemble_l2_certificate(&fname, effects, &l2);
             Ok(crate::degrade::L2Attempt { verdict, cert })
         },
         // The L1 fallback rung (lazy): RECORD the achieved `Level::L1` (OQ-3 (b)).
-        // The contract's runtime-check EMISSION is `thermite_lower::lower_l1`'s
+        // The contract's runtime-check EMISSION is `fluffy_lower::lower_l1`'s
         // build-time job, not the verdict-aggregator's — exactly the
         // `Certificate::slag_l1` precedent (records L1 without running a prover).
         // `lower_l1` is invoked here only to CONFIRM the contract lowers to runtime
         // checks (so the recorded L1 is real, never a fiat the build cannot honor);
         // a lowering failure is an environment error (REQ-8), never a silent drop.
         || {
-            thermite_lower::lower_l1(sub).map_err(ForgeError::Lower)?;
+            fluffy_lower::lower_l1(sub).map_err(ForgeError::Lower)?;
             Ok(Certificate::new(
                 f.name.clone(),
                 Level::L1,
@@ -2718,7 +2718,7 @@ fn ladder_for_timeout(
                 0,
                 vec![ObligationResult::discharged(
                     "contract recorded at L1 (runtime checks emitted at build by \
-                     thermite_lower::lower_l1); L3 proof and L2 bounded check both \
+                     fluffy_lower::lower_l1); L3 proof and L2 bounded check both \
                      inconclusive within budget",
                 )],
             ))
@@ -2733,7 +2733,7 @@ fn ladder_for_timeout(
 ///
 /// For each mutant (`mutation::generate`, the frozen + ordered + capped set):
 /// 1. weave it into the same per-item sub-program shape ([`item_subprogram`]) and
-///    lower via the existing `thermite_lower::lower`. A mutant that FAILS to lower
+///    lower via the existing `fluffy_lower::lower`. A mutant that FAILS to lower
 ///    is DROPPED from the denominator (not scored — OQ-5), never an `Err` that
 ///    fails the gate.
 /// 2. content-address the lowered mutant via the SAME proof cache (#8;
@@ -2758,7 +2758,7 @@ fn ladder_for_timeout(
     cache-key composition"
 )]
 fn mutation_score(
-    f: &thermite_syntax::FnItem,
+    f: &fluffy_syntax::FnItem,
     spec_items: &[Item],
     fn_deps: &[Item],
     adt_deps: &[Item],
@@ -2788,7 +2788,7 @@ fn mutation_score(
         let sub = item_subprogram(&item, spec_items, fn_deps, adt_deps);
         // OQ-5: a mutant that fails to LOWER (structurally degenerate) is DROPPED
         // from the denominator, never an `Err` that fails the whole gate.
-        let lowered = match thermite_lower::lower(&sub) {
+        let lowered = match fluffy_lower::lower(&sub) {
             Ok(s) => s,
             Err(_) => continue,
         };
@@ -2796,7 +2796,7 @@ fn mutation_score(
         // Content-address the mutant exactly as the L3 path does (#8). A mutant's
         // verdict is a deterministic function of its lowered source + seed +
         // versions, so it caches like any item.
-        let key = cache::cache_key(&lowered, seed, verus_version, THERMITE_VERSION);
+        let key = cache::cache_key(&lowered, seed, verus_version, FLUFFY_VERSION);
         let proved = if use_cache {
             if let Some(stored) = cache::load(cache_dir, &key) {
                 mutant_cert_is_survivor(&stored)
@@ -2860,7 +2860,7 @@ fn mutation_score(
 
 /// The §7 equivalent-mutant EQUIVALENCE QUERY for one survivor
 /// (`.design/forge/equivalent-mutants.md` REQ-1, #101): lower the equivalence
-/// obligation (the `thermite_lower::lower_equivalence_obligation` SEAM — `under
+/// obligation (the `fluffy_lower::lower_equivalence_obligation` SEAM — `under
 /// req, mutant_body == real_body` for all inputs), content-address it through the
 /// SAME #8 proof cache, and run the EXISTING `run_verus`. Returns `Ok(true)` iff
 /// verus PROVED the obligation (`0 errors` → the mutant is observably equivalent
@@ -2878,8 +2878,8 @@ fn mutation_score(
 /// `use vstd::prelude::*; verus! { .. } fn main() {}` unit over only scalar spec
 /// fns + a proof fn), so no §9/ADT composition deps are woven.
 fn equivalence_proves_equal(
-    f: &thermite_syntax::FnItem,
-    mutant_body: Option<&thermite_syntax::ast::Block>,
+    f: &fluffy_syntax::FnItem,
+    mutant_body: Option<&fluffy_syntax::ast::Block>,
     seed: u64,
     rlimit: f64,
     verus_version: &str,
@@ -2891,7 +2891,7 @@ fn equivalence_proves_equal(
         // boundary fn), but treat a missing body as no-proof (stays counted).
         return Ok(false);
     };
-    let obligation = match thermite_lower::lower_equivalence_obligation(f, body) {
+    let obligation = match fluffy_lower::lower_equivalence_obligation(f, body) {
         Ok(s) => s,
         // OQ-1: an un-renderable obligation (non-scalar / non-forced-output shape)
         // yields NO proof — the survivor STAYS counted (sound-but-incomplete).
@@ -2902,7 +2902,7 @@ fn equivalence_proves_equal(
     let label_program = Program {
         items: vec![Item::Fn(f.clone())],
     };
-    let key = cache::cache_key(&obligation, seed, verus_version, THERMITE_VERSION);
+    let key = cache::cache_key(&obligation, seed, verus_version, FLUFFY_VERSION);
     if use_cache {
         if let Some(stored) = cache::load(cache_dir, &key) {
             // A cached cert: the equivalence query PROVED iff the stored cert is
@@ -2934,7 +2934,7 @@ fn equivalence_proves_equal(
 ///
 /// - `verify_body` — weave the candidate `ens` into a COPY of `f` (body
 ///   UNCHANGED, `strengthen::candidate_fn`), build the SAME per-item sub-program
-///   (`item_subprogram`), lower (`thermite_lower::lower`), content-address (the #8
+///   (`item_subprogram`), lower (`fluffy_lower::lower`), content-address (the #8
 ///   cache), and `run_verus`. Returns `Ok(true)` iff verus PROVED the candidate
 ///   against the real body (the §7 "proves with no body change"); `Ok(false)` on a
 ///   non-`Proved` outcome OR an un-lowerable woven fn (parallel to #12's drop), and
@@ -2958,7 +2958,7 @@ fn equivalence_proves_equal(
     content-addressing the probe reuses"
 )]
 fn strengthen_certificate(
-    f: &thermite_syntax::FnItem,
+    f: &fluffy_syntax::FnItem,
     spec_items: &[Item],
     fn_deps: &[Item],
     adt_deps: &[Item],
@@ -2972,7 +2972,7 @@ fn strengthen_certificate(
     // The SURVIVOR body the kill witness verifies against: the #12 mutant whose
     // description matches the recorded survivor (the SAME frozen mutator). Resolved
     // once; reused for every survivor-linked candidate.
-    let survivor_body: Option<thermite_syntax::FnItem> = score.survivor.as_ref().and_then(|desc| {
+    let survivor_body: Option<fluffy_syntax::FnItem> = score.survivor.as_ref().and_then(|desc| {
         crate::mutation::generate(f, seed)
             .into_iter()
             .find(|m| &m.desc == desc)
@@ -2983,17 +2983,17 @@ fn strengthen_certificate(
     // a given body): lower the per-item sub-program, consult the #8 cache, else
     // `run_verus` + store. Returns whether verus PROVED it (the cert is L3 with no
     // reject). An un-lowerable woven fn is `Ok(false)` (parallel to #12's drop).
-    let verify_woven = |woven: &thermite_syntax::FnItem| -> Result<bool, ForgeError> {
+    let verify_woven = |woven: &fluffy_syntax::FnItem| -> Result<bool, ForgeError> {
         let item = Item::Fn(woven.clone());
         // The candidate weaves the SAME §9 composition deps as `f` (#52) AND the
         // same #68 ADT decls so a boundary/regular callee in `f`'s body + every
         // referenced ADT type resolves in the candidate too.
         let sub = item_subprogram(&item, spec_items, fn_deps, adt_deps);
-        let lowered = match thermite_lower::lower(&sub) {
+        let lowered = match fluffy_lower::lower(&sub) {
             Ok(s) => s,
             Err(_) => return Ok(false),
         };
-        let key = cache::cache_key(&lowered, seed, verus_version, THERMITE_VERSION);
+        let key = cache::cache_key(&lowered, seed, verus_version, FLUFFY_VERSION);
         if use_cache {
             if let Some(stored) = cache::load(cache_dir, &key) {
                 return Ok(mutant_cert_is_survivor(&stored));
@@ -3052,7 +3052,7 @@ mod tests {
     // `spec_defs` (the corrected full-expression-position closure walks the dec
     // measures, NOT body-only). A body-only closure (the SHIPPED
     // `reachable_spec_fn_deps`) would DROP it, bottoming it to the `intVal`
-    // Int-bottom and faking a descent (`lean/Thermite/PinDecMeasure.lean`). Expected
+    // Int-bottom and faking a descent (`lean/Fluffy/PinDecMeasure.lean`). Expected
     // from REQ-1.2's full-expression-position principle (R-CHAR-3).
     #[test]
     fn dec_position_spec_fn_reaches_obligation_env() {
@@ -3068,9 +3068,9 @@ fn measured(xs: &[u32]) -> u64
   dec tree_size(xs)
 { xs.len() as u64 }
 ";
-        let parsed = thermite_syntax::parse(src);
+        let parsed = fluffy_syntax::parse(src);
         assert!(parsed.is_clean(), "fixture must parse: {:?}", parsed.errors);
-        let mut measured: Option<&thermite_syntax::FnItem> = None;
+        let mut measured: Option<&fluffy_syntax::FnItem> = None;
         for i in &parsed.program.items {
             if let Item::Fn(f) = i {
                 if f.name == "measured" {
@@ -3111,7 +3111,7 @@ fn measured(xs: &[u32]) -> u64
     #[test]
     fn spec_fn_free_item_has_no_registry_termination() {
         let src = "fn add(x: u64, y: u64) -> u64 req x < 100 ens result == x + y fx pure { x + y }";
-        let parsed = thermite_syntax::parse(src);
+        let parsed = fluffy_syntax::parse(src);
         assert!(parsed.is_clean(), "fixture must parse: {:?}", parsed.errors);
         let mut add: Option<&Item> = None;
         for i in &parsed.program.items {
@@ -3279,7 +3279,7 @@ note: Cost * Instantiations: 150 (Instantiated 10 times - 71% of the total, cost
     }
 
     // #8 proof-cache AC-3 (LOCALITY) + AC-4 (DETERMINISM), exercised over the
-    // REAL `item_subprogram` → `thermite_lower::lower` → `cache::cache_key`
+    // REAL `item_subprogram` → `fluffy_lower::lower` → `cache::cache_key`
     // pipeline (not a re-implementation): in a two-item file `f`,`g` where `g`
     // does not reference `f`, editing `f`'s body leaves `g`'s key byte-identical
     // while `f`'s key changes. Expected behavior traces to
@@ -3287,7 +3287,7 @@ note: Cost * Instantiations: 150 (Instantiated 10 times - 71% of the total, cost
     #[test]
     fn cache_key_is_local_to_the_item() {
         const VERUS: &str = "verus-test-pin";
-        const THERMITE: &str = "0.0.0-test";
+        const FLUFFY: &str = "0.0.0-test";
 
         // Two independent `fn`s; `g` does not reference `f`. Original program.
         let src_v1 = "fn f(x: u64) -> u64\n  req x < 10\n  ens result == x\n  fx  pure\n{\n  x\n}\n\
@@ -3297,7 +3297,7 @@ note: Cost * Instantiations: 150 (Instantiated 10 times - 71% of the total, cost
                       fn g(y: u64) -> u64\n  req y < 10\n  ens result == y\n  fx  pure\n{\n  y\n}\n";
 
         let key_of = |src: &str, target: &str| -> Option<String> {
-            let parsed = thermite_syntax::parse(src);
+            let parsed = fluffy_syntax::parse(src);
             if !parsed.is_clean() {
                 return None;
             }
@@ -3318,8 +3318,8 @@ note: Cost * Instantiations: 150 (Instantiated 10 times - 71% of the total, cost
             referrers.extend(fn_deps.iter());
             let adt_deps = reachable_adt_deps(&parsed.program, &referrers);
             let sub = item_subprogram(item, &spec_items, &fn_deps, &adt_deps);
-            let lowered = thermite_lower::lower(&sub).ok()?;
-            Some(cache::cache_key(&lowered, 0, VERUS, THERMITE))
+            let lowered = fluffy_lower::lower(&sub).ok()?;
+            Some(cache::cache_key(&lowered, 0, VERUS, FLUFFY))
         };
 
         let g_v1 = key_of(src_v1, "g");

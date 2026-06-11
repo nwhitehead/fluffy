@@ -1,15 +1,15 @@
 //! End-to-end live pin for crosslink #225 — a recursive `spec fn` over a `u32`
 //! param, named in an exec twin's contract, MUST certify L3 under real verus.
 //!
-//! THE BUG (root cause `thermite-lower/src/lower.rs`, the `plain_user_spec_call`
+//! THE BUG (root cause `fluffy-lower/src/lower.rs`, the `plain_user_spec_call`
 //! arm): the recursive call `s_dec(n - 1)` in the `spec fn` body, plus the
 //! contract call `s_dec(n)`, hardcoded `as u64` on the arithmetic arg even though
 //! `s_dec`'s declared param is `u32`. The emitted `s_dec((n - 1) as u64)` is
 //! ill-typed Verus (`expected u32, found u64`), so the WHOLE item died at L0 with
-//! an opaque obligation failure though the Thermite source is fine.
+//! an opaque obligation failure though the Fluffy source is fine.
 //!
 //! THE AUTHORITY (R-CHAR-3): the expected level L3 is the design contract —
-//! `thermite-design.md` §6 ladder semantics (L3 == a fully-discharged real-verus
+//! `fluffy-design.md` §6 ladder semantics (L3 == a fully-discharged real-verus
 //! proof) — NOT copied from the toolchain's own output. The narrowing cast is
 //! legitimate (Verus spec arithmetic is the unbounded `int`); the fix only
 //! redirects its TARGET to the callee's declared param type (`u32`). The negative

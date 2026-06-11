@@ -6,24 +6,24 @@ status: draft (v-next architecture — the obligation/engine interface; most REQ
         behind build blockers. The SHIPPED substrates this builds on are quoted-code-grounded.)
 governs: forge/src/check.rs + forge/src/degrade.rs + forge/src/manifest.rs (the discharge
          pipeline, the ladder, the certificate this interface generalizes) and
-         thermite-tv/src/obligation.rs (the per-run obligation materialization that the
-         backend-neutral Obligation artifact reifies) and lean/Thermite/** (the mechanized
+         fluffy-tv/src/obligation.rs (the per-run obligation materialization that the
+         backend-neutral Obligation artifact reifies) and lean/Fluffy/** (the mechanized
          semantics the obligations are stated against, and the Lean engine's target).
          NO production .rs is added or changed by this doc — it is the interface/architecture
-         layer, like .design/verified/thermite-semantics.md. The increments that BUILD it are
+         layer, like .design/verified/fluffy-semantics.md. The increments that BUILD it are
          the named build blockers (#204 = increment (i), the others future).
 thesis-refs:
-  - thermite-design.md §1 (trust relocated: code → spec → spec-intent; "a skeptical third party
+  - fluffy-design.md §1 (trust relocated: code → spec → spec-intent; "a skeptical third party
     can audit in minutes"; the enumerable trusted base)
-  - thermite-design.md §6 (the verification ladder L3/L2/L1/L0; "the certificate lists every
+  - fluffy-design.md §6 (the verification ladder L3/L2/L1/L0; "the certificate lists every
     function's level … this manifest IS the deliverable's trust statement"; downgrades automatic;
     degrade-on-timeout)
-  - thermite-design.md §7 (the anti-Goodhart battery — mutation kill-ratio + vacuity)
-  - thermite-design.md §9 (composition: trust invariant under composition, not multiplicatively
+  - fluffy-design.md §7 (the anti-Goodhart battery — mutation kill-ratio + vacuity)
+  - fluffy-design.md §9 (composition: trust invariant under composition, not multiplicatively
     decaying — the honest-min aggregation)
-  - thermite-design.md §13 (roadmap; verified-microkernel convergence)
+  - fluffy-design.md §13 (roadmap; verified-microkernel convergence)
 anchor-docs:
-  - .design/verified/thermite-semantics.md (the mechanized semantics S — denote/bodyDenote/
+  - .design/verified/fluffy-semantics.md (the mechanized semantics S — denote/bodyDenote/
     loopDenote, the fuel-indexed spec-fn registry; the verified-validator architecture; the
     reduced-trusted-base enumeration — REQ-1..REQ-7)
   - .design/verified/z3-demotion.md (what Lean-SMT/cvc5 reconstruction reaches TODAY — the
@@ -76,15 +76,15 @@ build-blockers:
 
 ## Summary
 
-Thermite should be defined by its SEMANTICS (`S`, mechanized in `lean/Thermite/`) with provers as
+Fluffy should be defined by its SEMANTICS (`S`, mechanized in `lean/Fluffy/`) with provers as
 PLUGINS — not defined by Verus's verifiable fragment. Today the toolchain has exactly one engine
 welded into `forge::check`: Verus/Z3, reached implicitly by `run_verus`, with the obligation
-existing only transiently as the per-clause/per-body/per-loop Verus text `thermite-tv`'s
+existing only transiently as the per-clause/per-body/per-loop Verus text `fluffy-tv`'s
 `equivalence_obligation` family emits. This doc designs (a) the **Obligation** — a serializable,
 backend-neutral verification artifact stated against `S`; (b) the **Engine** interface (fragment /
 discharge / trust profile / evidence); (c) **certificate attribution** so an auditor sees that L3
 via Lean has a smaller trusted base than L3 via Verus; and (d) **Lean as engine #2** (an exporter
-into the existing `lean/Thermite/` spine + an auto tactic battery + interactive proofs). Most of
+into the existing `lean/Fluffy/` spine + an auto tactic battery + interactive proofs). Most of
 this is NOT-STARTED behind build blockers; the substrates it generalizes (the obligation
 materialization, the discharge pipeline, the degrade ladder, the content-addressed proof cache, the
 project-min aggregate, the mechanized `S`) are SHIPPED and quoted below.
@@ -107,7 +107,7 @@ project-min aggregate, the mechanized `S`) are SHIPPED and quoted below.
   (CERTIFICATION vs the meta/battery queries of §0.1) that REQ-3 keys its discipline on. Today these
   bits exist only MATERIALIZED as Verus text (`obligation.rs`); REQ-1 is the reification of the same
   content as a prover-neutral value. Derived from §6 + the obligation machinery
-  `thermite-tv/src/obligation.rs` already emits. **Increment (i), blocker #204.**
+  `fluffy-tv/src/obligation.rs` already emits. **Increment (i), blocker #204.**
 - **REQ-2 (the Engine interface)** — an engine provides four things: (a) a FRAGMENT — the obligation
   classes / construct sets it can ATTEMPT; (b) DISCHARGE — `Obligation → {Proven(evidence),
   Refuted(counterexample), Unknown(reason)}` with the strict mapping discipline below (a
@@ -141,14 +141,14 @@ project-min aggregate, the mechanized `S`) are SHIPPED and quoted below.
   R-DEFER-9 (no proof cheats). **Increment (iii), FUTURE.**
 - **REQ-6 (the Lean engine — the exporter)** — `forge` serializes a checked item into a Lean theorem
   statement over the EXISTING spine encodings (`Expr`/`Block` inductives + `denote`/`bodyDenote`/
-  `loopDenote` in `lean/Thermite/`); the exporter emits Lean SOURCE instantiating those, with the
+  `loopDenote` in `lean/Fluffy/`); the exporter emits Lean SOURCE instantiating those, with the
   FUEL form pinned by §4 (the obligation must be sound against `Denote.lean`'s fuel-0-bottom = True
   semantics — see §4 "the stabilized form", #213-corrected, with the RESULT value bound THROUGH
   stabilization, #214-corrected). Its faithfulness is the SAME correspondence class as the
   Rust↔Lean encoder correspondence (`rust-lean-correspondence.md`): arm-by-arm inspection + the
   deep-audit drift tripwire — AND it must include registry-population faithfulness (the exported
   registry contains exactly the item's spec-fns with their real bodies; §4 EXP). Named here as a NEW
-  trust item under that same discipline. Derived from `thermite-semantics.md` REQ-6 + the
+  trust item under that same discipline. Derived from `fluffy-semantics.md` REQ-6 + the
   inspection-tier discipline. **Increment (ii)/(iv), FUTURE.**
 - **REQ-7 (the Lean engine — discharge modes + termination)** — (i) AUTO: a tactic battery
   (`omega`/`simp`/`decide`/Lean-SMT's `smt`) over the fragment the z3-demotion PoC PROVES
@@ -162,7 +162,7 @@ project-min aggregate, the mechanized `S`) are SHIPPED and quoted below.
   registries). TERMINATION: the Lean engine's obligation set must include the item's `dec` measure or
   the certificate honestly says PARTIAL-CORRECTNESS-only (tied to `while_rule`'s `h_run` premise),
   AND — per REQ-1.2 / the #215 fix — the REGISTRY-TERMINATION class for every spec-fn in `R_item`.
-  Derived from `z3-demotion.md` (the reachable fragment) + `thermite-semantics.md` (the
+  Derived from `z3-demotion.md` (the reachable fragment) + `fluffy-semantics.md` (the
   partial-correctness `while_rule`). **Increment (ii)/(iii), FUTURE.**
 - **REQ-8 (engine ordering + the ladder placement)** — DEFAULT order: Verus first (fast,
   push-button), Lean-auto second, Lean-interactive on demand (surface: `forge check --engine lean`
@@ -257,10 +257,10 @@ The interface this doc designs sits ON TOP of a fully-shipped single-engine pipe
 starting point:
 
 - **The obligation content is materialized — but only as Verus text, transiently.**
-  `thermite-tv/src/obligation.rs` is the per-run obligation machinery. `pub fn
+  `fluffy-tv/src/obligation.rs` is the per-run obligation machinery. `pub fn
   equivalence_obligation(source, p_production, frame)` emits a SELF-CONTAINED Verus program whose
   single proof obligation is `assert((P_production) <==> (P_reference))`; its module doc states
-  "`thermite-tv` does NOT run verus itself: it emits the obligation TEXT." The frame
+  "`fluffy-tv` does NOT run verus itself: it emits the obligation TEXT." The frame
   (`pub struct ObligationFrame { spec_defs, params, req, seq_params, nat_coerce_params,
   string_params, map_params }`) carries the env/typing context. The EXEC dual is `pub fn
   exec_equivalence_obligation` (the `tv_exec_wrap` exec-fn form), the BODY dual `pub fn
@@ -270,7 +270,7 @@ starting point:
   prover-neutrally instead of as a Verus string. **SHIPPED.**
 - **The discharge pipeline is welded to Verus.** `forge::check::check_file_with_options`
   (`forge/src/check.rs`) runs `parse → validate → check_effects` then per item `item_subprogram →
-  thermite_lower::lower → run_verus → assemble_certificate`. The engine is implicit: `run_verus`
+  fluffy_lower::lower → run_verus → assemble_certificate`. The engine is implicit: `run_verus`
   spawns the real `verus` binary; `classify_verus_outcome` is the deterministic three-way split
   `Proved` / `Timeout` / `Counterexample` (the docs at `VerusOutcome::Counterexample` note that
   bucket ALSO absorbs the fast-`unknown` incompleteness edge — see §0.1 / REQ-3.1). There is no
@@ -286,21 +286,21 @@ starting point:
   carries `level: Level` (`enum Level { L0, L1, L2, L3 }`, `#[derive(Ord)]` so `L0 < L1 < L2 < L3`);
   `AssuranceManifest::aggregate(&[Certificate])` computes the per-fn rows + `ProjectAssurance::
   Certified(min)` / `Failed`, "VERUS-ANCHORED … the project-level min-over-functions is anchored to
-  the proved fold-min `thermite_verified::aggregate_level`." The certificate today has NO
+  the proved fold-min `fluffy_verified::aggregate_level`." The certificate today has NO
   per-obligation engine/trust-profile field — REQ-4 adds one (additively, like `boundary`/`slag`/
   `lowered_assurance`/`assurance_scope`, each `#[serde(default)]` so the frozen golden
   `conformance/sum.cert.json` still deserializes). **SHIPPED (cert + min), NOT-STARTED (attribution).**
 - **The content-addressed proof cache is the evidence substrate.** `pub fn cache::cache_key(
-  lowered_src, seed, verus_version, thermite_version)` hashes those FOUR args PLUS the
+  lowered_src, seed, verus_version, fluffy_version)` hashes those FOUR args PLUS the
   `CHECK_SCHEMA_VERSION` check-logic version (blocker #49), each domain-tagged + length-prefixed,
   into a sha256 content address; `cache::load`/`store` serve/persist it. The key is NOT keyed on a
-  bare AST/env hash — it is `{lowered source, seed, verus_version, thermite_version,
+  bare AST/env hash — it is `{lowered source, seed, verus_version, fluffy_version,
   CHECK_SCHEMA_VERSION}`, so a verus toolchain bump or a gate-logic change forces a universal MISS
   ("version-keyed invalidation", REQ-5 of `cache.rs`). REQ-2's EVIDENCE slot generalizes this — see
   §2(d) (the key must gain an engine discriminator AND the per-engine analogs of `verus_version`:
   the engine-toolchain version + the targeted spine content hash). **SHIPPED (cache),
   NOT-STARTED (engine-keying).**
-- **The mechanized semantics `S` is the obligations' target.** `lean/Thermite/` mechanizes `S` over
+- **The mechanized semantics `S` is the obligations' target.** `lean/Fluffy/` mechanizes `S` over
   the frozen `Expr`/`Block` inductives: `denote`/`refDenote` (`Denote.lean`/`RefEncode.lean`, the
   fuel-indexed contract sublanguage `S_C` with the `Env.specs` registry), `Exec.lean`'s `execDenote`
   (`S_E`, bounded value / overflow-as-`none`), `Exec/Stmt.lean`'s `bodyDenote` (`S_B`, straight-line
@@ -393,7 +393,7 @@ AND the REGISTRY-TERMINATION class (REQ-1.2 below — the spec-fn registry's own
 
 **The gap (the critic's Pin B, `PinStabilization.lean`).** §4's stabilization soundness is scoped
 "for a DEC-VALID (terminating) registry", but on the Lean path NOTHING discharges that hypothesis.
-The parser enforces dec PRESENCE only (`SpecFnItem::dec` mandatory, `thermite-syntax/src/ast.rs`);
+The parser enforces dec PRESENCE only (`SpecFnItem::dec` mandatory, `fluffy-syntax/src/ast.rs`);
 dec VALIDITY — that the measure actually DECREASES — is proven ONLY by Verus, and the Lean rung sits
 exactly DOWNSTREAM of a Verus `Unknown` (REQ-3.1 remaps a witness-less failure, INCLUDING a failed
 spec-fn termination proof, to `Unknown` → degrade → Lean attempts). For a divergent registry
@@ -427,14 +427,14 @@ ONE of them per spec-fn.
 
 **Why the measure-position closure is load-bearing (the #226 fix — Pin C, `PinDecMeasure.lean`).**
 The class is ABOUT the `dec` measures, and a `dec` measure is a FULL `Expr` (`SpecFnItem.dec : Clause`
-wraps an `Expr`, `thermite-syntax/src/ast.rs`) that MAY itself call spec-fns (`dec spec_size(t)` is a
+wraps an `Expr`, `fluffy-syntax/src/ast.rs`) that MAY itself call spec-fns (`dec spec_size(t)` is a
 natural tree measure). The Lean discharge path (b) states a `decreasing_by`-shaped descent obligation
 over the encoded `R_item` (REQ-1.2(b)) — so the measure is DENOTED against `R_item`. If the closure
 seed/step omitted the `dec`-position spec-calls (the cycle-5 `req ∪ ens ∪ body` body-only scope), a
 spec-fn called ONLY from a measure would be ABSENT from `R_item`, its `specCall` would bottom to the
 `intVal` Int-bottom `0` at every fuel, and the measure as DENOTED would differ from the SOURCE measure
 — affirming a strict descent the source measure lacks. The critic's kernel-checked pin
-`lean/Thermite/PinDecMeasure.lean` (Pin C) is exactly this: measure `x - t(x)` with true registry
+`lean/Fluffy/PinDecMeasure.lean` (Pin C) is exactly this: measure `x - t(x)` with true registry
 `t(x) = x` — the SOURCE measure is `x - x = 0` (CONSTANT, the non-well-founded divergent case
 REGISTRY-TERMINATION exists to reject, `true_measure_never_descends`), but denoted against a `t`-omitting
 `R_item` the dec-position `t(x)` bottoms to `0` and the measure denotes `x`, which STRICTLY DESCENDS on
@@ -455,7 +455,7 @@ the descent obligation over the COMPLETE `R_item` cannot be authored for it — 
 against the real registry, not a bottom-poisoned one). So the conjunction rule BLOCKS the certificate BEFORE the
 poisoned-bottom stabilization can certify anything — the `divergent_contract_certifies` discharge the
 pin records can no longer reach a certificate, because the item never clears REGISTRY-TERMINATION.
-`lean/Thermite/PinStabilization.lean` (Pin B) is the kernel-checked regression oracle for this class:
+`lean/Fluffy/PinStabilization.lean` (Pin B) is the kernel-checked regression oracle for this class:
 its `divergent_registry_stabilizes_to_bottom` / `divergent_contract_certifies` are exactly the
 bottom-poisoned discharge this class must keep UNREACHABLE at the certificate level. (The pin is the
 critic's audit artifact and is NOT touched by this doc.) **NOT-STARTED — increment (ii) lands the
@@ -474,11 +474,11 @@ Obligation {
                                   //   queries (vacuity/equivalence/strengthen) are NOT minted as
                                   //   Obligations in v1 (they stay direct verus, OQ-5); the field
                                   //   is the seam that will carry their inverted/advisory roles.
-  ast_slice: ExprOrBlock,         // the parsed thermite-syntax node(s) — the SAME `source: &Expr`
+  ast_slice: ExprOrBlock,         // the parsed fluffy-syntax node(s) — the SAME `source: &Expr`
                                   //   / `body: &Block` the obligation.rs functions consume
   env:       ObligationEnv {      // the typing/env context — the prover-neutral generalization of
-                                  //   thermite-tv's ObligationFrame
-    params:        Vec<(Name, ThermiteType)>,   // free vars at their THERMITE types (not Verus
+                                  //   fluffy-tv's ObligationFrame
+    params:        Vec<(Name, FluffyType)>,   // free vars at their FLUFFY types (not Verus
                                                 //   strings) — the engine renders them
     req:           Option<ExprId>,              // the enclosing precondition (an AST node, not text)
     spec_defs:     Vec<SpecFnId>,               // the in-scope spec-fn / combinator defs (by id,
@@ -496,7 +496,7 @@ Obligation {
 
 The discriminator: today these bits exist only as the Verus STRINGS `obligation.rs` interleaves
 (`param_list()`, `spec_defs` verbatim, the `as nat` rewrite in `ref_ctx`). The artifact carries the
-PRE-rendering content (AST nodes + Thermite types + coercion flags), so an engine renders it into ITS
+PRE-rendering content (AST nodes + Fluffy types + coercion flags), so an engine renders it into ITS
 language — Verus text for the Verus engine (the existing `obligation.rs` rendering becomes the Verus
 engine's `render`), Lean source over the `Expr`/`Block` inductives for the Lean engine. This is the
 load-bearing inversion: the obligation stops being Verus-shaped. **SHIPPED — increment (i),
@@ -527,7 +527,7 @@ trait Engine {
 The first instance refactors Verus byte-identically EXCEPT the named REQ-3.1 fast-unknown remap
 (AC-2):
 
-- **FRAGMENT** = the whole frozen subset reachable via the lowering (everything `thermite_lower::
+- **FRAGMENT** = the whole frozen subset reachable via the lowering (everything `fluffy_lower::
   lower` + `run_verus` handle today: contracts, exec, straight-line bodies, v1 while, spec-fns,
   ADTs, the boundary/slag short-circuits stay engine-independent gates AHEAD of discharge). Verus
   ADMITS the REGISTRY_TERMINATION class (its dec-check is the common discharge path, REQ-1.2(a)).
@@ -551,15 +551,15 @@ The first instance refactors Verus byte-identically EXCEPT the named REQ-3.1 fas
   to `{Z3 soundness, S = intended meaning, Lean kernel}` per `Faithfulness.lean`). I.e. a Verus L3
   enumerates Z3 + the Verus VC generator + the per-run TV's Z3-trusted `h_tv` premise.
 - **EVIDENCE** = the content-addressed proof cache entry. The SHIPPED `cache_key` is
-  `{lowered source, seed, verus_version, thermite_version, CHECK_SCHEMA_VERSION}` (NOT a bare AST/env
+  `{lowered source, seed, verus_version, fluffy_version, CHECK_SCHEMA_VERSION}` (NOT a bare AST/env
   hash). The generalized `evidence_key` (F4) is `{obligation content, seed, ENGINE name,
-  ENGINE-TOOLCHAIN version, TARGETED-SPINE content hash, thermite_version, schema_version}` where:
+  ENGINE-TOOLCHAIN version, TARGETED-SPINE content hash, fluffy_version, schema_version}` where:
   - the ENGINE name is the new discriminator so a Verus proof and a Lean proof of the same item never
     collide;
   - the ENGINE-TOOLCHAIN version is `verus --version` for the Verus engine (the existing
     `verus_version` slot), and for a Lean engine it is the `lean-toolchain` rev + the `lake-manifest`
     revs (mathlib / Lean-SMT / cvc5) — the Lean analog the shipped key has NONE of;
-  - the TARGETED-SPINE content hash is the `lean/Thermite/` definitions the exported theorem
+  - the TARGETED-SPINE content hash is the `lean/Fluffy/` definitions the exported theorem
     INSTANTIATES (a content hash of the spine, or a pinned tag) — so a change to `Denote.lean`/
     `Exec/*` that the obligation depends on invalidates a cached `Proven`;
   - a toolchain OR spine bump therefore forces a universal MISS (matching the shipped
@@ -567,13 +567,13 @@ The first instance refactors Verus byte-identically EXCEPT the named REQ-3.1 fas
     HIT == a FRESH verify against the CURRENT semantics + toolchain (`cache.rs` REQ-2). CI replays
     evidence: on a toolchain/spine bump the affected cache entries MISS and the proofs re-run in CI
     (a hit skips replay, so the version axes — not CI alone — are what guarantees freshness). For
-    grounding: the SHIPPED `cache::cache_key(lowered_src, seed, verus_version, thermite_version)`
+    grounding: the SHIPPED `cache::cache_key(lowered_src, seed, verus_version, fluffy_version)`
     takes FOUR arguments and folds the `CHECK_SCHEMA_VERSION` constant in internally (`cache.rs`:
     "hashes the four args PLUS the `CHECK_SCHEMA_VERSION`"), so the shipped key composes FIVE inputs:
-    {lowered source, seed, verus_version, thermite_version, CHECK_SCHEMA_VERSION}. The generalized
+    {lowered source, seed, verus_version, fluffy_version, CHECK_SCHEMA_VERSION}. The generalized
     `evidence_key` (F4) likewise composes the verdict-determining inputs: the item/obligation content,
     the seed, the ENGINE name, the ENGINE-TOOLCHAIN version (the `verus_version` analog), the
-    TARGETED-SPINE content hash / pinned tag (the semantics version), the thermite_version, and the
+    TARGETED-SPINE content hash / pinned tag (the semantics version), the fluffy_version, and the
     obligation schema version.
 
 The Lean engine instantiates the same four slots (§4). **SHIPPED (Verus instance) — increment (i) built the
@@ -670,10 +670,10 @@ to a re-attempt, not to a silent certification.
 
 **The EXPORTER (REQ-6).** `forge` serializes an `Obligation` into a Lean theorem statement over the
 EXISTING spine encodings — the `Expr`/`Block` inductives + `denote`/`bodyDenote`/`loopDenote` in
-`lean/Thermite/`. The exporter emits Lean SOURCE that INSTANTIATES those definitions. Crucially the
+`lean/Fluffy/`. The exporter emits Lean SOURCE that INSTANTIATES those definitions. Crucially the
 exporter does NOT define a new semantics — it targets the already-kernel-proven `S`, so its
 faithfulness is the SAME correspondence class as the Rust↔Lean encoder correspondence: **arm-by-arm
-inspection** (each Thermite AST construct ↦ its `Expr` constructor, quoting both sides) **+ the
+inspection** (each Fluffy AST construct ↦ its `Expr` constructor, quoting both sides) **+ the
 deep-audit drift tripwire** (`scripts/audit.sh` check [4], the SHA-pinning discipline
 `rust-lean-correspondence.md` uses — any change to the exporter or the targeted spine arms
 invalidates the audit row and forces re-inspection). This is named here as a NEW trust item of that
@@ -687,8 +687,8 @@ supersedes the cycle-2 "fuel form").**
 The exported obligation is stated against a STABILIZATION RELATION, not a raw fuel index, and the
 RESULT value is bound THROUGH that relation, not at a concrete value. This is the
 load-bearing soundness choice, and the cycle-2 "∀ fuel ≥ fuel₀" form is RETIRED — it was FALSE for
-correct items. The correction credits the critic's kernel-checked pins `lean/Thermite/PinIntBottom.lean`
-(`obligation_form_is_false`, the #213 oracle) and `lean/Thermite/PinStabilization.lean` (Pin A, the
+correct items. The correction credits the critic's kernel-checked pins `lean/Fluffy/PinIntBottom.lean`
+(`obligation_form_is_false`, the #213 oracle) and `lean/Fluffy/PinStabilization.lean` (Pin A, the
 #214 oracle), which are KEPT as the regression oracles for this section (the new form must stay
 consistent with BOTH — see "consistency with the pins" below). Both pin files are the critic's audit
 artifacts and are NOT touched by this doc.
@@ -730,7 +730,7 @@ see the build-blocker note below) the stabilization relation, per-env, on the IN
 analogue on the Prop side:
 
 ```
--- the SPINE PREREQUISITE (increment (ii) lands this in lean/Thermite/, NOT yet built):
+-- the SPINE PREREQUISITE (increment (ii) lands this in lean/Fluffy/, NOT yet built):
 def stabilizes (e : Expr) (env : Env) (v : Int) : Prop :=
   ∃ N, ∀ fuel, fuel ≥ N → intVal fuel e env = v        -- the INT-position stabilized value
 
@@ -754,7 +754,7 @@ held fixed — see the registry hard gate below, which is UNCHANGED), is:
 
 ```
 -- the EXPORTED file fixes the registry concretely (UNCHANGED — see the hard gate below):
-def R_item : Thermite.Registry := fun name =>
+def R_item : Fluffy.Registry := fun name =>
   match name with
   | "spec_sum" => some { params := ["xs"], body := <Expr-encoding of spec_sum's real body> }
   | …          => …                       -- exactly calledSpecFns(item) (§4 hard gate: every
@@ -904,11 +904,11 @@ mechanisms, belt-and-suspenders:
    which the #226 finding made unsound: a `dec`-VALIDITY obligation DENOTES the measure against
    `R_item`, and an omitted measure-called spec-fn bottoms to the `intVal` Int-bottom `0`, so a
    non-well-founded source measure denotes to a fake-descending one and REGISTRY-TERMINATION falsely
-   discharges — `lean/Thermite/PinDecMeasure.lean`'s `closure_measure_strictly_descends` vs
+   discharges — `lean/Fluffy/PinDecMeasure.lean`'s `closure_measure_strictly_descends` vs
    `true_measure_never_descends`; and, on the contract side, the prior cycle-2 hole an omitted
    body-called spec-fn opened — it STABILIZES to the Int-bottom `0`, uniqueness forces `r = 0`, and a
    wrong contract `ens: result == 0` certifies kernel-clean,
-   `lean/Thermite/PinBodyRegistry.lean`'s `wrong_contract_certifies_under_body_omission`). Including
+   `lean/Fluffy/PinBodyRegistry.lean`'s `wrong_contract_certifies_under_body_omission`). Including
    the body AND every `dec` measure — transitively — in the reachability set is what closes both
    holes: the body-called or measure-called spec-fn is now in `calledSpecFns(item)`, so an omission
    FAILS this gate. Because the theorem holds `specs := R_item` fixed and carries NO resolution
@@ -928,9 +928,9 @@ mechanisms, belt-and-suspenders:
    refuse to compile.
 
 **The gate's regression oracles (the #224 + #226 pins — BOTH directions).**
-`lean/Thermite/PinBodyRegistry.lean` (the #224 oracle) is the kernel-checked regression oracle for the
+`lean/Fluffy/PinBodyRegistry.lean` (the #224 oracle) is the kernel-checked regression oracle for the
 BODY reach of the `req ∪ ens ∪ body ∪ dec(item)` reachability definition, and
-`lean/Thermite/PinDecMeasure.lean` (the #226 oracle, see §1.2) is the kernel-checked regression oracle
+`lean/Fluffy/PinDecMeasure.lean` (the #226 oracle, see §1.2) is the kernel-checked regression oracle
 for the MEASURE-POSITION reach (the `dec` clauses), both against the
 shipped spine (their `stabilizes`/`stabilizesProp` are copied VERBATIM from the §4 definition block):
 - **the omitted-registry form must be UNREACHABLE through the gate.** The pin's
@@ -994,7 +994,7 @@ named (not waved at) in §4.1. The doc STOPS presenting a unified S_C×S_E sketc
 
 The cycle-2 sketch wrote `Env.bindInt { … } "result" body` with `body` an item body — which does NOT
 typecheck against the spine: `Env.bindInt : Env → String → Int → Env` (`Denote.lean`) takes an `Int`,
-but a general item body is a `Block` denoting via `Thermite.Exec.bodyDenote : Block → State → Option
+but a general item body is a `Block` denoting via `Fluffy.Exec.bodyDenote : Block → State → Option
 ExecVal` (`Exec/Stmt.lean`) in the BOUNDED domain. Tying `S_C` (the contract `Env`) to `S_E`/`S_B`
 (the exec `State`) in one statement is a NOVELTY — the spine's own theorems relate `refDenote`/`denote`
 and `bodyRefState`/`bodyDenote` SEPARATELY; there is NO single artifact tying `S_C` and `S_E`/`S_B`
@@ -1077,7 +1077,7 @@ this `bodyStabilizes v = some r →` HYPOTHESIZE position.)
   proof lives at a deterministic path keyed on the item +
   the EVIDENCE KEY (§2(d): obligation content + engine + engine-toolchain version + the targeted
   spine content hash); STALENESS is defined as the EVIDENCE KEY changing — so a changed obligation,
-  a Lean-toolchain/mathlib/Lean-SMT bump, OR a change to the targeted `lean/Thermite/` spine
+  a Lean-toolchain/mathlib/Lean-SMT bump, OR a change to the targeted `lean/Fluffy/` spine
   definitions each INVALIDATE the proof, which must be re-authored, NEVER silently reused. This
   closes the F4 gap (an obligation-hash-only key would silently revalidate a proof after a toolchain
   or spine bump). This is the design's answer to the deferred Lean-style incremental holes (issue
@@ -1348,15 +1348,15 @@ Per increment (this doc's own ACs are statement-completeness, discharged by revi
   ONLY for recursive registries on the interactive path. A spec-fn-calling contract obligation with an
   under-fuelled body OR an omitted registry entry FAILS a vacuity-tripwire test (the
   obligation must NOT be provable by the below-`N` Int-`0`/Prop-`True` bottom — §4; the regression
-  oracles are `lean/Thermite/PinIntBottom.lean` (`obligation_form_is_false`, the #213 form),
-  `lean/Thermite/PinStabilization.lean` Pin A (`wrong_contract_certifies_with_underfuelled_rbody` must
+  oracles are `lean/Fluffy/PinIntBottom.lean` (`obligation_form_is_false`, the #213 form),
+  `lean/Fluffy/PinStabilization.lean` Pin A (`wrong_contract_certifies_with_underfuelled_rbody` must
   NOT be reachable once the result is bound through stabilization, the #214 form), AND
-  `lean/Thermite/PinBodyRegistry.lean` (the #224 gate oracle:
+  `lean/Fluffy/PinBodyRegistry.lean` (the #224 gate oracle:
   `wrong_contract_certifies_under_body_omission` must NOT be EXPORTABLE — the
   `req ∪ ens ∪ body ∪ dec(item)`
   transitive `calledSpecFns` puts the body-only spec-fn in `R_item`, so the gate refuses the
   omitted-registry form; `wrong_contract_fails_with_full_registry` shows the complete-registry
-  obligation correctly REFUSES the wrong contract), AND `lean/Thermite/PinDecMeasure.lean` (the #226
+  obligation correctly REFUSES the wrong contract), AND `lean/Fluffy/PinDecMeasure.lean` (the #226
   measure-position oracle: a `dec`-position spec-call must put its callee in `calledSpecFns(item)` so
   the descent obligation denotes the measure against the COMPLETE `R_item` —
   `closure_measure_strictly_descends` is the fake-descent a `t`-omitting `R_item` produces and must
@@ -1367,9 +1367,9 @@ Per increment (this doc's own ACs are statement-completeness, discharged by revi
   asserts `f(x)=f(x)` is REJECTED before any contract obligation certifies AND that a spec-fn called
   ONLY from a `dec` measure is in `R_item` so its measure is validity-checked against the real
   registry (the regression oracles are
-  `lean/Thermite/PinStabilization.lean` Pin B (`divergent_contract_certifies`) — that bottom-poisoned
+  `lean/Fluffy/PinStabilization.lean` Pin B (`divergent_contract_certifies`) — that bottom-poisoned
   discharge must NOT reach a certificate, blocked by the conjunction rule — AND
-  `lean/Thermite/PinDecMeasure.lean` Pin C (`closure_measure_strictly_descends` vs
+  `lean/Fluffy/PinDecMeasure.lean` Pin C (`closure_measure_strictly_descends` vs
   `true_measure_never_descends`) — the measure-position fake descent must NOT be exportable once the
   closure ranges over the dec clauses).
 - **(iii):** an injected Proven⊕Refuted disagreement HALTS (a test asserting the alarm fires, not a
@@ -1385,12 +1385,12 @@ Per increment (this doc's own ACs are statement-completeness, discharged by revi
 
 | REQ | Status | Evidence |
 |---|---|---|
-| REQ-1 (the Obligation artifact) | SHIPPED (increment (i), #204) | The prover-NEUTRAL artifact is built: `pub struct Obligation { item, class, role, ast_slice, env }` + `pub enum ObligationClass` (the FULL AC-1 union — CONTRACT/EXEC/BODY/LOOP-{entry,preservation,exit}/OVERFLOW/TERMINATION/REGISTRY-TERMINATION) + `pub enum ObligationRole` (CERTIFICATION; the §0.1 meta queries are NOT minted, OQ-5 seam) + `pub struct ObligationEnv`/`ObligationParam` carrying AST nodes + Thermite `Type`s + coercion flags (NO Verus strings), in `forge/src/obligation.rs`. Non-test consumer: `check::mint_item_obligations` mints the per-item set on the live L3 path; `engine::VerusEngine` consumes `&Obligation`. The artifact is a prover-neutral `Clone + Eq` VALUE (the `thermite-syntax` AST does not derive serde in production — adding it is outside the #204 manifest; wire serialization is increment (ii) when the Lean exporter serializes a Lean theorem string, not the raw AST). **REQ-1.2 (REGISTRY-TERMINATION) — SHIPPED (class assignment + the CORRECTED full-expression-position closure):** `ObligationClass::RegistryTermination` is minted (`Obligation::registry_termination`) for an item whose `check::reachable_spec_fn_names_full` (seed `req ∪ ens ∪ body ∪ dec(item)`, closure-step over each reached spec-fn's `body ∪ dec` — the #226 fix; `reachable_spec_fn_names_full_spec` is the spec-fn analogue) is non-empty; the forge-side closure mirror NOW walks the dec measures (the body-only omission of `reachable_spec_fn_deps` is corrected for the obligation closure). The Verus-path discharge is REQ-1.2(a) (Verus's dec-check on the woven sub-program); the Lean-path well-foundedness discharge + the per-item CONJUNCTION at the certificate level (REQ-1.1) + the exec-body bridge (§4.1) remain NOT-STARTED (increment (ii)/(iii)/(iv)). For history, the pre-#204 gap was: the content was SHIPPED only as transient Verus text: `pub fn equivalence_obligation` / `exec_equivalence_obligation` / `body_equivalence_obligation` / `loop_{entry,preservation,exit}_obligation` in `thermite-tv/src/obligation.rs` ("`thermite-tv` does NOT run verus itself: it emits the obligation TEXT") + `pub struct ObligationFrame` (the env/typing ctx). The prover-NEUTRAL artifact (AST slice + Thermite types + coercion flags + the `role` discriminator, pre-rendering) is unbuilt — that is the gap. The three §0.1 meta queries are scoped OUT (OQ-5). REQ-1.1 (the per-item CLASS-CONJUNCTION RULE — an item certifies only when EVERY class REQ-1 assigns it is discharged; the degrade ladder applies item-wide; #212(b)) + REQ-1.2 (the REGISTRY-TERMINATION class — for `calledSpecFns(item) ≠ ∅` (the #226 condition completing #224: the FULL-EXPRESSION-POSITION closure — seed `req ∪ ens ∪ body ∪ dec(item)`, step over each reached spec-fn's `body ∪ dec`, i.e. every expression the export denotes against `R_item` INCLUDING the termination measures, transitively — the SAME set the §4 hard gate populates `R_item` with), every spec-fn in `R_item` carries a dec-VALIDITY/well-foundedness obligation, conjoined item-wide; discharged by Verus's dec-check or a Lean well-foundedness proof; closes the #215 divergent-registry bottom-poisoning per Pin B AND the #226 measure-position bottom-poisoning per Pin C `lean/Thermite/PinDecMeasure.lean` — a `dec`-position spec-call omitted from `R_item` bottoms to `0` so a non-well-founded source measure denotes to a fake-descending one (`closure_measure_strictly_descends` vs `true_measure_never_descends`); the extended closure puts the measure-called spec-fn in `R_item` so the descent obligation denotes against the complete registry. The shipped forge closure `reachable_spec_fn_deps`/`collect_block_spec_fn_calls` (`forge/src/check.rs`) has the SAME body-only omission — recorded as a named increment-(i) work item (header build-blockers), load-bearing only for the NEW Lean exporter (the shipped Verus pipeline fails CLOSED on a missing dep)) + the exec-body bridge scoping (§4.1) are stated NORMATIVELY in §1.2/§4/§4.1 but likewise unbuilt — increment (iv) for the bridge, increment (i)/(iii) for the per-item conjunction at the certificate level, increment (ii) for the Lean-path registry-termination discharge. |
+| REQ-1 (the Obligation artifact) | SHIPPED (increment (i), #204) | The prover-NEUTRAL artifact is built: `pub struct Obligation { item, class, role, ast_slice, env }` + `pub enum ObligationClass` (the FULL AC-1 union — CONTRACT/EXEC/BODY/LOOP-{entry,preservation,exit}/OVERFLOW/TERMINATION/REGISTRY-TERMINATION) + `pub enum ObligationRole` (CERTIFICATION; the §0.1 meta queries are NOT minted, OQ-5 seam) + `pub struct ObligationEnv`/`ObligationParam` carrying AST nodes + Fluffy `Type`s + coercion flags (NO Verus strings), in `forge/src/obligation.rs`. Non-test consumer: `check::mint_item_obligations` mints the per-item set on the live L3 path; `engine::VerusEngine` consumes `&Obligation`. The artifact is a prover-neutral `Clone + Eq` VALUE (the `fluffy-syntax` AST does not derive serde in production — adding it is outside the #204 manifest; wire serialization is increment (ii) when the Lean exporter serializes a Lean theorem string, not the raw AST). **REQ-1.2 (REGISTRY-TERMINATION) — SHIPPED (class assignment + the CORRECTED full-expression-position closure):** `ObligationClass::RegistryTermination` is minted (`Obligation::registry_termination`) for an item whose `check::reachable_spec_fn_names_full` (seed `req ∪ ens ∪ body ∪ dec(item)`, closure-step over each reached spec-fn's `body ∪ dec` — the #226 fix; `reachable_spec_fn_names_full_spec` is the spec-fn analogue) is non-empty; the forge-side closure mirror NOW walks the dec measures (the body-only omission of `reachable_spec_fn_deps` is corrected for the obligation closure). The Verus-path discharge is REQ-1.2(a) (Verus's dec-check on the woven sub-program); the Lean-path well-foundedness discharge + the per-item CONJUNCTION at the certificate level (REQ-1.1) + the exec-body bridge (§4.1) remain NOT-STARTED (increment (ii)/(iii)/(iv)). For history, the pre-#204 gap was: the content was SHIPPED only as transient Verus text: `pub fn equivalence_obligation` / `exec_equivalence_obligation` / `body_equivalence_obligation` / `loop_{entry,preservation,exit}_obligation` in `fluffy-tv/src/obligation.rs` ("`fluffy-tv` does NOT run verus itself: it emits the obligation TEXT") + `pub struct ObligationFrame` (the env/typing ctx). The prover-NEUTRAL artifact (AST slice + Fluffy types + coercion flags + the `role` discriminator, pre-rendering) is unbuilt — that is the gap. The three §0.1 meta queries are scoped OUT (OQ-5). REQ-1.1 (the per-item CLASS-CONJUNCTION RULE — an item certifies only when EVERY class REQ-1 assigns it is discharged; the degrade ladder applies item-wide; #212(b)) + REQ-1.2 (the REGISTRY-TERMINATION class — for `calledSpecFns(item) ≠ ∅` (the #226 condition completing #224: the FULL-EXPRESSION-POSITION closure — seed `req ∪ ens ∪ body ∪ dec(item)`, step over each reached spec-fn's `body ∪ dec`, i.e. every expression the export denotes against `R_item` INCLUDING the termination measures, transitively — the SAME set the §4 hard gate populates `R_item` with), every spec-fn in `R_item` carries a dec-VALIDITY/well-foundedness obligation, conjoined item-wide; discharged by Verus's dec-check or a Lean well-foundedness proof; closes the #215 divergent-registry bottom-poisoning per Pin B AND the #226 measure-position bottom-poisoning per Pin C `lean/Fluffy/PinDecMeasure.lean` — a `dec`-position spec-call omitted from `R_item` bottoms to `0` so a non-well-founded source measure denotes to a fake-descending one (`closure_measure_strictly_descends` vs `true_measure_never_descends`); the extended closure puts the measure-called spec-fn in `R_item` so the descent obligation denotes against the complete registry. The shipped forge closure `reachable_spec_fn_deps`/`collect_block_spec_fn_calls` (`forge/src/check.rs`) has the SAME body-only omission — recorded as a named increment-(i) work item (header build-blockers), load-bearing only for the NEW Lean exporter (the shipped Verus pipeline fails CLOSED on a missing dep)) + the exec-body bridge scoping (§4.1) are stated NORMATIVELY in §1.2/§4/§4.1 but likewise unbuilt — increment (iv) for the bridge, increment (i)/(iii) for the per-item conjunction at the certificate level, increment (ii) for the Lean-path registry-termination discharge. |
 | REQ-2 (the Engine interface) | SHIPPED (Verus instance; increment (i), #204) | `pub trait Engine { name, fragment, discharge, trust_profile, evidence_key }` + `pub enum Verdict { Proven(Evidence) \| Refuted(Counterexample) \| Unknown(Reason) }` + `pub struct TrustProfile`/`Fragment`/`CacheKey` + `pub enum EngineName` in `forge/src/engine.rs`. `pub struct VerusEngine` fills all four slots (AC-2): FRAGMENT = the whole frozen subset (`admits_all_classes`, incl. RegistryTermination); DISCHARGE = `VerusEngine::verdict_of` lifting `classify_verus_outcome`'s three-way map to `Verdict` WITH the REQ-3.1 remap; TRUST PROFILE = {Z3, Verus VC-gen, TV/lowering theorem}; EVIDENCE = `engine_cache_key` composing the SHIPPED `cache::cache_key` hex with the engine discriminator (§2(d)). Non-test consumer: `check::ladder_for_timeout` routes the per-item L3 CERTIFICATION discharge through `VerusEngine` (selected via `default_engines`, gated via `fragment().admits`). The Lean engine (`LeanAuto`/`LeanInteractive`) is increment (ii), NOT-STARTED (forward-declared in the cache discriminator). |
 | REQ-3 (Unknown degrades / Refuted hard-fails, engine-generic) | SHIPPED (increment (i), #204) | `pub fn engine::verdict_ladder_action` maps an engine `Verdict` (for `role = Certification`) to the SHIPPED `degrade::L3Verdict`: `Proven` → `Proved` (CertifyL3); `Unknown` → `Timeout` (degrade via `run_ladder` → L2/L1); `Refuted` → `Counterexample` (HardFail, never degrades — generalizing `degrade::ladder_action_l3` off the word "verus"). The failure-WITHOUT-witness rule is `engine::counterexample_is_incompleteness_unknown` (the NARROW SMT-`unknown` signature). **REQ-3.1 (the fast-unknown remap) — SHIPPED:** `VerusEngine::verdict_of` splits `VerusOutcome::Counterexample` — ONLY a span-less failure carrying the SMT-`unknown` signal (no frontend `error[E`) → `Unknown(IncompleteUnknown)` (degrade, the SOLE behavioral delta — was a hard fail); a WITNESSED countermodel AND a FRONTEND type error (E0308 — e.g. the provenance `careless_query` un-typeable IFC path) stay `Refuted` (hard-fail → L0, unchanged). The remap is INERT on the conformance corpus: it contains witnessed failures + E0308 type-error rejections (which stay hard-fail) but NOT genuine SMT-`unknown`s, so every `conformance/*.cert.json` is byte-identical. Tests: `engine.rs` (`incompleteness_discriminator_is_narrow`, `type_error_counterexample_stays_refuted`, `witnessed_counterexample_stays_refuted`, `verdict_ladder_action_follows_req3`) + the cert-oracle identity (`forge/tests/engine_interface.rs`, incl. provenance L0). The Lean-re-attempt interaction with a failed spec-fn termination proof (REQ-1.2 Lean discharge) is increment (ii). |
-| REQ-4 (certificate attribution — per-obligation engine + trust profile) | NOT-STARTED | FUTURE (increment (iii)). The cert + honest-min are SHIPPED: `manifest::Certificate { level: Level, .. }`, `enum Level { L0, L1, L2, L3 }` (`#[derive(Ord)]`), `AssuranceManifest::aggregate → ProjectAssurance::Certified(min)` (VERUS-ANCHORED to `thermite_verified::aggregate_level`). NO per-obligation `{engine, trust_profile}` field exists; the additive-field precedent (`boundary`/`slag`/`lowered_assurance`/`assurance_scope`, all `#[serde(default)]`) is the schema model. The "smaller base" claim is along the named axes; the ordering formalization is OQ-3. |
+| REQ-4 (certificate attribution — per-obligation engine + trust profile) | NOT-STARTED | FUTURE (increment (iii)). The cert + honest-min are SHIPPED: `manifest::Certificate { level: Level, .. }`, `enum Level { L0, L1, L2, L3 }` (`#[derive(Ord)]`), `AssuranceManifest::aggregate → ProjectAssurance::Certified(min)` (VERUS-ANCHORED to `fluffy_verified::aggregate_level`). NO per-obligation `{engine, trust_profile}` field exists; the additive-field precedent (`boundary`/`slag`/`lowered_assurance`/`assurance_scope`, all `#[serde(default)]`) is the schema model. The "smaller base" claim is along the named axes; the ordering formalization is OQ-3. |
 | REQ-5 (engine disagreement = soundness alarm) | NOT-STARTED | FUTURE (increment (iii)). No second engine exists yet, so no disagreement path. The anti-cheat ANCESTOR is SHIPPED: a counterexample never degrades (`ladder_action_l3` → `HardFail`). The Proven⊕Refuted halt (vs benign Proven⊕Unknown), guarded against the REQ-3.1 fast-unknown spurious trigger, is unbuilt. |
-| REQ-6 (the Lean exporter) | NOT-STARTED | FUTURE (increment (ii)/(iv)). The TARGET is SHIPPED: `lean/Thermite/` mechanizes `S` (`denote`/`refDenote`/`Denote.lean`, `execDenote`/`Exec.lean`, `bodyDenote`/`Exec/Stmt.lean`, `loopDenote`+`while_rule`/`Exec/Loop.lean`) over the `Expr`/`Block` inductives, kernel-checked (axioms `{propext, Classical.choice, Quot.sound}`). Critically (#213, the critic's kernel-checked pin `lean/Thermite/PinIntBottom.lean`): `intVal` bottoms an INT-position `specCall` to `0` (`| none => 0` + fuel-0 catch-all `| _, _, _ => 0`), NOT to `True` — so the cycle-2 `∀ fuel ≥ fuel₀` form is FALSE for correct items (the pin's `obligation_form_is_false`) and is RETIRED. §4 RESTATES the obligation against a STABILIZATION relation (`stabilizes : Expr → Env → Int → Prop := ∃ N, ∀ fuel ≥ N, intVal fuel e env = v`, + the Prop analogue for `denote`): `∀ r, stabilizes body_expr env r → reqStable(env) → ensStable(env at r)`, per-env ∃-N (no global `fuel₀`, fixing the value-dependent-depth counterexample), with the RESULT value BOUND THROUGH stabilization (the #214 fix — Pin A's `wrong_contract_certifies_with_underfuelled_rbody` is now UNPROVABLE because uniqueness of stabilization forces `r` to the body's true value, `wrong_contract_fails_at_true_value`), `specs := R_item` held fixed + the export-time HARD GATE (refuse-to-emit + per-name `decide` lemmas) when `calledSpecFns(item) ⊄ dom(R_item)`, where `calledSpecFns(item)` is (the #226 fix completing #224) the FULL-EXPRESSION-POSITION closure — every spec-fn reachable from `req ∪ ens ∪ body ∪ dec(item)` TRANSITIVELY, closure-step over each reached spec-fn's `body ∪ dec` (NOT `req ∪ ens` only — the cycle-2 scope; nor `req ∪ ens ∪ body` only — the cycle-5 body-only scope: a `dec`-VALIDITY obligation denotes the measure against `R_item`, and an omitted measure-called spec-fn bottoms to the Int-bottom `0` so a non-well-founded source measure denotes to a fake-descending one — the critic's pin `lean/Thermite/PinDecMeasure.lean`'s `closure_measure_strictly_descends` vs `true_measure_never_descends`; likewise an omitted body-called spec-fn stabilizes to `0`, uniqueness forces `r = 0`, and `ens: result == 0` certifies kernel-clean — `lean/Thermite/PinBodyRegistry.lean`'s `wrong_contract_certifies_under_body_omission`, REFUTED with the full registry by `wrong_contract_fails_with_full_registry`) — no resolution PREMISE. SCOPED to the PURE-CONTRACT class (§4.1: the exec-body S_C×S_E/S_B bridge — value bridge, bool sort, optres, env→State — is increment (iv)'s own design obligation). The SPINE PREREQUISITES (increment (ii), NOT yet built): `stabilizes` + `stabilization_exists_for_dec_bounded` + uniqueness-of-stabilization (#214) + the FUEL-IRRELEVANCE lemma (#216) + the REGISTRY-TERMINATION discharge (#215). The Rust→Lean exporter that emits source instantiating those (with EXP = arm-by-arm + drift-tripwire + registry-body faithfulness) is unbuilt; the z3-demotion doc names it "the #185-adjacent correspondence-bridge work … NOT built." |
+| REQ-6 (the Lean exporter) | NOT-STARTED | FUTURE (increment (ii)/(iv)). The TARGET is SHIPPED: `lean/Fluffy/` mechanizes `S` (`denote`/`refDenote`/`Denote.lean`, `execDenote`/`Exec.lean`, `bodyDenote`/`Exec/Stmt.lean`, `loopDenote`+`while_rule`/`Exec/Loop.lean`) over the `Expr`/`Block` inductives, kernel-checked (axioms `{propext, Classical.choice, Quot.sound}`). Critically (#213, the critic's kernel-checked pin `lean/Fluffy/PinIntBottom.lean`): `intVal` bottoms an INT-position `specCall` to `0` (`| none => 0` + fuel-0 catch-all `| _, _, _ => 0`), NOT to `True` — so the cycle-2 `∀ fuel ≥ fuel₀` form is FALSE for correct items (the pin's `obligation_form_is_false`) and is RETIRED. §4 RESTATES the obligation against a STABILIZATION relation (`stabilizes : Expr → Env → Int → Prop := ∃ N, ∀ fuel ≥ N, intVal fuel e env = v`, + the Prop analogue for `denote`): `∀ r, stabilizes body_expr env r → reqStable(env) → ensStable(env at r)`, per-env ∃-N (no global `fuel₀`, fixing the value-dependent-depth counterexample), with the RESULT value BOUND THROUGH stabilization (the #214 fix — Pin A's `wrong_contract_certifies_with_underfuelled_rbody` is now UNPROVABLE because uniqueness of stabilization forces `r` to the body's true value, `wrong_contract_fails_at_true_value`), `specs := R_item` held fixed + the export-time HARD GATE (refuse-to-emit + per-name `decide` lemmas) when `calledSpecFns(item) ⊄ dom(R_item)`, where `calledSpecFns(item)` is (the #226 fix completing #224) the FULL-EXPRESSION-POSITION closure — every spec-fn reachable from `req ∪ ens ∪ body ∪ dec(item)` TRANSITIVELY, closure-step over each reached spec-fn's `body ∪ dec` (NOT `req ∪ ens` only — the cycle-2 scope; nor `req ∪ ens ∪ body` only — the cycle-5 body-only scope: a `dec`-VALIDITY obligation denotes the measure against `R_item`, and an omitted measure-called spec-fn bottoms to the Int-bottom `0` so a non-well-founded source measure denotes to a fake-descending one — the critic's pin `lean/Fluffy/PinDecMeasure.lean`'s `closure_measure_strictly_descends` vs `true_measure_never_descends`; likewise an omitted body-called spec-fn stabilizes to `0`, uniqueness forces `r = 0`, and `ens: result == 0` certifies kernel-clean — `lean/Fluffy/PinBodyRegistry.lean`'s `wrong_contract_certifies_under_body_omission`, REFUTED with the full registry by `wrong_contract_fails_with_full_registry`) — no resolution PREMISE. SCOPED to the PURE-CONTRACT class (§4.1: the exec-body S_C×S_E/S_B bridge — value bridge, bool sort, optres, env→State — is increment (iv)'s own design obligation). The SPINE PREREQUISITES (increment (ii), NOT yet built): `stabilizes` + `stabilization_exists_for_dec_bounded` + uniqueness-of-stabilization (#214) + the FUEL-IRRELEVANCE lemma (#216) + the REGISTRY-TERMINATION discharge (#215). The Rust→Lean exporter that emits source instantiating those (with EXP = arm-by-arm + drift-tripwire + registry-body faithfulness) is unbuilt; the z3-demotion doc names it "the #185-adjacent correspondence-bridge work … NOT built." |
 | REQ-7 (Lean discharge modes + termination) | NOT-STARTED | FUTURE (increment (ii)/(iii)). The AUTO fragment is PROVEN-REACHABLE: `z3-demotion.md` shows `tv_obligation_arith_cmp`/`tv_obligation_or_le` (scalar/QF-linear contract clauses) discharged by Lean-SMT's `smt` tactic, kernel-clean (`#print axioms` = standard set only; no `sorryAx`/cvc5 oracle) — and these are SHALLOW QF goals with NO `denote`/`stabilizesProp` wrapper. §6.1 reconciles the deep-embedded §4 form to that grounding via the THREE-TIER export story (#216): (a) FUEL-FREE export for specCall-free obligations via the `intVal_fuel_irrelevant`/`denote_fuel_irrelevant` lemma (`stabilizesProp e env ↔ denote 0 e env` for specCall-free `e`) — the auto fragment's actual fuel-free shallow shape, matching the PoC; (b) STATIC UNFOLDING of non-recursive registries to finite depth, again yielding fuel-free goals; (c) the `∃N∀fuel` stabilization form reserved for RECURSIVE registries on the INTERACTIVE path only (the per-env `∃N` witness needs induction). The interactive/proof-artifact mode (staleness = the §2(d) EVIDENCE KEY changing: obligation + engine + engine-toolchain version + targeted-spine content hash) + the `dec`/partial-correctness termination policy (tied to the SHIPPED `while_rule` `h_run` premise) + the REGISTRY-TERMINATION class (#215, REQ-1.2) are unbuilt. |
 | REQ-8 (engine ordering + ladder placement) | SHIPPED (Verus rung; increment (i), #204) | `pub fn engine::default_engines` returns the ordered engine list (Verus first); `check::ladder_for_timeout` reads the first rung (Verus) before the SHIPPED L2/L1 degrade. Increment (i) wires the ordering hook with the single Verus rung. The Lean-auto / Lean-interactive rungs, the `--engine lean` / `#[engine(lean)]` surface (OQ-1), and the per-engine SKIP/Unknown accounting are NOT-STARTED (increment (ii)). |
 | REQ-9 (engine-generic anti-Goodhart battery, honest v1) | NOT-STARTED | FUTURE (increment (iii)). The battery is SHIPPED Verus-only: `forge::check::mutation_score` generates mutants + re-`run_verus`es each through the #8 cache; its kill rule is "a `Proved` mutant SURVIVED; a `Counterexample` / `Timeout` mutant is KILLED" (`mutant_outcome_is_survivor = matches!(Proved)`; `mutation.rs` REQ-4 "Killed (counterexample / timeout)"); and each SURVIVOR is run through the #101 `equivalence_proves_equal` query — a proven-equivalent survivor is excluded from BOTH the survivor set AND `scored` (`if proved_equivalent { equivalent += 1; continue; }`, "REQ-2/REQ-4: excluded from BOTH the survivor set AND `scored`"), so the SHIPPED `scored` = attempted MINUS proven-equivalent. OQ-5 already DROPS un-lowerable mutants from the denominator. The engine-generic kill (`Refuted ∪ Unknown-after-attempt`, = the shipped `Counterexample ∪ Timeout`), the "untested = never-attempted" rule (now including recursive-registry obligations that only the §6 tier-(c) interactive path admits), the #101-preserving floor (survivor/denominator both MINUS proven-equivalent; the equivalence probe a §0.1 meta-query outside the Engine interface, F3), and the floor guards (minimum-attempted qualifier + the 0/0 backstop) are unbuilt. |
@@ -1402,7 +1402,7 @@ These are deliberately left OPEN for a second designer (the orchestrator intends
 - **OQ-1 (the engine-annotation surface syntax).** `forge check --engine lean` (whole-file default
   override) vs a per-item `#[engine(lean)]` attribute (this-function-wants-the-smaller-base) — or
   both, with a precedence rule. The per-item form is sketched as preferred but not decided; it
-  interacts with §4.4's "what Thermite removes from Rust" (one-way-to-do-everything, §2.3 — a new
+  interacts with §4.4's "what Fluffy removes from Rust" (one-way-to-do-everything, §2.3 — a new
   attribute is surface area that must justify itself).
 - **OQ-2 (does the trust-profile attribution join the cert oracle?).** REQ-4's `{engine,
   trust_profile}` is verdict-relevant (the trust base IS the deliverable, §1), arguing for

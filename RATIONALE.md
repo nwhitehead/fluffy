@@ -38,16 +38,16 @@ vocabulary, what the code and the `.design/` docs already establish.
 (Meyer/Eiffel) realized as machine-checked **Hoare logic** (Hoare 1969;
 modern push-button precedent: Dafny, Verus, F*). `req` is the precondition, `ens`
 the postcondition (over a distinguished `result` binding and the function's
-parameters; Thermite has no `old(_)` pre-state construct, and the spec grammar
+parameters; Fluffy has no `old(_)` pre-state construct, and the spec grammar
 exposes `result` plus the in-scope parameters and nothing more), and `fx` is an
-**effect row** (its own entry below). Thermite's departure from the lineage is
+**effect row** (its own entry below). Fluffy's departure from the lineage is
 that all three are **mandatory syntax**: omitting one is a compile error rather
 than a lint.
 
 **Mechanism.** The contract is parsed into `Contract { req, ens, fx }` clauses
-(`thermite-syntax/src/ast.rs`); `thermite-spec`'s `validate` (`validator.rs`)
+(`fluffy-syntax/src/ast.rs`); `fluffy-spec`'s `validate` (`validator.rs`)
 enforces that every contract-position expression stays inside the frozen
-sublanguage; `thermite-lower` lowers `req`/`ens` to Verus `requires`/`ensures`
+sublanguage; `fluffy-lower` lowers `req`/`ens` to Verus `requires`/`ensures`
 and `fx` to a compile-time subsumption check (`effects.rs`) plus a runtime
 sandbox (`forge/src/sandbox.rs`). See
 [`.design/spec/spectherm-combinators.md`](.design/spec/spectherm-combinators.md),
@@ -56,7 +56,7 @@ sandbox (`forge/src/sandbox.rs`). See
 **Why this design.** The alternative, contracts as optional annotations, is what
 every prior contract system chose, and it is why they did not change behaviour at
 scale: the path of least resistance is to write no contract, so most code carries
-none, so the guarantee is opt-in and therefore absent where it matters. Thermite's
+none, so the guarantee is opt-in and therefore absent where it matters. Fluffy's
 bet (README "The problem") is that AI agents flip the keystroke economics, so the
 tool can afford to make the strict path the *only* path. Mandatory contracts are
 the anti-Goodhart precondition: a tool that grades contract strength (the battery,
@@ -67,7 +67,7 @@ at all. Making the contract mandatory closes that escape before the battery runs
 intent*: `ens` can be mechanically satisfiable yet say the wrong thing (`ens true`
 is the degenerate case). Mandatoriness buys presence rather than meaning; the
 battery (below) attacks the weak-but-present case, and the gap between the formal
-spec and the human's actual intent is the irreducible residual (`thermite-design.md`
+spec and the human's actual intent is the irreducible residual (`fluffy-design.md`
 §1 "spec-intent alignment," never machine-closed).
 
 **Direction.** Strengthening probes (§7 step 5,
@@ -195,7 +195,7 @@ boundary, with no trusted supervisor process and minimal runtime cost.
 - **Memory safety is not this layer's job**; that is Rust's borrow checker /
   LLVM (the target's responsibility, the RustBelt/Stacked Borrows boundary,
   SOTA finding #7).
-- **Pure Thermite never *triggers* it.** A pure program issues no disallowed
+- **Pure Fluffy never *triggers* it.** A pure program issues no disallowed
   syscall, so the filter never fires; the cage's value is confining
   `#[boundary]`/`#[slag]` foreign bodies to their declared `fx`, plus a
   defense-in-depth backstop against a miscompilation. Demonstrated by an explicit
@@ -392,12 +392,12 @@ of restricting to a decidable/automatable fragment is standard (the "cage = a
 decidability/automation lever," SOTA finding #4); the *specific* frozen-trigger
 combinator set is a project extension (below).
 
-**Mechanism.** `thermite-spec/src/combinators.rs` ships the frozen registry
+**Mechanism.** `fluffy-spec/src/combinators.rs` ships the frozen registry
 (`sorted`, `forall_in`, `exists_in`, `count_where`, `permutation_of`, `disjoint`,
 `forall_below`, `forall_from`), each with a name, arity, ordered `ArgKind`s
 (`Slice`/`Index`/`Pred`/`Value`), result kind, and a frozen `verus_l3` quantifier
 body carrying a pinned `#[trigger]` (e.g. `forall_in(s,p) == forall|i| 0 <= i <
-s.len() ==> #[trigger] p(s[i])`). `thermite-spec/src/validator.rs` (`validate`)
+s.len() ==> #[trigger] p(s[i])`). `fluffy-spec/src/validator.rs` (`validate`)
 enforces that contracts use *only* registered combinators (right name/arity/
 arg-kinds), declared `spec fn` calls, and grammar built-ins, and that a
 combinator's predicate-closure body is a **flat predicate** (no anonymous nested
@@ -453,13 +453,13 @@ sandbox). The README's "what I'm allowed to touch."
 
 **Mechanism.** `enum Effect { Read(p), Write(p), Net(d), Alloc, Time, Rand,
 Panic, Diverge, Term }` and `enum EffectRow { Pure, Set(...) }`
-(`thermite-syntax/src/ast.rs`). `thermite-lower/src/effects.rs` projects a row to
+(`fluffy-syntax/src/ast.rs`). `fluffy-lower/src/effects.rs` projects a row to
 `EffectKind` atoms (`effects`), and `pub fn subsumes` enforces the rule *a
 caller's row must subsume every callee's row* (`effects(callee) ⊆
 effects(caller)`; `Pure` subsumes only `Pure`); `check_effects` walks every call
 site, emitting `LowerError::EffectNotSubsumed { caller, callee, missing, span }`
 on a violation. The subset test is delegated to the Verus-verified
-`thermite_verified::subsumes_masks` (a 9-atom `u16` bitset, proved, then
+`fluffy_verified::subsumes_masks` (a 9-atom `u16` bitset, proved, then
 cross-checked over all 512×512 mask pairs). At runtime the *same* row drives the
 seccomp allowlist (`transitive_fx` → `syscall_allowlist`, the cage entry above).
 See [`.design/lower/effect-subsumption.md`](.design/lower/effect-subsumption.md).
@@ -504,13 +504,13 @@ faithful:
   sound* in **Lean 4**, lifting the per-run check to a *universal* **semantic
   preservation** guarantee (`S ≈ C`, stated as a forward simulation).
 
-**Mechanism.** Per run: `thermite-tv`'s `equivalence_obligation` family
-(`thermite-tv/src/obligation.rs`) emits a self-contained Verus program asserting
+**Mechanism.** Per run: `fluffy-tv`'s `equivalence_obligation` family
+(`fluffy-tv/src/obligation.rs`) emits a self-contained Verus program asserting
 `(P_production) <==> (P_reference)`, where `P_reference` comes from the
 independent reference encoders (`ref_encode.rs` / `exec_encode.rs` /
 `exec_stmt_encode.rs`), forbidden by the build from sharing code with the
 production lowerer; Z3 must prove both translations equivalent on every check.
-Once and for all: the `lean/Thermite/` spine proves those reference encoders
+Once and for all: the `lean/Fluffy/` spine proves those reference encoders
 denotation-faithful against a mechanized semantics `S` (`theorem ref_sound` /
 `ref_sound_eq` (`Soundness.lean`), `exec_ref_sound` (`Exec.lean`),
 `body_ref_sound` (`Exec/Stmt.lean`), the partial-correctness `while_rule`
@@ -518,7 +518,7 @@ denotation-faithful against a mechanized semantics `S` (`theorem ref_sound` /
 (`Faithfulness.lean`). The Rust encoders are tied to their Lean models by an
 arm-by-arm inspection audit with pinned commits
 ([`.design/verified/rust-lean-correspondence.md`](.design/verified/rust-lean-correspondence.md)).
-See [`.design/verified/thermite-semantics.md`](.design/verified/thermite-semantics.md).
+See [`.design/verified/fluffy-semantics.md`](.design/verified/fluffy-semantics.md).
 
 **What is proven, precisely (and what is not).** The Lean spine proves (T1) the
 reference encoder is sound against `S` (`∀ P, ⟦R(P)⟧ = ⟦P⟧_S`) and composes it
@@ -545,8 +545,8 @@ five-item residual-trust block; the checker the spine itself leans on is item 1)
    axiom).
 2. **Z3 / Verus soundness**: the per-run TV equivalence is `Z3 ⊢ lower(P) ⟺
    R(P)`; if Z3 is unsound on a query, (T2) inherits it. This is the floor of any
-   SMT-discharged result rather than a Thermite-specific gap.
-3. **`S` agrees with the *intended* meaning of Thermite**: the most delicate
+   SMT-discharged result rather than a Fluffy-specific gap.
+3. **`S` agrees with the *intended* meaning of Fluffy**: the most delicate
    item, an unprovable-from-within assumption (Gödel; the §1 spec-intent slot).
    `S` is human-audited; its auditability is the design goal.
 4. **The Rust↔Lean encoder correspondence**: that the *Rust* encoders match the
@@ -557,7 +557,7 @@ five-item residual-trust block; the checker the spine itself leans on is item 1)
 
 **Z3 demotion (the path to shrink residual 2).** The route to demote Z3 from
 *trusted* to *kernel-checked* is **proof-producing SMT + reconstruction**
-(Lean-SMT's cvc5 path, SOTA finding #8). `lean/Thermite/SmtDemo.lean` is a
+(Lean-SMT's cvc5 path, SOTA finding #8). `lean/Fluffy/SmtDemo.lean` is a
 **proven proof-of-concept**: two *real* per-run TV equivalence obligations over
 the scalar/QF-linear-integer contract fragment were re-discharged by cvc5 and
 **kernel-checked** with the standard axioms only (`#print axioms` → `{propext,
@@ -573,9 +573,9 @@ upstream-maturation items rather than feasibility ones, documented in
 **Why Lean 4 (and not Coq / Isabelle / Verus-native).** The live route to demote
 Z3 is proof reconstruction, and Lean-SMT (cvc5 reconstruction into the Lean
 kernel) is the maturing path to it; that TCB-shrink lever drove the choice over
-Coq/Isabelle (`thermite-semantics.md` REQ-5). Verus-native meta-theory was
+Coq/Isabelle (`fluffy-semantics.md` REQ-5). Verus-native meta-theory was
 rejected because it would re-trust the very Z3 the spine exists to be auditable
-*against* (the meaning of Thermite is defined by the Lean semantics rather than by
+*against* (the meaning of Fluffy is defined by the Lean semantics rather than by
 Verus; Verus is the first proof engine, proven faithful, rather than the
 foundation).
 
@@ -586,7 +586,7 @@ checker/LLVM, and the source-semantics-agreement assumption stay inherited
 proof; the v1 `while` rule is *partial* correctness (termination is the per-run
 Verus `decreases` residual). Loops beyond v1 `while`, `break`/`continue`,
 multi-exit early `return`, nested loops, and non-scalar mutation `xs[i]=e` are
-out of the proven fragment (`thermite-semantics.md` coverage section).
+out of the proven fragment (`fluffy-semantics.md` coverage section).
 
 **Direction.** Full Z3 demotion (upstream-gated), the Lean→Rust extraction bridge
 (to upgrade residual 4, the Rust↔Lean correspondence, from inspection to
@@ -604,7 +604,7 @@ Agda/Idris interactive-hole and Lean `sorry`-with-goals lineage. A `?N` marks an
 unfinished body position; the REPL shows what is given and what must be achieved.
 
 **Mechanism.** The lexer emits `TokKind::Hole(N)` for `?<digits>`
-(`thermite-syntax/src/lexer.rs`); the parser accepts it *only* in fn-body
+(`fluffy-syntax/src/lexer.rs`); the parser accepts it *only* in fn-body
 statement position (a `?N` in a spec clause / expression / `spec fn` is a
 structured `SyntaxError`, never a panic), recording `FnItem.holes`. `forge
 goal <item>` (`goal_repl::render_goal`) renders the §5.1 four-part view
@@ -637,23 +637,23 @@ are future work; the goal REPL is the v0.1 surface of the §5.1 dialogue.
 
 ## The frozen subset (the central design *why*)
 
-**Definition.** Thermite is a deliberately **small, frozen language**: a fixed
+**Definition.** Fluffy is a deliberately **small, frozen language**: a fixed
 sublanguage of constructs (the eight combinators, a bounded exec expression set,
 straight-line bodies + v1 `while`, `dec`-measured spec functions, the nine effect
 atoms). CakeML's "end-to-end verified compilation of a real language, but only
 over a *fixed subset*" (POPL'14, SOTA finding #5) is the existence proof that a
 frozen subset can be carried to a universal correctness theorem.
 
-**Mechanism.** The freeze is enforced at every layer: `thermite-spec`'s validator
+**Mechanism.** The freeze is enforced at every layer: `fluffy-spec`'s validator
 rejects out-of-cage contracts; the reference encoders return `Err`
 (`RefEncodeError::Unsupported`) on any node outside the subset; the Lean `Expr` /
-`Block` inductives (`lean/Thermite/Ast.lean`) model *exactly* the frozen subset;
-the skill (`THERMITE.skill.md`) is regenerated from the registry and CI-gated so
+`Block` inductives (`lean/Fluffy/Ast.lean`) model *exactly* the frozen subset;
+the skill (`FLUFFY.skill.md`) is regenerated from the registry and CI-gated so
 a new construct without a skill entry is a compile error. The denotation domain
 of `S` is precisely the union of the three encoders' admitted-node sets
-(`thermite-semantics.md` AC-1).
+(`fluffy-semantics.md` AC-1).
 
-**Why this is THE central design why.** The strong properties of Thermite are
+**Why this is THE central design why.** The strong properties of Fluffy are
 *purchased* by the weakening. The direct answer to "what does the restriction add"
 is that the machine-checked soundness proof was only completable because the
 fragment is frozen and finite.
@@ -679,7 +679,7 @@ purchases the proof.
 **Limits / failure modes.** The frozen subset is genuinely less expressive than a
 general language; constructs outside it (user-ADT `match`/`is` in the *proven*
 fragment, multi-exit control flow, non-scalar mutation, nested loops) are out
-(`thermite-semantics.md` coverage; README "Deferred (tracked)"). Growing the
+(`fluffy-semantics.md` coverage; README "Deferred (tracked)"). Growing the
 language is a deliberate, RFC-gated, proof-extending act rather than a free
 addition.
 
@@ -697,7 +697,7 @@ OS-less library build profile, the road toward a verified microkernel (§13).
 
 **Mechanism.** A codegen-profile fork of `forge build` (`forge/src/build.rs`,
 `enum BuildTarget { Std, Kernel }`): emits a `#![no_std]` + `extern crate alloc;`
-rlib (`--crate-type=rlib -C panic=abort`), reusing `thermite_lower::lower_l1`'s
+rlib (`--crate-type=rlib -C panic=abort`), reusing `fluffy_lower::lower_l1`'s
 output verbatim (the L1 checks + `TString`/`TVec`/`TMap` wrappers resolve against
 `alloc`), with **no** `main` and **no** seccomp sandbox. It adds one new reject:
 `reject_ambient_fx_for_kernel` scans every function's `transitive_fx` for
@@ -792,7 +792,7 @@ and check [1]'s coverage grows.
   [`.design/verified/rust-lean-correspondence.md`](.design/verified/rust-lean-correspondence.md)
   REQ-2.
 - **The microkernel**: the kernel target's destination, a verified, OS-less
-  microkernel linked from proven Thermite rlibs (§13).
+  microkernel linked from proven Fluffy rlibs (§13).
   [`.design/build/kernel-target.md`](.design/build/kernel-target.md).
 
 ---

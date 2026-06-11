@@ -83,7 +83,7 @@ fn check_json(path: &Path) -> Vec<Value> {
 /// `{ "name": "len_list", "level": "L3" }`, `{ "name": "sum_list", "level":
 /// "L3" }`, `{ "name": "all_positive", "level": "L3" }` (three distinct items).
 /// `.design/basis/02-recursion-schemes.md` AC-1 ("a fold scheme … certifies
-/// L3", per the named instance) and `thermite-design.md` §6 ("the certificate …
+/// L3", per the named instance) and `fluffy-design.md` §6 ("the certificate …
 /// lists every function's level") + §5.3 (per-item isolated sub-program). A
 /// certificate whose `item` field is a NEIGHBOR's name violates the §6
 /// per-function manifest contract (`goal.md` R-SPEC-2 — the cert is a contract).
